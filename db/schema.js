@@ -86,6 +86,15 @@ export const campaigns = pgTable("campaigns", {
   platform: text("platform").notNull().default("any"), // any|tiktok|instagram|youtube|x
   reward: integer("reward").notNull().default(0), // dollars per approved post
   status: text("status").notNull().default("active"), // active|paused|ended
+  // GIMI-style rich fields
+  submitType: text("submit_type").default("distribution"), // distribution | source
+  requirements: text("requirements"), // must-include (e.g. #hashtag, @mention, link)
+  contentType: text("content_type").default("ugc"), // ugc | edit | ai | open
+  assetsUrl: text("assets_url"), // cloud/Drive link to logos, examples, inspirations
+  visibility: text("visibility").default("public"), // public | private
+  showContributions: text("show_contributions").default("yes"), // yes | no
+  thumbnailUrl: text("thumbnail_url"), // campaign card image
+  bannerUrl: text("banner_url"), // campaign detail hero image
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 

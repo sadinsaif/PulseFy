@@ -35,6 +35,9 @@ export async function GET(req) {
         reward: campaigns.reward,
         status: campaigns.status,
         createdAt: campaigns.createdAt,
+        contentType: campaigns.contentType,
+        visibility: campaigns.visibility,
+        thumbnailUrl: campaigns.thumbnailUrl,
         brandName: users.name,
         submissionCount: subCount,
       })
@@ -52,12 +55,15 @@ export async function GET(req) {
         reward: campaigns.reward,
         status: campaigns.status,
         createdAt: campaigns.createdAt,
+        contentType: campaigns.contentType,
+        visibility: campaigns.visibility,
+        thumbnailUrl: campaigns.thumbnailUrl,
         brandName: users.name,
         submissionCount: subCount,
       })
       .from(campaigns)
       .leftJoin(users, eq(campaigns.brandId, users.id))
-      .where(eq(campaigns.status, "active"))
+      .where(sql`${campaigns.status} = 'active' and ${campaigns.visibility} is distinct from 'private'`)
       .orderBy(desc(campaigns.createdAt));
   }
 
@@ -97,7 +103,20 @@ export async function POST(req) {
     );
   }
 
-  const { title, brief, platform, reward } = parsed.data;
+  const {
+    title,
+    brief,
+    platform,
+    reward,
+    submitType,
+    requirements,
+    contentType,
+    assetsUrl,
+    visibility,
+    showContributions,
+    thumbnailUrl,
+    bannerUrl,
+  } = parsed.data;
 
   const inserted = await db
     .insert(campaigns)
@@ -107,6 +126,14 @@ export async function POST(req) {
       brief: brief ? brief.trim() : null,
       platform,
       reward,
+      submitType,
+      requirements: requirements ? requirements.trim() : null,
+      contentType,
+      assetsUrl: assetsUrl || null,
+      visibility,
+      showContributions,
+      thumbnailUrl: thumbnailUrl || null,
+      bannerUrl: bannerUrl || null,
     })
     .returning();
 

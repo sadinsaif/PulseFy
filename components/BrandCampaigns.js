@@ -2,30 +2,25 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import RichCampaignForm from "@/components/RichCampaignForm";
 
-const PLATFORMS = [
-  { value: "any", label: "Any platform" },
-  { value: "tiktok", label: "🎵 TikTok" },
-  { value: "instagram", label: "📸 Instagram" },
-  { value: "youtube", label: "▶️ YouTube" },
-  { value: "x", label: "𝕏 X" },
-];
-const PLABEL = Object.fromEntries(PLATFORMS.map((p) => [p.value, p.label]));
+const PLABEL = {
+  any: "Any platform",
+  tiktok: "🎵 TikTok",
+  instagram: "📸 Instagram",
+  youtube: "▶️ YouTube",
+  x: "𝕏 X",
+};
 const STATUS_CLASS = { active: "live", paused: "review", ended: "ended" };
 
-const EMPTY = { title: "", brief: "", platform: "any", reward: "" };
-
 /**
- * Brand view of /dashboard/campaigns — create a campaign and manage the ones
- * you own (pause / resume / end), with a live submission count and a link to
- * review incoming clips.
+ * Brand view of /dashboard/campaigns — create a campaign with a GIMI-style
+ * rich form, and manage the ones you own (pause / resume / end), with a live
+ * submission count and a link to review incoming clips.
  */
 export default function BrandCampaigns() {
   const [rows, setRows] = useState(null);
-  const [form, setForm] = useState(EMPTY);
   const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
 
   async function load() {
     try {
@@ -96,55 +91,13 @@ export default function BrandCampaigns() {
         </div>
 
         {showForm && (
-          <form onSubmit={create} className="profile-form" style={{ marginTop: 14 }}>
-            {err && <div className="alert err">{err}</div>}
-            <div className="field">
-              <label>Campaign title</label>
-              <input
-                value={form.title}
-                placeholder="Summer Product Launch"
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                required
-              />
-            </div>
-            <div className="field">
-              <label>Brief — what should creators make?</label>
-              <textarea
-                rows={3}
-                value={form.brief}
-                placeholder="Show our product in a 15–30s clip, tag @brand, be fun…"
-                onChange={(e) => setForm({ ...form, brief: e.target.value })}
-              />
-            </div>
-            <div className="two-col">
-              <div className="field">
-                <label>Platform</label>
-                <select
-                  value={form.platform}
-                  onChange={(e) => setForm({ ...form, platform: e.target.value })}
-                >
-                  {PLATFORMS.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label>Reward per approved post ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.reward}
-                  placeholder="50"
-                  onChange={(e) => setForm({ ...form, reward: e.target.value })}
-                />
-              </div>
-            </div>
-            <button className="btn btn-primary" disabled={saving}>
-              {saving ? "Creating…" : "Launch campaign"}
-            </button>
-          </form>
+          <RichCampaignForm
+            onCancel={() => setShowForm(false)}
+            onSuccess={() => {
+              setShowForm(false);
+              load();
+            }}
+          />
         )}
       </div>
 

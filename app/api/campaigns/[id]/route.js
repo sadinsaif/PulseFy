@@ -27,6 +27,14 @@ export async function GET(_req, { params }) {
       reward: campaigns.reward,
       status: campaigns.status,
       createdAt: campaigns.createdAt,
+      submitType: campaigns.submitType,
+      requirements: campaigns.requirements,
+      contentType: campaigns.contentType,
+      assetsUrl: campaigns.assetsUrl,
+      visibility: campaigns.visibility,
+      showContributions: campaigns.showContributions,
+      thumbnailUrl: campaigns.thumbnailUrl,
+      bannerUrl: campaigns.bannerUrl,
       brandName: users.name,
     })
     .from(campaigns)
