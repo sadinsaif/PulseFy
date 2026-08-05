@@ -9,7 +9,7 @@ const NAV = [
   { href: "/dashboard", icon: "▦", label: "Overview" },
   { href: "/challenge/summer-clips", icon: "🎯", label: "Challenges" },
   { href: "/creator/maya-r", icon: "👥", label: "Creators" },
-  { href: "#", icon: "✅", label: "Submissions" },
+  { href: "/dashboard/submissions", icon: "✅", label: "Submissions" },
   { href: "#", icon: "💸", label: "Payouts" },
   { href: "#", icon: "📈", label: "Analytics" },
   { href: "#", icon: "⚙️", label: "Settings" },
