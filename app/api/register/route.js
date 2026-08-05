@@ -30,6 +30,7 @@ export async function POST(req) {
   const name = parsed.data.name.trim();
   const email = parsed.data.email.toLowerCase().trim();
   const password = parsed.data.password;
+  const role = parsed.data.role === "brand" ? "brand" : "creator";
 
   // Already registered?
   const existing = await db.select().from(users).where(eq(users.email, email));
@@ -53,7 +54,8 @@ export async function POST(req) {
     name,
     email,
     passwordHash,
-    company: name, // default company label = name; editable later
+    role,
+    company: role === "brand" ? name : null, // brands use it as the brand label
     emailVerified: requireVerify ? null : new Date(),
   });
 

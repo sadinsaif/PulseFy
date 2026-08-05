@@ -1,9 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function SignupPage() {
+const ROLES = {
+  creator: {
+    icon: "🎬",
+    title: "Start as Creator",
+    blurb: "Work on brand campaigns and get paid for your clips.",
+    nameLabel: "Your name",
+    namePlaceholder: "Maya Rahman",
+    emailPlaceholder: "you@email.com",
+    lead: "Join campaigns, submit your posts, and earn.",
+    cta: "Start creating",
+  },
+  brand: {
+    icon: "🏢",
+    title: "Start as Brand",
+    blurb: "Run campaigns and hire creators to make your product go viral.",
+    nameLabel: "Company name",
+    namePlaceholder: "Nebula Inc.",
+    emailPlaceholder: "you@brand.com",
+    lead: "Launch campaigns and let creators amplify your reach.",
+    cta: "Start a campaign",
+  },
+};
+
+function SignupInner() {
+  const params = useSearchParams();
+  const initialRole = params.get("role") === "brand" ? "brand" : "creator";
+
+  const [role, setRole] = useState(initialRole);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,6 +39,8 @@ export default function SignupPage() {
   const [done, setDone] = useState(false);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const cfg = ROLES[role];
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -20,7 +50,7 @@ export default function SignupPage() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, role }),
       });
       const data = await res.json().catch(() => ({}));
       setLoading(false);
@@ -37,7 +67,6 @@ export default function SignupPage() {
   }
 
   if (done) {
-    // When email verification is on, the message mentions checking email.
     const needsEmail = /email|verif|inbox/i.test(msg);
     return (
       <main className="auth-wrap">
@@ -68,18 +97,34 @@ export default function SignupPage() {
           <span className="logo-mark">S</span> Srijon
         </Link>
         <h1>Create your account</h1>
-        <p className="lead">Start running creator challenges in minutes.</p>
+        <p className="lead">{cfg.lead}</p>
+
+        {/* Role picker — Creator vs Brand */}
+        <div className="role-picker">
+          {Object.entries(ROLES).map(([key, r]) => (
+            <button
+              type="button"
+              key={key}
+              className={`role-opt ${role === key ? "active" : ""}`}
+              onClick={() => setRole(key)}
+            >
+              <span className="role-ic">{r.icon}</span>
+              <b>{r.title}</b>
+              <span className="role-blurb">{r.blurb}</span>
+            </button>
+          ))}
+        </div>
 
         {err && <div className="alert err">{err}</div>}
 
         <form onSubmit={onSubmit}>
           <div className="field">
-            <label htmlFor="name">Name or company</label>
+            <label htmlFor="name">{cfg.nameLabel}</label>
             <input
               id="name"
               type="text"
-              autoComplete="organization"
-              placeholder="Nebula Inc."
+              autoComplete={role === "brand" ? "organization" : "name"}
+              placeholder={cfg.namePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -91,7 +136,7 @@ export default function SignupPage() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="you@brand.com"
+              placeholder={cfg.emailPlaceholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -111,7 +156,7 @@ export default function SignupPage() {
             />
           </div>
           <button className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? "Creating…" : "Create account"}
+            {loading ? "Creating…" : cfg.cta}
           </button>
         </form>
 
@@ -120,5 +165,13 @@ export default function SignupPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<main className="auth-wrap" />}>
+      <SignupInner />
+    </Suspense>
   );
 }

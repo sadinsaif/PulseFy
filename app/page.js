@@ -8,6 +8,8 @@ import Reveal from "@/components/Reveal";
 export default async function Home() {
   const session = await auth();
   const cta = session ? "/dashboard" : "/signup";
+  const creatorCta = session ? "/dashboard" : "/signup?role=creator";
+  const brandCta = session ? "/dashboard" : "/signup?role=brand";
 
   return (
     <>
@@ -30,12 +32,12 @@ export default async function Home() {
             brief to payout.
           </p>
           <div className="hero-actions">
-            <Link href={cta} className="btn btn-primary btn-lg">
-              Launch a challenge →
+            <Link href={creatorCta} className="btn btn-primary btn-lg">
+              Start Creating →
             </Link>
-            <a href="#how" className="btn btn-ghost btn-lg">
-              See how it works
-            </a>
+            <Link href={brandCta} className="btn btn-ghost btn-lg">
+              Start a Campaign →
+            </Link>
           </div>
           <p className="hero-note">No credit card required · Set up in minutes</p>
 

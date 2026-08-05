@@ -10,7 +10,7 @@ const NAV = [
   { href: "/dashboard", icon: "▦", label: "Overview" },
   { href: "/dashboard/profile", icon: "🧑", label: "My Profile" },
   { href: "/challenge/summer-clips", icon: "🎯", label: "Challenges" },
-  { href: "/creator/maya-r", icon: "👥", label: "Creators" },
+  { href: "/creator/maya-r", icon: "👥", label: "Creators", creatorOnly: true },
   { href: "/dashboard/submissions", icon: "✅", label: "Submissions", adminOnly: true },
   { href: "#", icon: "💸", label: "Payouts" },
   { href: "#", icon: "📈", label: "Analytics" },
@@ -20,11 +20,17 @@ const NAV = [
 /**
  * Dashboard sidebar. Ports the legacy .sidebar markup and adds
  * pathname-based active highlighting plus a real Sign out button.
+ * Nav items are filtered by the user's role (creator vs brand).
  */
 export default function Sidebar({ user, isAdmin = false }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const nav = NAV.filter((item) => !item.adminOnly || isAdmin);
+  const isBrand = user?.role === "brand";
+  const nav = NAV.filter((item) => {
+    if (item.adminOnly) return isAdmin;
+    if (item.creatorOnly) return !isBrand;
+    return true;
+  });
 
   return (
     <>

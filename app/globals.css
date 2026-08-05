@@ -942,3 +942,18 @@ tbody tr:last-child td { border-bottom: none; }
 @media (max-width: 640px) {
   .profile-form .two-col { grid-template-columns: 1fr; }
 }
+
+/* --- Signup role picker (Creator vs Brand) --- */
+.role-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0 6px; }
+.role-opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  text-align: left; padding: 14px; border-radius: 14px; cursor: pointer;
+  background: var(--bg-card-2); border: 1.5px solid var(--border);
+  color: #f3f5f7; transition: border-color .15s, background .15s, transform .1s;
+}
+.role-opt:hover { border-color: var(--accent); }
+.role-opt.active { border-color: var(--accent); background: rgba(255,122,69,.10); }
+.role-opt .role-ic { font-size: 22px; }
+.role-opt b { font-size: 14px; }
+.role-opt .role-blurb { font-size: 12px; color: var(--text-mute); line-height: 1.35; }
+@media (max-width: 480px) { .role-picker { grid-template-columns: 1fr; } }

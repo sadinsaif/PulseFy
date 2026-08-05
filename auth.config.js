@@ -21,6 +21,7 @@ export const authConfig = {
       if (user) {
         token.id = user.id;
         token.company = user.company;
+        token.role = user.role || "creator";
       }
       return token;
     },
@@ -28,6 +29,7 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id;
         session.user.company = token.company;
+        session.user.role = token.role || "creator";
       }
       return session;
     },

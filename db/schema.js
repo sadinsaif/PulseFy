@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
   company: text("company"),
+  role: text("role").notNull().default("creator"), // "creator" | "brand"
   // Public creator profile fields.
   username: text("username"),
   bio: text("bio"),
