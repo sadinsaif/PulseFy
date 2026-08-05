@@ -62,6 +62,26 @@ export const accounts = pgTable(
 );
 
 /**
+ * Submissions — a creator's entry into a challenge.
+ * postUrl is the link to their published clip (TikTok / Instagram / YouTube / X).
+ * status: "pending" (awaiting review) | "approved" | "rejected".
+ */
+export const submissions = pgTable("submissions", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  challengeId: text("challenge_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  platform: text("platform").notNull(), // tiktok | instagram | youtube | x
+  postUrl: text("post_url").notNull(),
+  caption: text("caption"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/**
  * Tokens for email verification AND password reset.
  * `identifier` is the user's email; `purpose` distinguishes the two flows.
  */

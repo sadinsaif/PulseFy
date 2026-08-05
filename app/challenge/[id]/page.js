@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import Sidebar from "@/components/Sidebar";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function ChallengePage({ params }) {
   const session = await auth();
   const user = session?.user;
+  const challengeId = params.id;
 
   return (
     <div className="app">
@@ -31,7 +33,7 @@ export default async function ChallengePage({ params }) {
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button className="btn btn-ghost">Edit</button>
-            <button className="btn btn-primary">Review submissions</button>
+            <button className="btn btn-ghost">Review submissions</button>
           </div>
         </div>
 
@@ -54,6 +56,14 @@ export default async function ChallengePage({ params }) {
                   <li>Original content — no reused footage</li>
                 </ul>
               </div>
+            </div>
+
+            <div className="submit-cta">
+              <div>
+                <h3>Ready to enter?</h3>
+                <p>Post your clip on TikTok, Instagram, YouTube or X, then drop the link here to join the challenge.</p>
+              </div>
+              <SubmitButton challengeId={challengeId} requiredCaption="#SrijonSummer" />
             </div>
 
             <div className="panel">

@@ -23,7 +23,8 @@ This is a **Next.js 14 (App Router)** app with **real authentication**: email + 
 - **Public site** — landing page (`/`) with the full sunset-themed marketing design.
 - **Auth flow** — `/signup`, `/login`, `/forgot`, `/reset`, plus `/verify` (email-link landing).
 - **Protected app** — `/dashboard`, `/challenge/[id]`, `/creator/[id]`, gated by middleware (unauthenticated visitors are redirected to `/login`).
-- **API routes** — `/api/register`, `/api/forgot`, `/api/reset`, and Auth.js at `/api/auth/*`.
+- **Creator submissions** — on any challenge page, signed-in creators submit their published clip (platform + post link + caption). Stored in the `submissions` table; one entry per creator per challenge (resubmitting updates it and returns it to review).
+- **API routes** — `/api/register`, `/api/forgot`, `/api/reset`, `/api/submit`, and Auth.js at `/api/auth/*`.
 
 The original static HTML/CSS/JS prototype is preserved under `legacy/` for reference.
 
@@ -73,7 +74,7 @@ npm install
 npm run db:push        # runs: drizzle-kit push
 ```
 
-`npm run db:push` reads `POSTGRES_URL` and creates the `users`, `sessions`, `accounts`, and `verificationTokens` tables.
+`npm run db:push` reads `POSTGRES_URL` and creates the `users`, `sessions`, `accounts`, `verificationTokens`, and `submissions` tables.
 
 ### 7. Deploy
 Trigger a deploy (push a commit, or click **Redeploy** in Vercel). Once live, test the full flow:
@@ -126,7 +127,7 @@ app/
   creator/[id]/           protected: creator profile
   api/
     auth/[...nextauth]/   Auth.js handlers
-    register/ forgot/ reset/   auth API routes
+    register/ forgot/ reset/ submit/   auth + submission API routes
 components/               Navbar, Sidebar, Chart, Reveal, Providers
 db/                       Drizzle schema + client
 lib/                      email, tokens, validation
