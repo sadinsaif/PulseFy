@@ -43,13 +43,26 @@ export async function POST(req) {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
+  // Email verification is opt-in via env. On the free Resend tier the
+  // verification email only reaches the account owner, so by default we
+  // activate accounts immediately. Set REQUIRE_EMAIL_VERIFICATION="true"
+  // (after verifying a sending domain) to turn the email flow back on.
+  const requireVerify = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+
   await db.insert(users).values({
     name,
     email,
     passwordHash,
     company: name, // default company label = name; editable later
-    emailVerified: null,
+    emailVerified: requireVerify ? null : new Date(),
   });
+
+  if (!requireVerify) {
+    return NextResponse.json(
+      { ok: true, message: "Account created! You can sign in now." },
+      { status: 201 }
+    );
+  }
 
   // Create verification token + send email
   const token = await createToken(email, "verify", DAY);

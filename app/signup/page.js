@@ -9,6 +9,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [done, setDone] = useState(false);
+  const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e) {
@@ -27,6 +28,7 @@ export default function SignupPage() {
         setErr(data.error || "Could not create your account. Try again.");
         return;
       }
+      setMsg(data.message || data.warning || "Account created!");
       setDone(true);
     } catch {
       setLoading(false);
@@ -35,21 +37,22 @@ export default function SignupPage() {
   }
 
   if (done) {
+    // When email verification is on, the message mentions checking email.
+    const needsEmail = /email|verif|inbox/i.test(msg);
     return (
       <main className="auth-wrap">
         <div className="auth-card">
           <Link href="/" className="logo">
             <span className="logo-mark">S</span> Srijon
           </Link>
-          <h1>Check your inbox</h1>
-          <p className="lead">
-            We sent a verification link to <b>{email}</b>. Click it to activate
-            your account, then sign in.
-          </p>
-          <div className="alert info">
-            Didn&apos;t get it? Check spam, or wait a minute and refresh your
-            inbox.
-          </div>
+          <h1>{needsEmail ? "Check your inbox" : "You're all set 🎉"}</h1>
+          <p className="lead">{msg}</p>
+          {needsEmail && (
+            <div className="alert info">
+              Didn&apos;t get it? Check spam, or wait a minute and refresh your
+              inbox.
+            </div>
+          )}
           <Link href="/login" className="btn btn-primary btn-block">
             Go to sign in
           </Link>
