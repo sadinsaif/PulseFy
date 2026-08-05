@@ -905,3 +905,35 @@ tbody tr:last-child td { border-bottom: none; }
 .notif-item p { color: #f3f5f7; font-size: 14px; margin: 0 0 4px; line-height: 1.4; }
 .notif-item.unread p { font-weight: 600; }
 .notif-time { font-size: 12px; color: var(--text-dim); }
+
+/* --- Creator profile --- */
+.profile-av.img { object-fit: cover; }
+.profile-form .field { margin-bottom: 14px; }
+.profile-form label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
+.profile-form input, .profile-form textarea {
+  width: 100%;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  color: #f3f5f7;
+  font-size: 14px;
+  font-family: inherit;
+}
+.profile-form input:focus, .profile-form textarea:focus {
+  outline: none; border-color: var(--accent);
+}
+.profile-form .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.reward-input {
+  display: inline-flex; align-items: center;
+  background: var(--bg-card-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0 8px; height: 32px;
+}
+.reward-input span { color: var(--text-dim); font-size: 13px; }
+.reward-input input {
+  width: 52px; background: none; border: none; color: #f3f5f7;
+  font-size: 13px; padding: 4px 4px; outline: none;
+}
+@media (max-width: 640px) {
+  .profile-form .two-col { grid-template-columns: 1fr; }
+}

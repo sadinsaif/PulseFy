@@ -1,0 +1,96 @@
+export const dynamic = "force-dynamic";
+
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { users, submissions } from "@/db/schema";
+import { desc, eq } from "drizzle-orm";
+import { profileSchema } from "@/lib/validation";
+
+/**
+ * GET /api/profile
+ * Returns the signed-in user's profile, their submissions, and computed stats
+ * (submitted / approved / rejected / approval rate / total earnings).
+ */
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
+  const rows = await db.select().from(users).where(eq(users.id, session.user.id));
+  const u = rows[0];
+  if (!u) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  const subs = await db
+    .select()
+    .from(submissions)
+    .where(eq(submissions.userId, session.user.id))
+    .orderBy(desc(submissions.createdAt));
+
+  const approved = subs.filter((s) => s.status === "approved");
+  const rejected = subs.filter((s) => s.status === "rejected");
+  const reviewed = approved.length + rejected.length;
+  const earnings = approved.reduce((sum, s) => sum + (s.reward || 0), 0);
+
+  const profile = {
+    name: u.name || "",
+    email: u.email,
+    username: u.username || "",
+    bio: u.bio || "",
+    image: u.image || "",
+    twitter: u.twitter || "",
+    instagram: u.instagram || "",
+    interests: u.interests || "",
+  };
+
+  const stats = {
+    submitted: subs.length,
+    approved: approved.length,
+    rejected: rejected.length,
+    pending: subs.length - reviewed,
+    approvalRate: reviewed ? Math.round((approved.length / reviewed) * 100) : 0,
+    earnings,
+  };
+
+  return NextResponse.json({ profile, stats, submissions: subs });
+}
+
+/** POST /api/profile — update the signed-in user's profile fields. */
+export async function POST(req) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  const parsed = profileSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message || "Invalid input" },
+      { status: 400 }
+    );
+  }
+
+  const d = parsed.data;
+  await db
+    .update(users)
+    .set({
+      name: d.name.trim(),
+      username: (d.username || "").trim() || null,
+      bio: (d.bio || "").trim() || null,
+      twitter: (d.twitter || "").trim() || null,
+      instagram: (d.instagram || "").trim() || null,
+      interests: (d.interests || "").trim() || null,
+      image: (d.image || "").trim() || null,
+    })
+    .where(eq(users.id, session.user.id));
+
+  return NextResponse.json({ ok: true, message: "Profile updated." });
+}

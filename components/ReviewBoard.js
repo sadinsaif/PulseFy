@@ -25,6 +25,7 @@ export default function ReviewBoard() {
   const [err, setErr] = useState("");
   const [filter, setFilter] = useState("all");
   const [busy, setBusy] = useState("");
+  const [rewards, setRewards] = useState({}); // per-submission $ input
 
   async function load() {
     try {
@@ -47,14 +48,24 @@ export default function ReviewBoard() {
   async function setStatus(id, status) {
     setBusy(id + status);
     try {
+      const payload = { submissionId: id, status };
+      if (status === "approved") {
+        const r = Number(rewards[id]);
+        payload.reward = Number.isFinite(r) && r >= 0 ? Math.floor(r) : 0;
+      }
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId: id, status }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
         setRows((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, status } : r))
+          prev.map((r) =>
+            r.id === id
+              ? { ...r, status, reward: data.reward != null ? data.reward : r.reward }
+              : r
+          )
         );
       }
     } catch {
@@ -142,11 +153,24 @@ export default function ReviewBoard() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <div className="reward-input">
+                        <span>$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={rewards[r.id] ?? (r.reward || "")}
+                          onChange={(e) =>
+                            setRewards((p) => ({ ...p, [r.id]: e.target.value }))
+                          }
+                          title="Reward for this post (USD)"
+                        />
+                      </div>
                       <button
                         className="btn btn-primary"
                         style={{ padding: "6px 12px", fontSize: 13 }}
-                        disabled={r.status === "approved" || busy === r.id + "approved"}
+                        disabled={busy === r.id + "approved"}
                         onClick={() => setStatus(r.id, "approved")}
                       >
                         Approve

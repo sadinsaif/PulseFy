@@ -71,7 +71,7 @@ export async function POST(req) {
     );
   }
 
-  const { submissionId, status } = parsed.data;
+  const { submissionId, status, reward } = parsed.data;
 
   const existing = await db
     .select()
@@ -81,20 +81,33 @@ export async function POST(req) {
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
   }
 
+  // On approval, set the reward (default keeps prior value). On reject, zero it.
+  const patch = { status };
+  if (status === "approved") {
+    patch.reward = reward != null ? reward : existing[0].reward || 0;
+  } else if (status === "rejected") {
+    patch.reward = 0;
+  }
+
   await db
     .update(submissions)
-    .set({ status })
+    .set(patch)
     .where(eq(submissions.id, submissionId));
 
   // Tell the creator their post was reviewed (skip "pending" resets).
   if (status === "approved" || status === "rejected") {
-    const verb = status === "approved" ? "approved ✅" : "rejected";
+    const verb =
+      status === "approved"
+        ? patch.reward > 0
+          ? `approved ✅ — you earned $${patch.reward}`
+          : "approved ✅"
+        : "rejected";
     await notifyUser(existing[0].userId, {
       type: "review",
       message: `Your submission to ${existing[0].challengeId} was ${verb}.`,
-      link: `/challenge/${existing[0].challengeId}`,
+      link: "/dashboard/profile",
     });
   }
 
-  return NextResponse.json({ ok: true, status });
+  return NextResponse.json({ ok: true, status, reward: patch.reward });
 }

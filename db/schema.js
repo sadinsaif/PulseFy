@@ -4,6 +4,7 @@ import {
   timestamp,
   primaryKey,
   serial,
+  integer,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -20,6 +21,12 @@ export const users = pgTable("users", {
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
   company: text("company"),
+  // Public creator profile fields.
+  username: text("username"),
+  bio: text("bio"),
+  twitter: text("twitter"),
+  instagram: text("instagram"),
+  interests: text("interests"), // comma-separated tags
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -78,6 +85,7 @@ export const submissions = pgTable("submissions", {
   postUrl: text("post_url").notNull(),
   caption: text("caption"),
   status: text("status").notNull().default("pending"),
+  reward: integer("reward").notNull().default(0), // dollars, set by admin on approval
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
