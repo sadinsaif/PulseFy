@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { signOut } from "next-auth/react";
 
 /**
  * Public marketing navbar. Ports the legacy .nav markup.
@@ -26,7 +27,16 @@ export default function Navbar({ session }) {
         </div>
         <div className="nav-cta">
           {session ? (
-            <Link href="/dashboard" className="btn btn-primary">Dashboard</Link>
+            <>
+              <Link href="/dashboard" className="btn btn-primary">Dashboard</Link>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => signOut({ callbackUrl: "/" })}
+              >
+                Sign out
+              </button>
+            </>
           ) : (
             <>
               <Link href="/login" className="btn btn-ghost">Sign in</Link>
