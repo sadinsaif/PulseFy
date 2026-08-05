@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const PLATFORM_LABEL = {
   tiktok: "🎵 TikTok",
@@ -40,6 +40,38 @@ export default function ProfileView() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const fileRef = useRef(null);
+
+  // Read a chosen image file, downscale it to a 256px square, and store the
+  // result as a compact data URL right in the form (no upload server needed).
+  function pickPhoto(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setErr("Please choose an image file.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 256;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        // Cover-crop to a centered square, then scale down.
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        setForm((f) => ({ ...f, image: canvas.toDataURL("image/jpeg", 0.85) }));
+        setErr("");
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function load() {
     try {
@@ -133,12 +165,46 @@ export default function ProfileView() {
             />
           </div>
           <div className="field">
-            <label>Avatar image URL</label>
-            <input
-              value={form.image}
-              placeholder="https://…/photo.jpg"
-              onChange={(e) => setForm({ ...form, image: e.target.value })}
-            />
+            <label>Profile photo</label>
+            <div className="avatar-upload">
+              {form.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="profile-av img sm" src={form.image} alt="preview" />
+              ) : (
+                <div
+                  className="profile-av sm"
+                  style={{ background: "linear-gradient(135deg,#ffb43a,#ff7a45)" }}
+                >
+                  {(form.name || form.email || "S")[0].toUpperCase()}
+                </div>
+              )}
+              <div className="au-actions">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={pickPhoto}
+                />
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  {form.image ? "Change photo" : "Upload photo"}
+                </button>
+                {form.image && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setForm({ ...form, image: "" })}
+                  >
+                    Remove
+                  </button>
+                )}
+                <p className="au-hint">JPG or PNG — we crop &amp; resize it for you.</p>
+              </div>
+            </div>
           </div>
           <div className="field">
             <label>Interests (comma separated)</label>

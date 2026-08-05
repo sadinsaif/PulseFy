@@ -24,8 +24,6 @@ const NAV = [
 export default function Sidebar({ user, isAdmin = false }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const company = user?.company || user?.name || "Your brand";
-  const initial = (company[0] || "S").toUpperCase();
   const nav = NAV.filter((item) => !item.adminOnly || isAdmin);
 
   return (
@@ -51,16 +49,9 @@ export default function Sidebar({ user, isAdmin = false }) {
             );
           })}
         </nav>
-        <div className="side-foot">
-          <div className="avatar">{initial}</div>
-          <div className="who">
-            <b>{company}</b>
-            <span>Pro plan</span>
-          </div>
-        </div>
         <button
           className="logout-btn"
-          style={{ marginTop: 14, width: "100%" }}
+          style={{ marginTop: "auto", width: "100%" }}
           onClick={() => signOut({ callbackUrl: "/" })}
         >
           Sign out

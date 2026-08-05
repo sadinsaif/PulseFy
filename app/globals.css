@@ -908,6 +908,11 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* --- Creator profile --- */
 .profile-av.img { object-fit: cover; }
+.profile-av.sm { width: 72px; height: 72px; font-size: 30px; }
+.avatar-upload { display: flex; align-items: center; gap: 16px; }
+.au-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.au-actions .btn { padding: 8px 14px; font-size: 13px; }
+.au-hint { width: 100%; font-size: 12px; color: var(--text-mute); margin: 2px 0 0; }
 .profile-form .field { margin-bottom: 14px; }
 .profile-form label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
 .profile-form input, .profile-form textarea {
