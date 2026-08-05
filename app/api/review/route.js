@@ -36,6 +36,7 @@ export async function GET() {
     status: submissions.status,
     reward: submissions.reward,
     createdAt: submissions.createdAt,
+    creatorId: submissions.userId,
     creatorName: users.name,
     creatorEmail: users.email,
   };

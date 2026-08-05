@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const PLATFORM_LABEL = {
@@ -123,7 +124,13 @@ export default function ReviewBoard() {
               {shown.map((r) => (
                 <tr key={r.id}>
                   <td>
-                    <b>{r.creatorName || "Unknown"}</b>
+                    {r.creatorId ? (
+                      <Link href={`/creator/${r.creatorId}`} className="u" style={{ color: "var(--text)", fontWeight: 600 }}>
+                        {r.creatorName || "Unknown"}
+                      </Link>
+                    ) : (
+                      <b>{r.creatorName || "Unknown"}</b>
+                    )}
                     <br />
                     <span style={{ color: "var(--text-mute)", fontSize: 12 }}>
                       {r.creatorEmail}

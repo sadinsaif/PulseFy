@@ -1,0 +1,155 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+const PLATFORM_LABEL = {
+  tiktok: "🎵 TikTok",
+  instagram: "📸 Instagram",
+  youtube: "▶️ YouTube",
+  x: "𝕏 X",
+  any: "🌐 Any",
+};
+
+/**
+ * Public, read-only view of any creator's profile: header (avatar, name, bio,
+ * interests, socials), stat cards, and their approved clips (portfolio of
+ * submitted videos). Data comes from /api/creators/[id].
+ */
+export default function CreatorProfile({ id }) {
+  const [data, setData] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/creators/${id}`);
+        if (!res.ok) {
+          setNotFound(true);
+          return;
+        }
+        setData(await res.json());
+      } catch {
+        setNotFound(true);
+      }
+    })();
+  }, [id]);
+
+  if (notFound) {
+    return (
+      <div className="panel">
+        <p className="brief">This creator could not be found.</p>
+        <Link href="/dashboard/creators" className="btn btn-ghost" style={{ marginTop: 10 }}>
+          ← Back to creators
+        </Link>
+      </div>
+    );
+  }
+
+  if (!data) return <p className="brief">Loading profile…</p>;
+
+  const { profile, stats, clips } = data;
+  const initial = (profile.name || profile.username || "S")[0].toUpperCase();
+  const interestList = (profile.interests || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return (
+    <>
+      <p className="breadcrumb">
+        <Link href="/dashboard/creators">Creators</Link> / {profile.name || "Creator"}
+      </p>
+
+      {/* Header */}
+      <div className="hero-card">
+        {profile.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="profile-av img" src={profile.image} alt={profile.name} />
+        ) : (
+          <div
+            className="profile-av"
+            style={{ background: "linear-gradient(135deg,#ffb43a,#ff7a45)" }}
+          >
+            {initial}
+          </div>
+        )}
+        <div className="hc-body">
+          <h1>{profile.name || "Creator"}</h1>
+          <div className="meta">
+            {profile.username && <span>🔗 @{profile.username}</span>}
+          </div>
+          {profile.bio && <p className="brief" style={{ marginTop: 8 }}>{profile.bio}</p>}
+          {interestList.length > 0 && (
+            <div className="tags">
+              {interestList.map((t, i) => (
+                <span className="tag-pill" key={i}>{t}</span>
+              ))}
+            </div>
+          )}
+          {(profile.twitter || profile.instagram) && (
+            <div className="tags" style={{ marginTop: 8 }}>
+              {profile.twitter && <span className="tag-pill">𝕏 {profile.twitter}</span>}
+              {profile.instagram && <span className="tag-pill">📸 {profile.instagram}</span>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stat boxes */}
+      <div className="stat-row" style={{ marginBottom: 18 }}>
+        <div className="stat-box">
+          <div className="n">{stats.submitted}</div>
+          <div className="l">Submissions</div>
+        </div>
+        <div className="stat-box">
+          <div className="n" style={{ color: "var(--ok)" }}>{stats.approved}</div>
+          <div className="l">Approved</div>
+        </div>
+        <div className="stat-box">
+          <div className="n">{stats.rejected}</div>
+          <div className="l">Rejected</div>
+        </div>
+        <div className="stat-box">
+          <div className="n">{stats.approvalRate}%</div>
+          <div className="l">Approval rate</div>
+        </div>
+        <div className="stat-box">
+          <div className="n" style={{ color: "var(--accent-3)" }}>${stats.earnings}</div>
+          <div className="l">Earnings</div>
+        </div>
+      </div>
+
+      {/* Approved clips = public portfolio */}
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Approved clips</h3>
+        </div>
+        {clips.length === 0 ? (
+          <p className="brief" style={{ marginTop: 8 }}>
+            No approved clips yet.
+          </p>
+        ) : (
+          <div className="clip-grid">
+            {clips.map((c) => (
+              <a
+                key={c.id}
+                href={c.postUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="clip-card"
+              >
+                <div className="clip-plat">{PLATFORM_LABEL[c.platform] || c.platform}</div>
+                <div className="clip-title">{c.challengeId}</div>
+                <div className="clip-foot">
+                  {c.reward > 0 && <span className="clip-reward">${c.reward}</span>}
+                  <span className="clip-open">Watch ↗</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
