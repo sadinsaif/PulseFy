@@ -7,6 +7,7 @@ import { submissions, users } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { reviewSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
+import { notifyUser } from "@/lib/notify";
 
 /**
  * GET /api/review
@@ -84,6 +85,16 @@ export async function POST(req) {
     .update(submissions)
     .set({ status })
     .where(eq(submissions.id, submissionId));
+
+  // Tell the creator their post was reviewed (skip "pending" resets).
+  if (status === "approved" || status === "rejected") {
+    const verb = status === "approved" ? "approved ✅" : "rejected";
+    await notifyUser(existing[0].userId, {
+      type: "review",
+      message: `Your submission to ${existing[0].challengeId} was ${verb}.`,
+      link: `/challenge/${existing[0].challengeId}`,
+    });
+  }
 
   return NextResponse.json({ ok: true, status });
 }

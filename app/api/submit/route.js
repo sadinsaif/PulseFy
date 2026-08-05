@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { submissions } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { submissionSchema } from "@/lib/validation";
+import { notifyAdmins } from "@/lib/notify";
 
 /**
  * POST /api/submit
@@ -50,6 +51,11 @@ export async function POST(req) {
       .update(submissions)
       .set({ platform, postUrl, caption: caption || null, status: "pending" })
       .where(eq(submissions.id, existing[0].id));
+    await notifyAdmins({
+      type: "submission",
+      message: `${session.user.name || "A creator"} updated their submission for ${challengeId}.`,
+      link: "/dashboard/submissions",
+    });
     return NextResponse.json({
       ok: true,
       updated: true,
@@ -63,6 +69,12 @@ export async function POST(req) {
     platform,
     postUrl,
     caption: caption || null,
+  });
+
+  await notifyAdmins({
+    type: "submission",
+    message: `${session.user.name || "A creator"} submitted a ${platform} post to ${challengeId}.`,
+    link: "/dashboard/submissions",
   });
 
   return NextResponse.json(

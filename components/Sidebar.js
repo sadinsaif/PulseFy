@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
+import NotificationBell from "@/components/NotificationBell";
 
 const NAV = [
   { href: "/dashboard", icon: "▦", label: "Overview" },
@@ -33,6 +34,9 @@ export default function Sidebar({ user, isAdmin = false }) {
         <Link href="/" className="logo">
           <span className="logo-mark">S</span> Srijon
         </Link>
+        <div className="side-notif">
+          <NotificationBell />
+        </div>
         <nav className="side-nav">
           {nav.map((item, i) => {
             const active =

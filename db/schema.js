@@ -82,6 +82,25 @@ export const submissions = pgTable("submissions", {
 });
 
 /**
+ * In-app notifications. One row per recipient.
+ * type: "submission" (creator → admin) | "review" (admin → creator).
+ * link is where clicking the notification takes the user.
+ */
+export const notifications = pgTable("notifications", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  message: text("message").notNull(),
+  link: text("link"),
+  read: text("read").notNull().default("no"), // "no" | "yes"
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/**
  * Tokens for email verification AND password reset.
  * `identifier` is the user's email; `purpose` distinguishes the two flows.
  */
