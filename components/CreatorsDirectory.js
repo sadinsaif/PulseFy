@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
  * Creator discovery — a search box over all creators plus a grid of cards.
  * Clicking a card opens that creator's public profile at /creator/[id].
  */
-export default function CreatorsDirectory() {
-  const [q, setQ] = useState("");
+export default function CreatorsDirectory({ initialQ = "" }) {
+  const [q, setQ] = useState(initialQ);
   const [rows, setRows] = useState(null);
 
   useEffect(() => {

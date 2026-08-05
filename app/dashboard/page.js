@@ -4,6 +4,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import Sidebar from "@/components/Sidebar";
 import Chart from "@/components/Chart";
+import TopbarSearch from "@/components/TopbarSearch";
 import { isAdminEmail } from "@/lib/admin";
 
 const CHALLENGES = [
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div className="topbar-actions">
-            <input className="search" placeholder="Search campaigns…" />
+            <TopbarSearch />
             <Link href="/dashboard/campaigns" className="btn btn-primary">Go to Campaigns</Link>
           </div>
         </div>
