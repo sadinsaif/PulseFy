@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { submissions, users } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { reviewSchema } from "@/lib/validation";
+import { isAdminEmail } from "@/lib/admin";
 
 /**
  * GET /api/review
@@ -16,6 +17,9 @@ export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+  if (!isAdminEmail(session.user.email)) {
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
 
   const rows = await db
@@ -46,6 +50,9 @@ export async function POST(req) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
+  }
+  if (!isAdminEmail(session.user.email)) {
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
 
   let body;

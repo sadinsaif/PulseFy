@@ -4,6 +4,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import Sidebar from "@/components/Sidebar";
 import Chart from "@/components/Chart";
+import { isAdminEmail } from "@/lib/admin";
 
 const CHALLENGES = [
   { id: "summer-reels-sprint", emoji: "🎬", grad: "linear-gradient(135deg,#ff7a45,#ffb43a)", name: "Summer Reels Sprint", plats: "TikTok · Instagram", status: "live", statusLabel: "Live", subs: 642, prog: 72, pool: "$12,000" },
@@ -20,7 +21,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="app">
-      <Sidebar user={user} />
+      <Sidebar user={user} isAdmin={isAdminEmail(user?.email)} />
 
       <main className="main">
         <div className="topbar">

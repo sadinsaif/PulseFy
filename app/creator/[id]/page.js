@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { auth } from "@/auth";
 import Sidebar from "@/components/Sidebar";
+import { isAdminEmail } from "@/lib/admin";
 
 export default async function CreatorPage({ params }) {
   const session = await auth();
@@ -10,7 +11,7 @@ export default async function CreatorPage({ params }) {
 
   return (
     <div className="app">
-      <Sidebar user={user} />
+      <Sidebar user={user} isAdmin={isAdminEmail(user?.email)} />
 
       <main className="main">
         <p className="breadcrumb">

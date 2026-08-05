@@ -4,6 +4,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import Sidebar from "@/components/Sidebar";
 import SubmitButton from "@/components/SubmitButton";
+import { isAdminEmail } from "@/lib/admin";
 
 export default async function ChallengePage({ params }) {
   const session = await auth();
@@ -12,7 +13,7 @@ export default async function ChallengePage({ params }) {
 
   return (
     <div className="app">
-      <Sidebar user={user} />
+      <Sidebar user={user} isAdmin={isAdminEmail(user?.email)} />
 
       <main className="main">
         <p className="breadcrumb">

@@ -9,7 +9,7 @@ const NAV = [
   { href: "/dashboard", icon: "▦", label: "Overview" },
   { href: "/challenge/summer-clips", icon: "🎯", label: "Challenges" },
   { href: "/creator/maya-r", icon: "👥", label: "Creators" },
-  { href: "/dashboard/submissions", icon: "✅", label: "Submissions" },
+  { href: "/dashboard/submissions", icon: "✅", label: "Submissions", adminOnly: true },
   { href: "#", icon: "💸", label: "Payouts" },
   { href: "#", icon: "📈", label: "Analytics" },
   { href: "#", icon: "⚙️", label: "Settings" },
@@ -19,11 +19,12 @@ const NAV = [
  * Dashboard sidebar. Ports the legacy .sidebar markup and adds
  * pathname-based active highlighting plus a real Sign out button.
  */
-export default function Sidebar({ user }) {
+export default function Sidebar({ user, isAdmin = false }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const company = user?.company || user?.name || "Your brand";
   const initial = (company[0] || "S").toUpperCase();
+  const nav = NAV.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <>
@@ -33,7 +34,7 @@ export default function Sidebar({ user }) {
           <span className="logo-mark">S</span> Srijon
         </Link>
         <nav className="side-nav">
-          {NAV.map((item, i) => {
+          {nav.map((item, i) => {
             const active =
               item.href !== "#" &&
               (pathname === item.href ||
