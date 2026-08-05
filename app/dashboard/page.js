@@ -34,8 +34,8 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div className="topbar-actions">
-            <input className="search" placeholder="Search challenges…" />
-            <button className="btn btn-primary">+ New challenge</button>
+            <input className="search" placeholder="Search campaigns…" />
+            <Link href="/dashboard/campaigns" className="btn btn-primary">Go to Campaigns</Link>
           </div>
         </div>
 

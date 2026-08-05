@@ -1,0 +1,212 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+const PLATFORMS = [
+  { value: "any", label: "Any platform" },
+  { value: "tiktok", label: "🎵 TikTok" },
+  { value: "instagram", label: "📸 Instagram" },
+  { value: "youtube", label: "▶️ YouTube" },
+  { value: "x", label: "𝕏 X" },
+];
+const PLABEL = Object.fromEntries(PLATFORMS.map((p) => [p.value, p.label]));
+const STATUS_CLASS = { active: "live", paused: "review", ended: "ended" };
+
+const EMPTY = { title: "", brief: "", platform: "any", reward: "" };
+
+/**
+ * Brand view of /dashboard/campaigns — create a campaign and manage the ones
+ * you own (pause / resume / end), with a live submission count and a link to
+ * review incoming clips.
+ */
+export default function BrandCampaigns() {
+  const [rows, setRows] = useState(null);
+  const [form, setForm] = useState(EMPTY);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function load() {
+    try {
+      const res = await fetch("/api/campaigns?mine=1");
+      const data = await res.json();
+      setRows(res.ok ? data.campaigns || [] : []);
+    } catch {
+      setRows([]);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function create(e) {
+    e.preventDefault();
+    setSaving(true);
+    setErr("");
+    try {
+      const res = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      setSaving(false);
+      if (!res.ok) {
+        setErr(data.error || "Could not create the campaign.");
+        return;
+      }
+      setForm(EMPTY);
+      setShowForm(false);
+      load();
+    } catch {
+      setSaving(false);
+      setErr("Network error. Please try again.");
+    }
+  }
+
+  async function setStatus(id, status) {
+    try {
+      const res = await fetch(`/api/campaigns/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return (
+    <>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Your campaigns</h3>
+          <button
+            className="btn btn-primary"
+            style={{ padding: "8px 16px", fontSize: 14 }}
+            onClick={() => setShowForm((v) => !v)}
+          >
+            {showForm ? "Close" : "+ New campaign"}
+          </button>
+        </div>
+
+        {showForm && (
+          <form onSubmit={create} className="profile-form" style={{ marginTop: 14 }}>
+            {err && <div className="alert err">{err}</div>}
+            <div className="field">
+              <label>Campaign title</label>
+              <input
+                value={form.title}
+                placeholder="Summer Product Launch"
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                required
+              />
+            </div>
+            <div className="field">
+              <label>Brief — what should creators make?</label>
+              <textarea
+                rows={3}
+                value={form.brief}
+                placeholder="Show our product in a 15–30s clip, tag @brand, be fun…"
+                onChange={(e) => setForm({ ...form, brief: e.target.value })}
+              />
+            </div>
+            <div className="two-col">
+              <div className="field">
+                <label>Platform</label>
+                <select
+                  value={form.platform}
+                  onChange={(e) => setForm({ ...form, platform: e.target.value })}
+                >
+                  {PLATFORMS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>Reward per approved post ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.reward}
+                  placeholder="50"
+                  onChange={(e) => setForm({ ...form, reward: e.target.value })}
+                />
+              </div>
+            </div>
+            <button className="btn btn-primary" disabled={saving}>
+              {saving ? "Creating…" : "Launch campaign"}
+            </button>
+          </form>
+        )}
+      </div>
+
+      <div className="panel" style={{ marginTop: 18 }}>
+        <div className="panel-head">
+          <h3>Live &amp; past campaigns</h3>
+          <Link href="/dashboard/submissions" style={{ color: "var(--accent)" }}>
+            Review submissions →
+          </Link>
+        </div>
+
+        {rows === null ? (
+          <p className="brief" style={{ marginTop: 10 }}>Loading…</p>
+        ) : rows.length === 0 ? (
+          <p className="brief" style={{ marginTop: 10 }}>
+            No campaigns yet. Click <b>+ New campaign</b> to launch your first one.
+          </p>
+        ) : (
+          <div className="table-wrap" style={{ marginTop: 12 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Campaign</th>
+                  <th>Platform</th>
+                  <th>Reward</th>
+                  <th>Submissions</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((c) => (
+                  <tr key={c.id}>
+                    <td><b>{c.title}</b></td>
+                    <td>{PLABEL[c.platform] || c.platform}</td>
+                    <td>${c.reward}/post</td>
+                    <td>{c.submissionCount ?? 0}</td>
+                    <td>
+                      <span className={`status ${STATUS_CLASS[c.status] || "review"}`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {c.status !== "active" && (
+                          <button className="btn btn-ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => setStatus(c.id, "active")}>Activate</button>
+                        )}
+                        {c.status === "active" && (
+                          <button className="btn btn-ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => setStatus(c.id, "paused")}>Pause</button>
+                        )}
+                        {c.status !== "ended" && (
+                          <button className="btn btn-ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => setStatus(c.id, "ended")}>End</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

@@ -70,6 +70,26 @@ export const accounts = pgTable(
 );
 
 /**
+ * Campaigns — a brand's product-promotion brief that creators submit clips to.
+ * brandId is the owner (a user with role "brand"). reward is paid per approved
+ * post. status: "active" (open) | "paused" | "ended".
+ */
+export const campaigns = pgTable("campaigns", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  brandId: text("brand_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  brief: text("brief"),
+  platform: text("platform").notNull().default("any"), // any|tiktok|instagram|youtube|x
+  reward: integer("reward").notNull().default(0), // dollars per approved post
+  status: text("status").notNull().default("active"), // active|paused|ended
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/**
  * Submissions — a creator's entry into a challenge.
  * postUrl is the link to their published clip (TikTok / Instagram / YouTube / X).
  * status: "pending" (awaiting review) | "approved" | "rejected".
@@ -78,7 +98,8 @@ export const submissions = pgTable("submissions", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  challengeId: text("challenge_id").notNull(),
+  challengeId: text("challenge_id").notNull(), // human label (campaign title or legacy id)
+  campaignId: text("campaign_id"), // set when the submission targets a real campaign
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),

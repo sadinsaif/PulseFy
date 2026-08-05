@@ -9,8 +9,10 @@ export default async function SubmissionsPage() {
   const session = await auth();
   const user = session?.user;
   const admin = isAdminEmail(user?.email);
+  const isBrand = user?.role === "brand";
+  const canReview = admin || isBrand;
 
-  if (!admin) {
+  if (!canReview) {
     return (
       <div className="app">
         <Sidebar user={user} isAdmin={admin} />
@@ -18,12 +20,13 @@ export default async function SubmissionsPage() {
           <div className="topbar">
             <div>
               <h1>Submissions</h1>
-              <p className="sub">This area is for admins only.</p>
+              <p className="sub">This area is for brands and admins.</p>
             </div>
           </div>
           <section className="panel">
             <p className="brief">
-              You don&apos;t have access to review submissions.
+              Creators don&apos;t review submissions. Head to{" "}
+              <b>Campaigns</b> to submit your clips.
             </p>
           </section>
         </main>
@@ -40,15 +43,16 @@ export default async function SubmissionsPage() {
           <div>
             <h1>Submissions</h1>
             <p className="sub">
-              Review creator submissions across all challenges. Open a post,
-              then approve or reject it.
+              {admin
+                ? "Review creator submissions across all campaigns. Open a post, then approve or reject it."
+                : "Review clips submitted to your campaigns. Set a reward, then approve or reject."}
             </p>
           </div>
         </div>
 
         <section className="panel">
           <div className="panel-head">
-            <h3>All submissions</h3>
+            <h3>{admin ? "All submissions" : "Your campaign submissions"}</h3>
           </div>
           <ReviewBoard />
         </section>

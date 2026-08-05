@@ -9,7 +9,7 @@ import NotificationBell from "@/components/NotificationBell";
 const NAV = [
   { href: "/dashboard", icon: "▦", label: "Overview" },
   { href: "/dashboard/profile", icon: "🧑", label: "My Profile" },
-  { href: "/challenge/summer-clips", icon: "🎯", label: "Challenges" },
+  { href: "/dashboard/campaigns", icon: "🎯", label: "Campaigns" },
   { href: "/creator/maya-r", icon: "👥", label: "Creators", creatorOnly: true },
   { href: "/dashboard/submissions", icon: "✅", label: "Submissions", adminOnly: true },
   { href: "#", icon: "💸", label: "Payouts" },

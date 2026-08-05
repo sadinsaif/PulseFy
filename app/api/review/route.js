@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { submissions, users } from "@/db/schema";
+import { submissions, users, campaigns } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { reviewSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
@@ -19,25 +19,40 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
-  if (!isAdminEmail(session.user.email)) {
-    return NextResponse.json({ error: "Admins only" }, { status: 403 });
+
+  const admin = isAdminEmail(session.user.email);
+  const isBrand = session.user.role === "brand";
+  if (!admin && !isBrand) {
+    return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   }
 
-  const rows = await db
-    .select({
-      id: submissions.id,
-      challengeId: submissions.challengeId,
-      platform: submissions.platform,
-      postUrl: submissions.postUrl,
-      caption: submissions.caption,
-      status: submissions.status,
-      createdAt: submissions.createdAt,
-      creatorName: users.name,
-      creatorEmail: users.email,
-    })
+  const cols = {
+    id: submissions.id,
+    challengeId: submissions.challengeId,
+    campaignId: submissions.campaignId,
+    platform: submissions.platform,
+    postUrl: submissions.postUrl,
+    caption: submissions.caption,
+    status: submissions.status,
+    reward: submissions.reward,
+    createdAt: submissions.createdAt,
+    creatorName: users.name,
+    creatorEmail: users.email,
+  };
+
+  // Admin sees every submission; a brand sees only submissions to campaigns
+  // they own (joined via campaigns.brand_id).
+  const base = db
+    .select(cols)
     .from(submissions)
-    .leftJoin(users, eq(submissions.userId, users.id))
-    .orderBy(desc(submissions.createdAt));
+    .leftJoin(users, eq(submissions.userId, users.id));
+
+  const rows = admin
+    ? await base.orderBy(desc(submissions.createdAt))
+    : await base
+        .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
+        .where(eq(campaigns.brandId, session.user.id))
+        .orderBy(desc(submissions.createdAt));
 
   return NextResponse.json({ submissions: rows });
 }
@@ -52,8 +67,11 @@ export async function POST(req) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
   }
-  if (!isAdminEmail(session.user.email)) {
-    return NextResponse.json({ error: "Admins only" }, { status: 403 });
+
+  const admin = isAdminEmail(session.user.email);
+  const isBrand = session.user.role === "brand";
+  if (!admin && !isBrand) {
+    return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   }
 
   let body;
@@ -79,6 +97,19 @@ export async function POST(req) {
     .where(eq(submissions.id, submissionId));
   if (!existing[0]) {
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+  }
+
+  // A brand may only review submissions to campaigns they own.
+  if (!admin) {
+    const campId = existing[0].campaignId;
+    let owns = false;
+    if (campId) {
+      const camp = await db.select().from(campaigns).where(eq(campaigns.id, campId));
+      owns = camp[0]?.brandId === session.user.id;
+    }
+    if (!owns) {
+      return NextResponse.json({ error: "Not your campaign." }, { status: 403 });
+    }
   }
 
   // On approval, set the reward (default keeps prior value). On reject, zero it.
