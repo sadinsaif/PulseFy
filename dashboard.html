@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Srijon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <a href="index.html" class="logo"><span class="logo-mark">S</span> Srijon</a>
+      <nav class="side-nav">
+        <a href="dashboard.html" class="active"><span class="ic">▦</span> Overview</a>
+        <a href="challenge.html"><span class="ic">🎯</span> Challenges</a>
+        <a href="creator.html"><span class="ic">👥</span> Creators</a>
+        <a href="#"><span class="ic">✅</span> Submissions</a>
+        <a href="#"><span class="ic">💸</span> Payouts</a>
+        <a href="#"><span class="ic">📈</span> Analytics</a>
+        <a href="#"><span class="ic">⚙️</span> Settings</a>
+      </nav>
+      <div class="side-foot">
+        <div class="avatar">N</div>
+        <div class="who"><b>Nebula Inc.</b><span>Pro plan</span></div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="mobile-menu" id="mobileMenu">☰</button>
+          <div>
+            <h1>Overview</h1>
+            <p class="sub">Welcome back — here's what's happening across your campaigns.</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <input class="search" placeholder="Search challenges…">
+          <button class="btn btn-primary">+ New challenge</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <section class="kpis">
+        <div class="kpi">
+          <div class="k-top"><div class="k-ic">🎯</div><span class="chip up">+12%</span></div>
+          <div class="k-val">24</div>
+          <div class="k-lbl">Active challenges</div>
+        </div>
+        <div class="kpi">
+          <div class="k-top"><div class="k-ic">👥</div><span class="chip up">+8.4%</span></div>
+          <div class="k-val">3,182</div>
+          <div class="k-lbl">Creators engaged</div>
+        </div>
+        <div class="kpi">
+          <div class="k-top"><div class="k-ic">✅</div><span class="chip up">+21%</span></div>
+          <div class="k-val">1,940</div>
+          <div class="k-lbl">Submissions</div>
+        </div>
+        <div class="kpi">
+          <div class="k-top"><div class="k-ic">💸</div><span class="chip down">-3%</span></div>
+          <div class="k-val">$48.2k</div>
+          <div class="k-lbl">Rewards paid</div>
+        </div>
+      </section>
+
+      <!-- PANELS -->
+      <section class="panels">
+        <!-- Bar chart -->
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Submissions this week</h3>
+            <a href="#">View report</a>
+          </div>
+          <div class="chart" id="chart">
+            <div class="bar-wrap"><div class="bar" data-h="45"></div><span>Mon</span></div>
+            <div class="bar-wrap"><div class="bar" data-h="68"></div><span>Tue</span></div>
+            <div class="bar-wrap"><div class="bar" data-h="52"></div><span>Wed</span></div>
+            <div class="bar-wrap"><div class="bar" data-h="88"></div><span>Thu</span></div>
+            <div class="bar-wrap"><div class="bar" data-h="74"></div><span>Fri</span></div>
+            <div class="bar-wrap"><div class="bar" data-h="96"></div><span>Sat</span></div>
+            <div class="bar-wrap"><div class="bar" data-h="61"></div><span>Sun</span></div>
+          </div>
+        </div>
+
+        <!-- Clean engagement donut -->
+        <div class="panel">
+          <div class="panel-head"><h3>Clean Engagement Score</h3></div>
+          <div class="donut-wrap">
+            <div class="donut"><span class="val">82%</span></div>
+            <div class="legend">
+              <div><span class="sw" style="background:var(--accent)"></span> Real engagement · 82%</div>
+              <div><span class="sw" style="background:var(--bg-card-2)"></span> Flagged / bot · 18%</div>
+              <p style="color:var(--text-mute);font-size:13px;margin-top:6px;">AI scanned 12.4k interactions in the last 24h.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHALLENGES TABLE -->
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Recent challenges</h3>
+          <a href="#">See all</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Challenge</th>
+                <th>Status</th>
+                <th>Submissions</th>
+                <th>Progress</th>
+                <th>Reward pool</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr onclick="location.href='challenge.html'" style="cursor:pointer">
+                <td><div class="ch-name"><div class="ch-thumb" style="background:linear-gradient(135deg,#ff7a45,#ffb43a)">🎬</div><div><b>Summer Reels Sprint</b><span>TikTok · Instagram</span></div></div></td>
+                <td><span class="status live">Live</span></td>
+                <td>642</td>
+                <td><div class="mini-prog"><i style="width:72%"></i></div></td>
+                <td>$12,000</td>
+              </tr>
+              <tr onclick="location.href='challenge.html'" style="cursor:pointer">
+                <td><div class="ch-name"><div class="ch-thumb" style="background:linear-gradient(135deg,#a855f7,#ffb43a)">🎨</div><div><b>Brand Remix Challenge</b><span>YouTube · X</span></div></div></td>
+                <td><span class="status review">In review</span></td>
+                <td>318</td>
+                <td><div class="mini-prog"><i style="width:44%"></i></div></td>
+                <td>$8,500</td>
+              </tr>
+              <tr onclick="location.href='challenge.html'" style="cursor:pointer">
+                <td><div class="ch-name"><div class="ch-thumb" style="background:linear-gradient(135deg,#ffb43a,#f4526a)">🔥</div><div><b>Unboxing Hype</b><span>TikTok · Reddit</span></div></div></td>
+                <td><span class="status live">Live</span></td>
+                <td>489</td>
+                <td><div class="mini-prog"><i style="width:88%"></i></div></td>
+                <td>$15,000</td>
+              </tr>
+              <tr onclick="location.href='challenge.html'" style="cursor:pointer">
+                <td><div class="ch-name"><div class="ch-thumb" style="background:linear-gradient(135deg,#ffb43a,#a855f7)">📸</div><div><b>Product Story Contest</b><span>Instagram</span></div></div></td>
+                <td><span class="status ended">Ended</span></td>
+                <td>491</td>
+                <td><div class="mini-prog"><i style="width:100%"></i></div></td>
+                <td>$6,000</td>
+              </tr>
+              <tr onclick="location.href='challenge.html'" style="cursor:pointer">
+                <td><div class="ch-name"><div class="ch-thumb" style="background:linear-gradient(135deg,#ff7a45,#a855f7)">🎙️</div><div><b>Creator Voices</b><span>YouTube · LinkedIn</span></div></div></td>
+                <td><span class="status review">In review</span></td>
+                <td>210</td>
+                <td><div class="mini-prog"><i style="width:30%"></i></div></td>
+                <td>$4,700</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
