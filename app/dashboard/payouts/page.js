@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { submissions, users, campaigns } from "@/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
+import CreatorWallet from "@/components/CreatorWallet";
 import { isAdminEmail } from "@/lib/admin";
 
 const PLABEL = {
@@ -200,11 +201,13 @@ export default async function PayoutsPage() {
         <div className="topbar">
           <div>
             <h1>Payouts</h1>
-            <p className="sub">Track what you&apos;ve earned from approved posts.</p>
+            <p className="sub">Track your earnings and cash out your balance.</p>
           </div>
         </div>
 
-        <section className="kpis">
+        <CreatorWallet />
+
+        <section className="kpis" style={{ marginTop: 18 }}>
           <div className="kpi">
             <div className="k-top"><div className="k-ic">💰</div></div>
             <div className="k-val">${totalEarned.toLocaleString()}</div>

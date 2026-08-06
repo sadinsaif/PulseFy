@@ -140,6 +140,32 @@ export const notifications = pgTable("notifications", {
 });
 
 /**
+ * Withdrawals — a creator cashing out their earned balance.
+ * amount/fee/net are stored in CENTS (integer) so the 5% fee stays exact.
+ * method: "stablecoin" | "bank". For stablecoin: coin (e.g. "usdc"),
+ * network (e.g. "base" | "ethereum") and destination = wallet address.
+ * For bank: destination = the payout email/reference.
+ * status: "pending" (requested) | "paid" | "failed".
+ */
+export const withdrawals = pgTable("withdrawals", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull().default(0), // requested, in cents
+  fee: integer("fee").notNull().default(0), // processing fee, in cents
+  net: integer("net").notNull().default(0), // creator receives, in cents
+  method: text("method").notNull().default("stablecoin"), // stablecoin | bank
+  coin: text("coin"), // usdc (stablecoin only)
+  network: text("network"), // base | ethereum (stablecoin only)
+  destination: text("destination").notNull(), // wallet address or payout email
+  status: text("status").notNull().default("pending"), // pending | paid | failed
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/**
  * Tokens for email verification AND password reset.
  * `identifier` is the user's email; `purpose` distinguishes the two flows.
  */

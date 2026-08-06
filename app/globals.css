@@ -1212,3 +1212,117 @@ tbody tr:last-child td { border-bottom: none; }
 .camp-detail-banner {
   width: 100%; height: 240px; object-fit: cover; border-radius: 14px; margin-bottom: 18px;
 }
+
+/* --- Payouts wallet + withdraw modal --- */
+.wallet-hero {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: linear-gradient(135deg, rgba(255,122,69,.12), rgba(52,211,153,.10));
+  border: 1px solid var(--border-soft); border-radius: 18px; padding: 24px 26px;
+}
+.wallet-bal { display: flex; flex-direction: column; gap: 4px; }
+.wallet-lbl { font-size: 13px; color: var(--text-mute); text-transform: uppercase; letter-spacing: .6px; }
+.wallet-val { font-size: 40px; font-weight: 800; letter-spacing: -1px; color: var(--accent-3); }
+.wallet-sub { font-size: 13px; color: var(--text-dim); }
+.wallet-hero .btn { padding: 12px 22px; font-size: 15px; white-space: nowrap; }
+.wallet-hero .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.wd-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(4,7,14,.72); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.wd-modal {
+  width: 100%; max-width: 440px; background: var(--bg-card);
+  border: 1px solid var(--border-soft); border-radius: 20px; overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,.5);
+}
+.wd-head {
+  display: flex; align-items: center; gap: 10px; padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.wd-head-titles { flex: 1; text-align: center; }
+.wd-head-titles h3 { font-size: 18px; }
+.wd-head-titles p { font-size: 13px; color: var(--text-mute); margin-top: 2px; }
+.wd-back, .wd-close {
+  background: var(--bg-card-2); border: 1px solid var(--border-soft); color: var(--text-dim);
+  width: 32px; height: 32px; border-radius: 9px; cursor: pointer; font-size: 15px;
+}
+.wd-back:hover, .wd-close:hover { color: #fff; border-color: var(--accent); }
+.wd-balance {
+  text-align: center; padding: 10px; font-size: 13px; color: var(--text-mute);
+  background: rgba(52,211,153,.08); border-bottom: 1px solid var(--border-soft);
+}
+.wd-balance b { color: var(--accent-3); }
+.wd-body { padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+
+.wd-option {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  background: var(--bg-card-2); border: 1px solid var(--border-soft);
+  border-radius: 14px; padding: 16px; cursor: pointer; transition: border-color .15s, transform .1s;
+}
+.wd-option:hover:not(.disabled) { border-color: var(--accent); transform: translateY(-1px); }
+.wd-option.active { border-color: var(--accent-3); background: rgba(52,211,153,.06); }
+.wd-option.disabled { opacity: .45; cursor: not-allowed; }
+.wd-opt-ic {
+  width: 44px; height: 44px; border-radius: 11px; display: flex;
+  align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+}
+.wd-opt-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.wd-opt-txt b { font-size: 15px; }
+.wd-opt-txt span { font-size: 12px; color: var(--text-mute); }
+.wd-tag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+  color: var(--accent-3); background: rgba(52,211,153,.15); padding: 2px 7px; border-radius: 6px; margin-left: 6px;
+}
+.wd-tag.muted { color: var(--text-mute); background: rgba(255,255,255,.06); }
+.wd-arrow { color: var(--text-mute); font-size: 20px; }
+.wd-check { color: var(--accent-3); font-size: 18px; font-weight: 800; }
+.wd-soon {
+  text-align: center; font-size: 12px; color: var(--text-mute);
+  border: 1px dashed var(--border-soft); border-radius: 10px; padding: 10px;
+}
+
+.wd-label { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+.wd-amount {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-card-2); border: 1px solid var(--accent-3);
+  border-radius: 12px; padding: 12px 14px;
+}
+.wd-currency { font-size: 22px; font-weight: 800; color: var(--text-dim); }
+.wd-amount input {
+  flex: 1; background: none; border: none; outline: none;
+  font-size: 22px; font-weight: 800; color: #fff;
+}
+.wd-max {
+  background: rgba(52,211,153,.15); color: var(--accent-3); border: none;
+  padding: 6px 14px; border-radius: 8px; font-weight: 700; cursor: pointer;
+}
+.wd-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.wd-quick button {
+  background: var(--bg-card-2); border: 1px solid var(--border-soft); color: var(--text-dim);
+  padding: 9px 0; border-radius: 9px; cursor: pointer; font-weight: 600;
+}
+.wd-quick button:hover:not(:disabled) { border-color: var(--accent); color: #fff; }
+.wd-quick button:disabled { opacity: .35; cursor: not-allowed; }
+.wd-minmax { text-align: center; font-size: 12px; color: var(--text-mute); }
+.wd-breakdown {
+  background: var(--bg-card-2); border: 1px solid var(--border-soft);
+  border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+}
+.wd-breakdown > div { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-dim); }
+.wd-receive { padding-top: 8px; border-top: 1px solid var(--border-soft); }
+.wd-receive b { color: var(--accent-3); font-size: 15px; }
+.wd-dest {
+  width: 100%; background: var(--bg-card-2); border: 1px solid var(--border-soft);
+  border-radius: 12px; padding: 12px 14px; color: #fff; outline: none; font-size: 14px;
+}
+.wd-dest:focus { border-color: var(--accent); }
+.wd-done { padding: 32px 26px; text-align: center; display: flex; flex-direction: column; gap: 10px; }
+.wd-done-ic { font-size: 48px; }
+.wd-done h3 { font-size: 20px; }
+.wd-done p { font-size: 14px; color: var(--text-mute); line-height: 1.5; }
+
+@media (max-width: 560px) {
+  .wallet-hero { flex-direction: column; align-items: stretch; text-align: center; }
+  .wallet-bal { align-items: center; }
+}
