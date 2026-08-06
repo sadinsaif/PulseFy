@@ -5,6 +5,7 @@ import {
   primaryKey,
   serial,
   integer,
+  bigint,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -117,8 +118,11 @@ export const submissions = pgTable("submissions", {
   caption: text("caption"),
   status: text("status").notNull().default("pending"),
   reward: integer("reward").notNull().default(0), // dollars, set by admin on approval
-  views: integer("views").notNull().default(0), // post views, verified at review
-  engagement: integer("engagement").notNull().default(0), // likes+comments+shares, verified at review
+  // bigint (not int4) — viral videos exceed 2.1B views and would overflow an
+  // integer column, throwing on write. mode:"number" is safe: counts stay well
+  // under 2^53. Verified at review or auto-fetched from YouTube.
+  views: bigint("views", { mode: "number" }).notNull().default(0),
+  engagement: bigint("engagement", { mode: "number" }).notNull().default(0), // likes+comments(+shares)
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 

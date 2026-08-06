@@ -1,4 +1,6 @@
 export const dynamic = "force-dynamic";
+// Give the durable write + a bounded (6s) YouTube fetch comfortable headroom.
+export const maxDuration = 20;
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
@@ -58,10 +60,6 @@ export async function POST(req) {
 
   const creatorName = session.user.name || "A creator";
 
-  // Try to pull REAL metrics right away (YouTube only for now). null means we
-  // couldn't fetch — we leave views/engagement untouched rather than fake them.
-  const metrics = await fetchMetrics(platform, postUrl);
-
   // One submission per creator per campaign (or per legacy challenge) — resubmit
   // updates the existing row and puts it back in review.
   const dupeWhere = campaignId
@@ -70,47 +68,60 @@ export async function POST(req) {
 
   const existing = await db.select().from(submissions).where(dupeWhere);
 
+  // Write the submission DURABLY first — the metric fetch (network call) must
+  // never gate or lose the write. We patch real metrics in afterwards.
+  let submissionId;
+  let updated = false;
   if (existing[0]) {
+    submissionId = existing[0].id;
+    updated = true;
     await db
       .update(submissions)
-      .set({
+      .set({ platform, postUrl, caption: caption || null, status: "pending" })
+      .where(eq(submissions.id, submissionId));
+  } else {
+    const inserted = await db
+      .insert(submissions)
+      .values({
+        challengeId,
+        campaignId,
+        userId: session.user.id,
         platform,
         postUrl,
         caption: caption || null,
-        status: "pending",
-        ...(metrics ? { views: metrics.views, engagement: metrics.engagement } : {}),
       })
-      .where(eq(submissions.id, existing[0].id));
-    await notifyReviewers(brandId, {
-      type: "submission",
-      message: `${creatorName} updated their submission for ${challengeId}.`,
-    });
-    return NextResponse.json({
-      ok: true,
-      updated: true,
-      message: "Your submission was updated and is back in review.",
-    });
+      .returning({ id: submissions.id });
+    submissionId = inserted[0]?.id;
   }
 
-  await db.insert(submissions).values({
-    challengeId,
-    campaignId,
-    userId: session.user.id,
-    platform,
-    postUrl,
-    caption: caption || null,
-    ...(metrics ? { views: metrics.views, engagement: metrics.engagement } : {}),
-  });
+  // Best-effort real metrics (YouTube only for now). Timed out / non-YouTube /
+  // failed all return null — we then leave views/engagement untouched (never
+  // fake them). This runs AFTER the durable write, so it can't lose a submission.
+  const metrics = await fetchMetrics(platform, postUrl);
+  if (metrics && submissionId) {
+    await db
+      .update(submissions)
+      .set({ views: metrics.views, engagement: metrics.engagement })
+      .where(eq(submissions.id, submissionId));
+  }
 
   await notifyReviewers(brandId, {
     type: "submission",
-    message: `${creatorName} submitted a ${platform} post to ${challengeId}.`,
+    message: updated
+      ? `${creatorName} updated their submission for ${challengeId}.`
+      : `${creatorName} submitted a ${platform} post to ${challengeId}.`,
   });
 
-  return NextResponse.json(
-    { ok: true, message: "Submission received — it's now in review." },
-    { status: 201 }
-  );
+  return updated
+    ? NextResponse.json({
+        ok: true,
+        updated: true,
+        message: "Your submission was updated and is back in review.",
+      })
+    : NextResponse.json(
+        { ok: true, message: "Submission received — it's now in review." },
+        { status: 201 }
+      );
 }
 
 /** Notify the owning brand for campaign submissions; otherwise the admins. */
