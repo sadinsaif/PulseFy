@@ -34,8 +34,8 @@ export default function WithdrawModal({ available = 0, onClose, onSuccess }) {
 
   async function submit() {
     setErr("");
-    if (amt < 10) {
-      setErr("Minimum withdrawal is $10.");
+    if (amt < 5) {
+      setErr("Minimum withdrawal is $5.");
       return;
     }
     if (amt > available) {
@@ -196,8 +196,8 @@ export default function WithdrawModal({ available = 0, onClose, onSuccess }) {
                   <span className="wd-currency">$</span>
                   <input
                     type="number"
-                    min="10"
-                    max={Math.min(1000, available)}
+                    min="5"
+                    max={Math.min(100, available)}
                     value={amount}
                     placeholder="0"
                     onChange={(e) => setAmount(e.target.value)}
@@ -205,7 +205,7 @@ export default function WithdrawModal({ available = 0, onClose, onSuccess }) {
                   <button
                     type="button"
                     className="wd-max"
-                    onClick={() => setAmount(String(Math.min(1000, Math.floor(available))))}
+                    onClick={() => setAmount(String(Math.min(100, Math.floor(available))))}
                   >
                     Max
                   </button>
@@ -217,7 +217,7 @@ export default function WithdrawModal({ available = 0, onClose, onSuccess }) {
                     </button>
                   ))}
                 </div>
-                <p className="wd-minmax">Min: $10 · Max: ${Math.min(1000, Math.floor(available)) || 0}</p>
+                <p className="wd-minmax">Min: $5 · Max: ${Math.min(100, Math.floor(available)) || 0}</p>
 
                 <div className="wd-breakdown">
                   <div><span>Requested</span><span>${amt.toFixed(2)}</span></div>

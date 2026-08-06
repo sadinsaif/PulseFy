@@ -54,17 +54,17 @@ export default function CreatorWallet() {
         </div>
         <button
           className="btn btn-primary"
-          disabled={bal.available < 10}
+          disabled={bal.available < 5}
           onClick={() => setShowModal(true)}
-          title={bal.available < 10 ? "You need at least $10 to withdraw" : "Withdraw your balance"}
+          title={bal.available < 5 ? "You need at least $5 to withdraw" : "Withdraw your balance"}
         >
           ⭳ Withdraw
         </button>
       </section>
 
-      {bal.available < 10 && (
+      {bal.available < 5 && (
         <p className="brief" style={{ marginTop: 8 }}>
-          You need at least <b>$10</b> available to withdraw. Keep submitting clips to
+          You need at least <b>$5</b> available to withdraw. Keep submitting clips to
           earn more.
         </p>
       )}
