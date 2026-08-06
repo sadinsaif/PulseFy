@@ -1,130 +1,85 @@
-"use client";
+export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { users, referralEarnings } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
+import ReferralCard from "@/components/ReferralCard";
+import { isAdminEmail } from "@/lib/admin";
 
-export default function ReferralsPage() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [username, setUsername] = useState("");
-  // origin is browser-only — resolve it in an effect so SSR doesn't touch window.
-  const [origin, setOrigin] = useState("");
+/**
+ * Referrals dashboard — a creator's invite link + earnings (Mimix-style).
+ * Referrers earn 5% of their referred users' payouts for the first 90 days.
+ */
+export default async function ReferralsPage() {
+  const session = await auth();
+  const user = session?.user;
+  const admin = isAdminEmail(user?.email);
 
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  // Pull the user's username (for the link) + referral stats straight from the
+  // DB so there's no client fetch/loading flicker.
+  let username = "";
+  let referredCount = 0;
+  let earnedCents = 0;
+  try {
+    const [u] = await db
+      .select({ username: users.username })
+      .from(users)
+      .where(eq(users.id, user.id));
+    username = u?.username || "";
 
-  useEffect(() => {
-    fetch("/api/referrals")
-      .then((r) => r.json())
-      .then((data) => {
-        setStats(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    const [rc] = await db
+      .select({ count: sql`count(*)` })
+      .from(users)
+      .where(eq(users.referredBy, user.id));
+    referredCount = Number(rc?.count || 0);
 
-  // Pull the current user's username to build their referral link. GET
-  // /api/profile returns it under `profile.username`.
-  useEffect(() => {
-    fetch("/api/profile")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.profile?.username) {
-          setUsername(data.profile.username);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const referralLink =
-    username && origin ? `${origin}/signup?ref=${username}` : "";
-
-  const handleCopy = () => {
-    if (!referralLink) return;
-    navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    const [ec] = await db
+      .select({ total: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
+      .from(referralEarnings)
+      .where(eq(referralEarnings.referrerId, user.id));
+    earnedCents = Number(ec?.total || 0);
+  } catch {
+    // leave defaults if the DB is unreachable
+  }
 
   return (
-    <div className="dash-wrap">
-      <Sidebar />
-      <main className="dash-main">
-        <div className="dash-header">
-          <h1>Referrals</h1>
-          <p className="subtext">
-            Refer others and earn 5% of their payouts for the first 90 days.
-          </p>
+    <div className="app">
+      <Sidebar user={user} isAdmin={admin} />
+      <main className="main">
+        <div className="topbar">
+          <div>
+            <h1>Referrals</h1>
+            <p className="sub">
+              Refer others and earn 5% of their payouts for the first 90 days.
+            </p>
+          </div>
         </div>
 
-        {loading && <p className="loading">Loading...</p>}
+        <ReferralCard
+          username={username}
+          referredCount={referredCount}
+          earnedCents={earnedCents}
+        />
 
-        {!loading && stats && (
-          <>
-            {/* Mimix-style card */}
-            <div className="referral-card">
-              <h2>Refer others and earn</h2>
-              <div className="referral-stats">
-                <div className="stat">
-                  <span className="stat-label">Referred</span>
-                  <span className="stat-value">{stats.referredCount}</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-label">Earned</span>
-                  <span className="stat-value">
-                    ${(stats.earnedCents / 100).toFixed(2)} USDC
-                  </span>
-                </div>
-              </div>
-
-              {username && (
-                <div className="referral-link-section">
-                  <label htmlFor="refLink">Your referral link</label>
-                  <div className="link-box">
-                    <input
-                      id="refLink"
-                      type="text"
-                      value={referralLink}
-                      readOnly
-                      className="link-input"
-                    />
-                    <button onClick={handleCopy} className="copy-btn">
-                      {copied ? "Copied!" : "Copy"}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {!username && (
-                <p className="notice">
-                  Set a username in your profile to generate your referral link.
-                </p>
-              )}
-            </div>
-
-            <div className="how-it-works">
-              <h3>How it works</h3>
-              <ol>
-                <li>
-                  Share your referral link with creators you know.
-                </li>
-                <li>
-                  When they sign up using your link, they become your referral.
-                </li>
-                <li>
-                  For the first 90 days, you earn 5% of every payout they receive
-                  (after their withdrawal is marked paid by admin).
-                </li>
-                <li>
-                  Your referral earnings are added to your balance and can be
-                  withdrawn anytime.
-                </li>
-              </ol>
-            </div>
-          </>
-        )}
+        <div className="how-it-works">
+          <h3>How it works</h3>
+          <ol>
+            <li>Share your referral link with creators you know.</li>
+            <li>
+              When they sign up using your link, they become your referral.
+            </li>
+            <li>
+              For the first 90 days, you earn 5% of every payout they receive
+              (after their withdrawal is marked paid by admin).
+            </li>
+            <li>
+              Your referral earnings are added to your balance and can be
+              withdrawn anytime.
+            </li>
+          </ol>
+        </div>
       </main>
     </div>
   );
