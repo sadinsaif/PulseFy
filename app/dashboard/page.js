@@ -6,7 +6,6 @@ import { db } from "@/db";
 import { campaigns, users, submissions } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
-import Chart from "@/components/Chart";
 import TopbarSearch from "@/components/TopbarSearch";
 import { isAdminEmail } from "@/lib/admin";
 
@@ -56,6 +55,32 @@ export default async function DashboardPage() {
     allCampaigns = [];
   }
 
+  // Real KPI numbers straight from the database — no fake stats.
+  let stats = { activeCampaigns: 0, creators: 0, submissions: 0, rewardsPaid: 0 };
+  try {
+    const [ac] = await db
+      .select({ n: sql`count(*)` })
+      .from(campaigns)
+      .where(sql`${campaigns.status} = 'active'`);
+    const [cr] = await db
+      .select({ n: sql`count(*)` })
+      .from(users)
+      .where(sql`${users.role} = 'creator'`);
+    const [sb] = await db.select({ n: sql`count(*)` }).from(submissions);
+    const [rw] = await db
+      .select({ n: sql`coalesce(sum(${submissions.reward}), 0)` })
+      .from(submissions)
+      .where(sql`${submissions.status} = 'approved'`);
+    stats = {
+      activeCampaigns: Number(ac?.n || 0),
+      creators: Number(cr?.n || 0),
+      submissions: Number(sb?.n || 0),
+      rewardsPaid: Number(rw?.n || 0),
+    };
+  } catch {
+    // leave zeros if the DB is unreachable
+  }
+
   return (
     <div className="app">
       <Sidebar user={user} isAdmin={isAdminEmail(user?.email)} />
@@ -76,52 +101,27 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* KPIs */}
+        {/* KPIs — real counts from the database */}
         <section className="kpis">
           <div className="kpi">
-            <div className="k-top"><div className="k-ic">🎯</div><span className="chip up">+12%</span></div>
-            <div className="k-val">24</div>
-            <div className="k-lbl">Active challenges</div>
+            <div className="k-top"><div className="k-ic">🎯</div></div>
+            <div className="k-val">{stats.activeCampaigns.toLocaleString()}</div>
+            <div className="k-lbl">Active campaigns</div>
           </div>
           <div className="kpi">
-            <div className="k-top"><div className="k-ic">👥</div><span className="chip up">+8.4%</span></div>
-            <div className="k-val">3,182</div>
-            <div className="k-lbl">Creators engaged</div>
+            <div className="k-top"><div className="k-ic">👥</div></div>
+            <div className="k-val">{stats.creators.toLocaleString()}</div>
+            <div className="k-lbl">Creators</div>
           </div>
           <div className="kpi">
-            <div className="k-top"><div className="k-ic">✅</div><span className="chip up">+21%</span></div>
-            <div className="k-val">1,940</div>
+            <div className="k-top"><div className="k-ic">✅</div></div>
+            <div className="k-val">{stats.submissions.toLocaleString()}</div>
             <div className="k-lbl">Submissions</div>
           </div>
           <div className="kpi">
-            <div className="k-top"><div className="k-ic">💸</div><span className="chip down">-3%</span></div>
-            <div className="k-val">$48.2k</div>
+            <div className="k-top"><div className="k-ic">💸</div></div>
+            <div className="k-val">${stats.rewardsPaid.toLocaleString()}</div>
             <div className="k-lbl">Rewards paid</div>
-          </div>
-        </section>
-
-        {/* PANELS */}
-        <section className="panels">
-          <div className="panel">
-            <div className="panel-head">
-              <h3>Submissions this week</h3>
-              <a href="#">View report</a>
-            </div>
-            <Chart />
-          </div>
-
-          <div className="panel">
-            <div className="panel-head"><h3>Clean Engagement Score</h3></div>
-            <div className="donut-wrap">
-              <div className="donut"><span className="val">82%</span></div>
-              <div className="legend">
-                <div><span className="sw" style={{ background: "var(--accent)" }}></span> Real engagement · 82%</div>
-                <div><span className="sw" style={{ background: "var(--bg-card-2)" }}></span> Flagged / bot · 18%</div>
-                <p style={{ color: "var(--text-mute)", fontSize: 13, marginTop: 6 }}>
-                  AI scanned 12.4k interactions in the last 24h.
-                </p>
-              </div>
-            </div>
           </div>
         </section>
 
