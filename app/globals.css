@@ -93,6 +93,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
 
 .btn-block { width: 100%; justify-content: center; }
 .btn-lg { padding: 15px 30px; font-size: 16px; }
+.btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 8px; }
 
 /* ============================================
    Navbar
@@ -1326,3 +1327,29 @@ tbody tr:last-child td { border-bottom: none; }
   .wallet-hero { flex-direction: column; align-items: stretch; text-align: center; }
   .wallet-bal { align-items: center; }
 }
+
+/* ============================================
+   Admin withdrawal requests — copyable address
+   ============================================ */
+.addr-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.addr-copy:hover { border-color: var(--accent); background: var(--bg-elev, #171a21); }
+.addr-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.addr-ic { flex-shrink: 0; font-size: 12px; opacity: .8; }

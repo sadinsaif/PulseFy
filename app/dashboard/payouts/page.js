@@ -7,6 +7,7 @@ import { submissions, users, campaigns } from "@/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import CreatorWallet from "@/components/CreatorWallet";
+import AdminWithdrawals from "@/components/AdminWithdrawals";
 import { isAdminEmail } from "@/lib/admin";
 
 const PLABEL = {
@@ -107,6 +108,8 @@ export default async function PayoutsPage() {
               <div className="k-lbl">Creators paid</div>
             </div>
           </section>
+
+          {admin && <AdminWithdrawals />}
 
           <section className="panel" style={{ marginTop: 18 }}>
             <div className="panel-head">

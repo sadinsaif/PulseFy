@@ -3,9 +3,11 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { submissions, withdrawals } from "@/db/schema";
+import { submissions, withdrawals, users } from "@/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { withdrawalSchema } from "@/lib/validation";
+import { isAdminEmail } from "@/lib/admin";
+import { notifyAdmins, notifyUser } from "@/lib/notify";
 
 const FEE_RATE = 0.05; // 5% processing fee, matching GIMI
 
@@ -33,12 +35,42 @@ async function getBalanceCents(userId) {
 
 /**
  * GET /api/withdrawals
- * Returns the signed-in creator's balance + their withdrawal history.
+ *   default   → the signed-in creator's balance + their own withdrawal history
+ *   ?all=1    → (admin only) every withdrawal request with the creator's name/email
  */
-export async function GET() {
+export async function GET(req) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
+  const all = new URL(req.url).searchParams.get("all") === "1";
+
+  // Admin management view: list every request so payouts can be actioned.
+  if (all) {
+    if (!isAdminEmail(session.user.email)) {
+      return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+    }
+    const rows = await db
+      .select({
+        id: withdrawals.id,
+        amount: withdrawals.amount,
+        fee: withdrawals.fee,
+        net: withdrawals.net,
+        method: withdrawals.method,
+        coin: withdrawals.coin,
+        network: withdrawals.network,
+        destination: withdrawals.destination,
+        status: withdrawals.status,
+        createdAt: withdrawals.createdAt,
+        creatorId: withdrawals.userId,
+        creatorName: users.name,
+        creatorEmail: users.email,
+      })
+      .from(withdrawals)
+      .leftJoin(users, eq(withdrawals.userId, users.id))
+      .orderBy(desc(withdrawals.createdAt));
+    return NextResponse.json({ withdrawals: rows });
   }
 
   const { earnedCents, drawnCents, availableCents } = await getBalanceCents(session.user.id);
@@ -118,6 +150,19 @@ export async function POST(req) {
     })
     .returning();
 
+  // Alert admins so they can send the payment.
+  const who = session.user.name || session.user.email || "A creator";
+  const dest = destination.trim();
+  const howLabel =
+    method === "stablecoin"
+      ? `${(coin || "usdc").toUpperCase()} on ${network} → ${dest}`
+      : `bank/PayPal → ${dest}`;
+  await notifyAdmins({
+    type: "withdrawal",
+    message: `${who} requested a $${amount.toFixed(2)} withdrawal (${howLabel}).`,
+    link: "/dashboard/payouts",
+  });
+
   return NextResponse.json(
     {
       ok: true,
@@ -126,4 +171,53 @@ export async function POST(req) {
     },
     { status: 201 }
   );
+}
+
+/**
+ * PATCH /api/withdrawals — admin marks a request paid or failed.
+ * Body: { id, status: "paid" | "failed" }. Notifies the creator.
+ */
+export async function PATCH(req) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
+  }
+  if (!isAdminEmail(session.user.email)) {
+    return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+  }
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  const { id, status } = body || {};
+  if (!id || !["paid", "failed", "pending"].includes(status)) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+
+  const existing = await db.select().from(withdrawals).where(eq(withdrawals.id, id));
+  if (!existing[0]) {
+    return NextResponse.json({ error: "Withdrawal not found" }, { status: 404 });
+  }
+
+  await db.update(withdrawals).set({ status }).where(eq(withdrawals.id, id));
+
+  // Tell the creator what happened.
+  if (status === "paid" || status === "failed") {
+    const amt = (existing[0].net / 100).toFixed(2);
+    const msg =
+      status === "paid"
+        ? `Your withdrawal of $${amt} has been paid ✅`
+        : `Your withdrawal of $${amt} could not be processed and was refunded to your balance.`;
+    await notifyUser(existing[0].userId, {
+      type: "review",
+      message: msg,
+      link: "/dashboard/payouts",
+    });
+  }
+
+  return NextResponse.json({ ok: true, status });
 }
