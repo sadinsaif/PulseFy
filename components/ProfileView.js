@@ -16,10 +16,13 @@ const STATUS_CLASS = {
 };
 
 // Compact number like GIMI: 5400 → "5.4K", 2100000 → "2.1M".
+// Round first, then pick the tier so boundary values (999,999) roll up to
+// "1.0M" instead of overflowing to "1000.0K".
 function fmtCompact(n) {
-  const v = Number(n) || 0;
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1) + "M";
-  if (v >= 1_000) return (v / 1_000).toFixed(v % 1_000 === 0 ? 0 : 1) + "K";
+  const v = Math.round(Number(n) || 0);
+  if (v >= 999_950_000) return (v / 1_000_000_000).toFixed(1) + "B";
+  if (v >= 999_950) return (v / 1_000_000).toFixed(1) + "M";
+  if (v >= 999.95) return (v / 1_000).toFixed(1) + "K";
   return String(v);
 }
 
@@ -140,6 +143,16 @@ export default function ProfileView() {
   }
 
   if (loading) return <p className="brief">Loading profile…</p>;
+
+  // If the profile API failed, stats stays null — show a message instead of
+  // crashing on stats.* below.
+  if (!stats) {
+    return (
+      <p className="brief">
+        Couldn&apos;t load your profile right now. Please refresh the page.
+      </p>
+    );
+  }
 
   const initial = (profile.name || profile.email || "S")[0].toUpperCase();
   const interestList = (profile.interests || "")

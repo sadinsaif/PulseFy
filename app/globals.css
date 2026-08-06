@@ -651,7 +651,7 @@ tbody tr:last-child td { border-bottom: none; }
   font-size: 12px; padding: 5px 12px; border-radius: 999px;
   background: var(--bg-card-2); border: 1px solid var(--border-soft); color: var(--text-dim);
 }
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
 .stat-box { background: var(--bg-card-2); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px; text-align: center; }
 .stat-box .n { font-size: 22px; font-weight: 800; }
 .stat-box .l { font-size: 12px; color: var(--text-mute); margin-top: 3px; }
