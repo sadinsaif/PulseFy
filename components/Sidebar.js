@@ -12,7 +12,7 @@ const NAV = [
   { href: "/dashboard/campaigns", icon: "🎯", label: "Campaigns" },
   { href: "/dashboard/creators", icon: "👥", label: "Creators" },
   { href: "/dashboard/submissions", icon: "✅", label: "Submissions", adminOnly: true },
-  { href: "#", icon: "💸", label: "Payouts" },
+  { href: "/dashboard/payouts", icon: "💸", label: "Payouts" },
   { href: "#", icon: "📈", label: "Analytics" },
   { href: "#", icon: "⚙️", label: "Settings" },
 ];
