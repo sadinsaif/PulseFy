@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { campaigns, users, submissions } from "@/db/schema";
+import { campaigns, users, submissions, referralEarnings } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import TopbarSearch from "@/components/TopbarSearch";
@@ -77,11 +77,18 @@ export default async function DashboardPage() {
       .select({ n: sql`coalesce(sum(${submissions.spotlightBonus}), 0)` })
       .from(submissions)
       .where(sql`${submissions.spotlighted} = true`);
+    // Referral commissions — 5% of referred users' payouts for the first 90 days.
+    // These are already in cents, so convert to dollars for the KPI display.
+    const [rf] = await db
+      .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
+      .from(referralEarnings);
+    const referralDollars = Number(rf?.n || 0) / 100;
+
     stats = {
       activeCampaigns: Number(ac?.n || 0),
       creators: Number(cr?.n || 0),
       submissions: Number(sb?.n || 0),
-      rewardsPaid: Number(rw?.n || 0) + Number(sp?.n || 0),
+      rewardsPaid: Number(rw?.n || 0) + Number(sp?.n || 0) + referralDollars,
     };
   } catch {
     // leave zeros if the DB is unreachable
