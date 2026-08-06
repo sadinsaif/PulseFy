@@ -117,6 +117,8 @@ export const submissions = pgTable("submissions", {
   caption: text("caption"),
   status: text("status").notNull().default("pending"),
   reward: integer("reward").notNull().default(0), // dollars, set by admin on approval
+  views: integer("views").notNull().default(0), // post views, verified at review
+  engagement: integer("engagement").notNull().default(0), // likes+comments+shares, verified at review
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 

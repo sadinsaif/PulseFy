@@ -32,6 +32,8 @@ export async function GET() {
   const rejected = subs.filter((s) => s.status === "rejected");
   const reviewed = approved.length + rejected.length;
   const earnings = approved.reduce((sum, s) => sum + (s.reward || 0), 0);
+  const totalViews = subs.reduce((sum, s) => sum + (s.views || 0), 0);
+  const totalEngagement = subs.reduce((sum, s) => sum + (s.engagement || 0), 0);
 
   const profile = {
     name: u.name || "",
@@ -51,6 +53,10 @@ export async function GET() {
     pending: subs.length - reviewed,
     approvalRate: reviewed ? Math.round((approved.length / reviewed) * 100) : 0,
     earnings,
+    views: totalViews,
+    engagement: totalEngagement,
+    // Overall engagement rate across all posts (GIMI-style), one decimal.
+    rate: totalViews > 0 ? ((totalEngagement / totalViews) * 100).toFixed(1) : "0.0",
   };
 
   return NextResponse.json({ profile, stats, submissions: subs });

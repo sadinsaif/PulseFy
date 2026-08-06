@@ -35,6 +35,8 @@ export async function GET() {
     caption: submissions.caption,
     status: submissions.status,
     reward: submissions.reward,
+    views: submissions.views,
+    engagement: submissions.engagement,
     createdAt: submissions.createdAt,
     creatorId: submissions.userId,
     creatorName: users.name,
@@ -90,7 +92,7 @@ export async function POST(req) {
     );
   }
 
-  const { submissionId, status, reward } = parsed.data;
+  const { submissionId, status, reward, views, engagement } = parsed.data;
 
   const existing = await db
     .select()
@@ -120,6 +122,11 @@ export async function POST(req) {
   } else if (status === "rejected") {
     patch.reward = 0;
   }
+
+  // Real metrics the admin verified — persist whenever they were supplied,
+  // regardless of status, so views/engagement stay accurate. Rate is derived.
+  if (views != null) patch.views = views;
+  if (engagement != null) patch.engagement = engagement;
 
   await db
     .update(submissions)

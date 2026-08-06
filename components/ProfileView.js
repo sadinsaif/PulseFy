@@ -15,6 +15,22 @@ const STATUS_CLASS = {
   rejected: "ended",
 };
 
+// Compact number like GIMI: 5400 → "5.4K", 2100000 → "2.1M".
+function fmtCompact(n) {
+  const v = Number(n) || 0;
+  if (v >= 1_000_000) return (v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1) + "M";
+  if (v >= 1_000) return (v / 1_000).toFixed(v % 1_000 === 0 ? 0 : 1) + "K";
+  return String(v);
+}
+
+// Engagement rate as GIMI shows it: engagement / views * 100, one decimal.
+function fmtRate(views, engagement) {
+  const v = Number(views) || 0;
+  const e = Number(engagement) || 0;
+  if (v <= 0) return "—";
+  return (e / v * 100).toFixed(1) + "%";
+}
+
 const EMPTY = {
   name: "",
   email: "",
@@ -305,8 +321,16 @@ export default function ProfileView() {
           <div className="l">Approved</div>
         </div>
         <div className="stat-box">
-          <div className="n">{stats.rejected}</div>
-          <div className="l">Rejected</div>
+          <div className="n" title={`${(Number(stats.views) || 0).toLocaleString()} views`}>
+            {fmtCompact(stats.views || 0)}
+          </div>
+          <div className="l">Total views</div>
+        </div>
+        <div className="stat-box">
+          <div className="n" style={{ color: "var(--accent)" }}>
+            {stats.views > 0 ? `${stats.rate}%` : "—"}
+          </div>
+          <div className="l">Avg. rate</div>
         </div>
         <div className="stat-box">
           <div className="n">{stats.approvalRate}%</div>
@@ -336,6 +360,9 @@ export default function ProfileView() {
                   <th>Campaign</th>
                   <th>Platform</th>
                   <th>Status</th>
+                  <th>Views</th>
+                  <th>Engagement</th>
+                  <th>Rate</th>
                   <th>Earnings</th>
                   <th>Post</th>
                   <th>Date</th>
@@ -350,6 +377,19 @@ export default function ProfileView() {
                       <span className={`status ${STATUS_CLASS[s.status] || "review"}`}>
                         {s.status}
                       </span>
+                    </td>
+                    <td style={{ fontWeight: 700 }} title={`${(Number(s.views) || 0).toLocaleString()} views`}>
+                      {s.views > 0 ? fmtCompact(s.views) : <span style={{ color: "var(--text-dim)" }}>—</span>}
+                    </td>
+                    <td style={{ fontWeight: 700 }} title={`${(Number(s.engagement) || 0).toLocaleString()} engagements`}>
+                      {s.engagement > 0 ? fmtCompact(s.engagement) : <span style={{ color: "var(--text-dim)" }}>—</span>}
+                    </td>
+                    <td>
+                      {s.views > 0 ? (
+                        <b style={{ color: "var(--accent)" }}>{fmtRate(s.views, s.engagement)}</b>
+                      ) : (
+                        <span style={{ color: "var(--text-dim)" }}>—</span>
+                      )}
                     </td>
                     <td>
                       {s.status === "approved" && s.reward > 0 ? (

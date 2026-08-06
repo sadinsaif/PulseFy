@@ -940,6 +940,15 @@ tbody tr:last-child td { border-bottom: none; }
   width: 52px; background: none; border: none; color: #f3f5f7;
   font-size: 13px; padding: 4px 4px; outline: none;
 }
+/* Admin-verified metric inputs on the review board (views / engagement). */
+.metric-input {
+  width: 84px; height: 32px; padding: 4px 8px;
+  background: var(--bg-card-2); border: 1px solid var(--border);
+  border-radius: 8px; color: #f3f5f7; font-size: 13px; outline: none;
+  transition: border-color .15s;
+}
+.metric-input:focus { border-color: var(--accent); }
+.metric-input::placeholder { color: #9aa1af; opacity: 1; }
 @media (max-width: 640px) {
   .profile-form .two-col { grid-template-columns: 1fr; }
 }

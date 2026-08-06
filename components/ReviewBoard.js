@@ -27,6 +27,7 @@ export default function ReviewBoard() {
   const [filter, setFilter] = useState("all");
   const [busy, setBusy] = useState("");
   const [rewards, setRewards] = useState({}); // per-submission $ input
+  const [metrics, setMetrics] = useState({}); // per-submission { views, engagement }
 
   async function load() {
     try {
@@ -54,6 +55,15 @@ export default function ReviewBoard() {
         const r = Number(rewards[id]);
         payload.reward = Number.isFinite(r) && r >= 0 ? Math.floor(r) : 0;
       }
+      // Send the admin-verified metrics on any action so views/engagement
+      // stay real. Fall back to the row's current value when the input is empty.
+      const row = rows.find((x) => x.id === id) || {};
+      const vRaw = metrics[id]?.views ?? row.views ?? "";
+      const eRaw = metrics[id]?.engagement ?? row.engagement ?? "";
+      const v = Number(vRaw);
+      const e = Number(eRaw);
+      if (vRaw !== "" && Number.isFinite(v) && v >= 0) payload.views = Math.floor(v);
+      if (eRaw !== "" && Number.isFinite(e) && e >= 0) payload.engagement = Math.floor(e);
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,7 +74,14 @@ export default function ReviewBoard() {
         setRows((prev) =>
           prev.map((r) =>
             r.id === id
-              ? { ...r, status, reward: data.reward != null ? data.reward : r.reward }
+              ? {
+                  ...r,
+                  status,
+                  reward: data.reward != null ? data.reward : r.reward,
+                  views: payload.views != null ? payload.views : r.views,
+                  engagement:
+                    payload.engagement != null ? payload.engagement : r.engagement,
+                }
               : r
           )
         );
@@ -116,6 +133,8 @@ export default function ReviewBoard() {
                 <th>Challenge</th>
                 <th>Platform</th>
                 <th>Post</th>
+                <th>Views</th>
+                <th>Engagement</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
@@ -153,6 +172,38 @@ export default function ReviewBoard() {
                         {r.caption}
                       </div>
                     ) : null}
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      className="metric-input"
+                      value={metrics[r.id]?.views ?? (r.views || "")}
+                      onChange={(e) =>
+                        setMetrics((p) => ({
+                          ...p,
+                          [r.id]: { ...p[r.id], views: e.target.value },
+                        }))
+                      }
+                      title="Verified post views"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      className="metric-input"
+                      value={metrics[r.id]?.engagement ?? (r.engagement || "")}
+                      onChange={(e) =>
+                        setMetrics((p) => ({
+                          ...p,
+                          [r.id]: { ...p[r.id], engagement: e.target.value },
+                        }))
+                      }
+                      title="Verified engagement (likes + comments + shares)"
+                    />
                   </td>
                   <td>
                     <span className={`status ${STATUS_CLASS[r.status] || "review"}`}>
