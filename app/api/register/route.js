@@ -42,6 +42,24 @@ export async function POST(req) {
     );
   }
 
+  // Referral — check if a ?ref=<username> brought them here. Look up the
+  // referrer by username (case-insensitive). If found, this new user's
+  // referredBy column points to them; the referrer earns 5% of this user's
+  // payouts for the first 90 days (enforced at withdrawal time).
+  const { searchParams } = new URL(req.url);
+  const refUsername = searchParams.get("ref")?.trim();
+  let referrerId = null;
+  if (refUsername) {
+    const referrer = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.username, refUsername.toLowerCase()));
+    if (referrer[0]) {
+      referrerId = referrer[0].id;
+    }
+    // If username doesn't exist, silently ignore — the signup still succeeds.
+  }
+
   const passwordHash = await bcrypt.hash(password, 10);
 
   // Email verification is opt-in via env. On the free Resend tier the
@@ -57,6 +75,7 @@ export async function POST(req) {
     role,
     company: role === "brand" ? name : null, // brands use it as the brand label
     emailVerified: requireVerify ? null : new Date(),
+    referredBy: referrerId, // null for organic signups, referrer's id for ?ref= signups
   });
 
   if (!requireVerify) {

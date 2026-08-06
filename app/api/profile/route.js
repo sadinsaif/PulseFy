@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { users, submissions } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { users, submissions, referralEarnings } from "@/db/schema";
+import { desc, eq, sql } from "drizzle-orm";
 import { profileSchema } from "@/lib/validation";
 
 /**
@@ -38,7 +38,14 @@ export async function GET() {
     (sum, s) => sum + (s.spotlighted ? s.spotlightBonus || 0 : 0),
     0
   );
-  const earnings = rewardEarnings + spotlightEarnings;
+  // Referral earnings — 5% commission from referred users' paid withdrawals (in cents).
+  const [re] = await db
+    .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
+    .from(referralEarnings)
+    .where(eq(referralEarnings.referrerId, session.user.id));
+  const referralEarningsCents = Number(re?.n || 0);
+
+  const earnings = rewardEarnings + spotlightEarnings + referralEarningsCents / 100;
   const totalViews = subs.reduce((sum, s) => sum + (s.views || 0), 0);
   const totalEngagement = subs.reduce((sum, s) => sum + (s.engagement || 0), 0);
 

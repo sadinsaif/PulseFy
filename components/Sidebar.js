@@ -13,6 +13,7 @@ const NAV = [
   { href: "/dashboard/creators", icon: "👥", label: "Creators" },
   { href: "/dashboard/submissions", icon: "✅", label: "Submissions", adminOnly: true },
   { href: "/dashboard/payouts", icon: "💸", label: "Payouts" },
+  { href: "/dashboard/referrals", icon: "🔗", label: "Referrals", creatorOnly: true },
   { href: "#", icon: "📈", label: "Analytics" },
   { href: "#", icon: "⚙️", label: "Settings" },
 ];

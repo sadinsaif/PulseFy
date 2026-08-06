@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { submissions, withdrawals, users } from "@/db/schema";
+import { submissions, withdrawals, users, referralEarnings } from "@/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { withdrawalSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
@@ -15,6 +15,7 @@ const FEE_RATE = 0.05; // 5% processing fee, matching GIMI
  * Compute a creator's balance in CENTS:
  *   earned  = sum of approved submission rewards (whole dollars)
  *           + sum of spotlight bonuses on spotlighted posts (whole dollars)
+ *           + sum of referral commissions (in cents, already)
  *   drawn   = sum of all non-failed withdrawal amounts (stored in cents)
  *   available = earned - drawn
  */
@@ -31,7 +32,14 @@ async function getBalanceCents(userId) {
     .from(submissions)
     .where(and(eq(submissions.userId, userId), eq(submissions.spotlighted, true)));
 
-  const earnedCents = (Number(er?.n || 0) + Number(sr?.n || 0)) * 100;
+  // Referral earnings — 5% commission from referred users' paid withdrawals. These
+  // are already in cents and always withdrawable (created only when funded).
+  const [rr] = await db
+    .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
+    .from(referralEarnings)
+    .where(eq(referralEarnings.referrerId, userId));
+
+  const earnedCents = (Number(er?.n || 0) + Number(sr?.n || 0)) * 100 + Number(rr?.n || 0);
 
   const [wr] = await db
     .select({ n: sql`coalesce(sum(${withdrawals.amount}), 0)` })
@@ -213,6 +221,41 @@ export async function PATCH(req) {
   }
 
   await db.update(withdrawals).set({ status }).where(eq(withdrawals.id, id));
+
+  // Referral commission — when a withdrawal is marked PAID and the creator was
+  // referred (users.referred_by is set), check if they're still in the 90-day
+  // window. If yes, the referrer earns 5% of the net amount (in cents).
+  if (status === "paid") {
+    const [referee] = await db
+      .select({ referredBy: users.referredBy, createdAt: users.createdAt })
+      .from(users)
+      .where(eq(users.id, existing[0].userId));
+
+    if (referee?.referredBy) {
+      const now = new Date();
+      const accountAge = now - new Date(referee.createdAt);
+      const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+
+      if (accountAge <= ninetyDays) {
+        // Check if this withdrawal already earned a commission (prevents double-
+        // counting if the admin toggles paid → pending → paid).
+        const [duplicate] = await db
+          .select()
+          .from(referralEarnings)
+          .where(eq(referralEarnings.withdrawalId, id));
+
+        if (!duplicate) {
+          const commissionCents = Math.round(existing[0].net * 0.05);
+          await db.insert(referralEarnings).values({
+            referrerId: referee.referredBy,
+            refereeId: existing[0].userId,
+            withdrawalId: id,
+            amount: commissionCents,
+          });
+        }
+      }
+    }
+  }
 
   // Tell the creator what happened.
   if (status === "paid" || status === "failed") {

@@ -30,6 +30,10 @@ export const users = pgTable("users", {
   twitter: text("twitter"),
   instagram: text("instagram"),
   interests: text("interests"), // comma-separated tags
+  // Referral — who invited this user (their referrer's id). Set once at signup
+  // from a ?ref=<username> link; the referrer earns 5% of this user's payouts
+  // for the first 90 days. Null for organic signups.
+  referredBy: text("referred_by"),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -193,3 +197,24 @@ export const verificationTokens = pgTable(
     compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
   })
 );
+
+/**
+ * Referral earnings — one row each time a referred creator's withdrawal is paid.
+ * The referrer earns 5% of that payout (stored in CENTS to match withdrawals).
+ * We record the source withdrawalId so a payout can never be counted twice.
+ * These earnings are a separate, always-withdrawable balance for the referrer.
+ */
+export const referralEarnings = pgTable("referral_earnings", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  referrerId: text("referrer_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  refereeId: text("referee_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  withdrawalId: text("withdrawal_id").notNull().unique(), // the paid payout that earned this
+  amount: integer("amount").notNull().default(0), // 5% commission, in cents
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
