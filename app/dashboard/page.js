@@ -2,23 +2,59 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { auth } from "@/auth";
+import { db } from "@/db";
+import { campaigns, users, submissions } from "@/db/schema";
+import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import Chart from "@/components/Chart";
 import TopbarSearch from "@/components/TopbarSearch";
 import { isAdminEmail } from "@/lib/admin";
 
-const CHALLENGES = [
-  { id: "summer-reels-sprint", emoji: "🎬", grad: "linear-gradient(135deg,#ff7a45,#ffb43a)", name: "Summer Reels Sprint", plats: "TikTok · Instagram", status: "live", statusLabel: "Live", subs: 642, prog: 72, pool: "$12,000" },
-  { id: "brand-remix-challenge", emoji: "🎨", grad: "linear-gradient(135deg,#a855f7,#ffb43a)", name: "Brand Remix Challenge", plats: "YouTube · X", status: "review", statusLabel: "In review", subs: 318, prog: 44, pool: "$8,500" },
-  { id: "unboxing-hype", emoji: "🔥", grad: "linear-gradient(135deg,#ffb43a,#f4526a)", name: "Unboxing Hype", plats: "TikTok · Reddit", status: "live", statusLabel: "Live", subs: 489, prog: 88, pool: "$15,000" },
-  { id: "product-story-contest", emoji: "📸", grad: "linear-gradient(135deg,#ffb43a,#a855f7)", name: "Product Story Contest", plats: "Instagram", status: "ended", statusLabel: "Ended", subs: 491, prog: 100, pool: "$6,000" },
-  { id: "creator-voices", emoji: "🎙️", grad: "linear-gradient(135deg,#ff7a45,#a855f7)", name: "Creator Voices", plats: "YouTube · LinkedIn", status: "review", statusLabel: "In review", subs: 210, prog: 30, pool: "$4,700" },
-];
+const PLABEL = {
+  any: "Any platform",
+  tiktok: "🎵 TikTok",
+  instagram: "📸 Instagram",
+  youtube: "▶️ YouTube",
+  x: "𝕏 X",
+};
+
+const CONTENT_TYPE_LABEL = {
+  ugc: "UGC",
+  edit: "Edit",
+  ai: "AI Generated",
+  open: "Open Format",
+};
 
 export default async function DashboardPage() {
   const session = await auth();
   const user = session?.user;
   const firstName = (user?.name || "there").split(" ")[0];
+
+  // Pull every active, public campaign so the Overview shows the real
+  // marketplace feed (newest first) with brand name + live submission count.
+  const subCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id})`;
+  let allCampaigns = [];
+  try {
+    allCampaigns = await db
+      .select({
+        id: campaigns.id,
+        title: campaigns.title,
+        brief: campaigns.brief,
+        platform: campaigns.platform,
+        reward: campaigns.reward,
+        status: campaigns.status,
+        contentType: campaigns.contentType,
+        thumbnailUrl: campaigns.thumbnailUrl,
+        brandName: users.name,
+        submissionCount: subCount,
+      })
+      .from(campaigns)
+      .leftJoin(users, eq(campaigns.brandId, users.id))
+      .where(sql`${campaigns.status} = 'active' and ${campaigns.visibility} is distinct from 'private'`)
+      .orderBy(desc(campaigns.createdAt));
+  } catch {
+    allCampaigns = [];
+  }
 
   return (
     <div className="app">
@@ -89,41 +125,55 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* CHALLENGES TABLE */}
+        {/* ALL CAMPAIGNS */}
         <section className="panel">
           <div className="panel-head">
-            <h3>Recent challenges</h3>
-            <a href="#">See all</a>
+            <h3>All campaigns</h3>
+            <Link href="/dashboard/campaigns" style={{ color: "var(--accent)" }}>See all</Link>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Challenge</th>
-                  <th>Status</th>
-                  <th>Submissions</th>
-                  <th>Progress</th>
-                  <th>Reward pool</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CHALLENGES.map((c) => (
-                  <tr key={c.id} className="row-link">
-                    <td>
-                      <Link href={`/challenge/${c.id}`} className="ch-name">
-                        <div className="ch-thumb" style={{ background: c.grad }}>{c.emoji}</div>
-                        <div><b>{c.name}</b><span>{c.plats}</span></div>
-                      </Link>
-                    </td>
-                    <td><span className={`status ${c.status}`}>{c.statusLabel}</span></td>
-                    <td>{c.subs}</td>
-                    <td><div className="mini-prog"><i style={{ width: `${c.prog}%` }}></i></div></td>
-                    <td>{c.pool}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
+          {allCampaigns.length === 0 ? (
+            <p className="brief" style={{ marginTop: 10 }}>
+              No active campaigns yet. Brands can launch one from the Campaigns page.
+            </p>
+          ) : (
+            <div className="camp-grid" style={{ marginTop: 14 }}>
+              {allCampaigns.map((c) => (
+                <Link key={c.id} href={`/dashboard/campaigns/${c.id}`} className="camp-card">
+                  <div className="camp-thumb">
+                    {c.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.thumbnailUrl} alt={c.title} />
+                    ) : (
+                      <div
+                        className="camp-thumb-fallback"
+                        style={{ background: "linear-gradient(135deg,#ffb43a,#ff7a45)" }}
+                      >
+                        {(c.title || "C")[0].toUpperCase()}
+                      </div>
+                    )}
+                    {c.contentType && (
+                      <span className="camp-badge">{CONTENT_TYPE_LABEL[c.contentType] || c.contentType}</span>
+                    )}
+                  </div>
+
+                  <div className="camp-body">
+                    <div className="camp-top">
+                      <span className="camp-reward">${c.reward}<small>/post</small></span>
+                      <span className="tag-pill">{PLABEL[c.platform] || c.platform}</span>
+                    </div>
+                    <h3>{c.title}</h3>
+                    <p className="camp-brand">by {c.brandName || "A brand"}</p>
+                    {c.brief && <p className="camp-brief">{c.brief}</p>}
+                    <div className="camp-foot">
+                      <span>{c.submissionCount ?? 0} submissions</span>
+                      <span className="camp-join">View &amp; submit →</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>
