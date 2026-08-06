@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const PLABEL = {
+  const PLABEL = {
   any: "Any platform",
   tiktok: "🎵 TikTok",
   instagram: "📸 Instagram",
   youtube: "▶️ YouTube",
   x: "𝕏 X",
+};
+const CONTENT_TYPE_LABEL = {
+  ugc: "UGC (Raw, authentic creator content)",
+  edit: "Edit / Remix / Clip",
+  ai: "AI generated",
+  open: "Open Format (Memes, slides, screenshots, etc.)",
 };
 const STATUS_CLASS = { pending: "review", approved: "live", rejected: "ended" };
 const POST_PLATFORMS = ["tiktok", "instagram", "youtube", "x"];
@@ -93,13 +99,24 @@ export default function CampaignDetail({ id }) {
 
   return (
     <>
+      {/* Banner image (if present) */}
+      {camp.bannerUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={camp.bannerUrl} alt="Campaign banner" className="camp-detail-banner" />
+      )}
+
       <div className="hero-card">
-        <div
-          className="profile-av"
-          style={{ background: "linear-gradient(135deg,#ffb43a,#ff7a45)" }}
-        >
-          {(camp.title || "C")[0].toUpperCase()}
-        </div>
+        {camp.thumbnailUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="profile-av img" src={camp.thumbnailUrl} alt={camp.title} />
+        ) : (
+          <div
+            className="profile-av"
+            style={{ background: "linear-gradient(135deg,#ffb43a,#ff7a45)" }}
+          >
+            {(camp.title || "C")[0].toUpperCase()}
+          </div>
+        )}
         <div className="hc-body">
           <h1>{camp.title}</h1>
           <div className="meta">
@@ -113,6 +130,37 @@ export default function CampaignDetail({ id }) {
           {camp.brief && <p className="brief" style={{ marginTop: 10 }}>{camp.brief}</p>}
         </div>
       </div>
+
+      {/* Campaign details panel */}
+      {(camp.contentType || camp.requirements || camp.assetsUrl) && (
+        <div className="panel" style={{ marginTop: 18 }}>
+          <div className="panel-head"><h3>Campaign details</h3></div>
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 14 }}>
+            {camp.contentType && (
+              <div>
+                <b style={{ fontSize: 13, color: "var(--text-dim)" }}>Content type</b>
+                <p style={{ marginTop: 4 }}>{CONTENT_TYPE_LABEL[camp.contentType] || camp.contentType}</p>
+              </div>
+            )}
+            {camp.requirements && (
+              <div>
+                <b style={{ fontSize: 13, color: "var(--text-dim)" }}>Must-include requirements</b>
+                <p style={{ marginTop: 4 }}>{camp.requirements}</p>
+              </div>
+            )}
+            {camp.assetsUrl && (
+              <div>
+                <b style={{ fontSize: 13, color: "var(--text-dim)" }}>Campaign assets</b>
+                <p style={{ marginTop: 4 }}>
+                  <a href={camp.assetsUrl} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>
+                    Open assets folder ↗
+                  </a>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="panel" style={{ marginTop: 18 }}>
         <div className="panel-head">
