@@ -7,6 +7,13 @@ export default function ReferralsPage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [username, setUsername] = useState("");
+  // origin is browser-only — resolve it in an effect so SSR doesn't touch window.
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   useEffect(() => {
     fetch("/api/referrals")
@@ -18,23 +25,21 @@ export default function ReferralsPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  // Build the referral link from the current user's username. In production
-  // this would come from the session, but we'll fetch it from /api/profile.
-  const [username, setUsername] = useState("");
+  // Pull the current user's username to build their referral link. GET
+  // /api/profile returns it under `profile.username`.
   useEffect(() => {
     fetch("/api/profile")
       .then((r) => r.json())
       .then((data) => {
-        if (data.user?.username) {
-          setUsername(data.user.username);
+        if (data.profile?.username) {
+          setUsername(data.profile.username);
         }
       })
       .catch(() => {});
   }, []);
 
-  const referralLink = username
-    ? `${window.location.origin}/signup?ref=${username}`
-    : "";
+  const referralLink =
+    username && origin ? `${origin}/signup?ref=${username}` : "";
 
   const handleCopy = () => {
     if (!referralLink) return;

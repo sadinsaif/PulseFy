@@ -30,6 +30,9 @@ const ROLES = {
 function SignupInner() {
   const params = useSearchParams();
   const initialRole = params.get("role") === "brand" ? "brand" : "creator";
+  // Referral — who invited this user (?ref=<username>). Forwarded to the
+  // register API so the referrer gets credited.
+  const ref = params.get("ref") || "";
 
   const [role, setRole] = useState(initialRole);
   const [name, setName] = useState("");
@@ -50,7 +53,7 @@ function SignupInner() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ name, email, password, role, ref }),
       });
       const data = await res.json().catch(() => ({}));
       setLoading(false);

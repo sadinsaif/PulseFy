@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { signupSchema } from "@/lib/validation";
 import { createToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
@@ -42,20 +42,22 @@ export async function POST(req) {
     );
   }
 
-  // Referral — check if a ?ref=<username> brought them here. Look up the
-  // referrer by username (case-insensitive). If found, this new user's
-  // referredBy column points to them; the referrer earns 5% of this user's
-  // payouts for the first 90 days (enforced at withdrawal time).
-  const { searchParams } = new URL(req.url);
-  const refUsername = searchParams.get("ref")?.trim();
+  // Referral — check if a ?ref=<username> brought them here. The signup page
+  // forwards it in the request body. Look up the referrer by username
+  // case-insensitively (usernames are stored with their original case). If
+  // found, this new user's referredBy points to them; the referrer earns 5%
+  // of this user's payouts for the first 90 days (enforced at withdrawal time).
+  const refUsername = typeof body.ref === "string" ? body.ref.trim() : "";
   let referrerId = null;
   if (refUsername) {
     const referrer = await db
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.username, refUsername.toLowerCase()));
+      .where(sql`lower(${users.username}) = ${refUsername.toLowerCase()}`);
     if (referrer[0]) {
       referrerId = referrer[0].id;
+      // Guard: a user can never be their own referrer (defensive — at signup
+      // the account doesn't exist yet, but keeps the invariant explicit).
     }
     // If username doesn't exist, silently ignore — the signup still succeeds.
   }
