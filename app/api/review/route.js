@@ -37,6 +37,8 @@ export async function GET() {
     reward: submissions.reward,
     views: submissions.views,
     engagement: submissions.engagement,
+    spotlighted: submissions.spotlighted,
+    spotlightBonus: submissions.spotlightBonus,
     createdAt: submissions.createdAt,
     creatorId: submissions.userId,
     creatorName: users.name,
@@ -92,7 +94,8 @@ export async function POST(req) {
     );
   }
 
-  const { submissionId, status, reward, views, engagement } = parsed.data;
+  const { submissionId, status, reward, views, engagement, spotlighted, spotlightBonus } =
+    parsed.data;
 
   const existing = await db
     .select()
@@ -100,6 +103,11 @@ export async function POST(req) {
     .where(eq(submissions.id, submissionId));
   if (!existing[0]) {
     return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+  }
+
+  // Block self-review: a user can never review/spotlight their own submission.
+  if (existing[0].userId === session.user.id) {
+    return NextResponse.json({ error: "You cannot review your own submission." }, { status: 403 });
   }
 
   // A brand may only review submissions to campaigns they own.
@@ -128,13 +136,38 @@ export async function POST(req) {
   if (views != null) patch.views = views;
   if (engagement != null) patch.engagement = engagement;
 
+  // Spotlight — admin highlights a standout post and grants a flexible bonus.
+  // Turning it on sets (or keeps) the bonus; turning it off clears the bonus so
+  // it no longer counts toward earnings/balance. Track whether it just went on
+  // (or the bonus changed) so we can celebrate it with the creator.
+  let spotlightRewarded = false;
+  if (spotlighted != null) {
+    patch.spotlighted = spotlighted;
+    if (spotlighted) {
+      patch.spotlightBonus =
+        spotlightBonus != null ? spotlightBonus : existing[0].spotlightBonus || 0;
+      spotlightRewarded =
+        !existing[0].spotlighted || patch.spotlightBonus !== (existing[0].spotlightBonus || 0);
+    } else {
+      patch.spotlightBonus = 0;
+    }
+  } else if (spotlightBonus != null && existing[0].spotlighted) {
+    // Bonus edited on an already-spotlighted post.
+    patch.spotlightBonus = spotlightBonus;
+    spotlightRewarded = spotlightBonus !== (existing[0].spotlightBonus || 0);
+  }
+
   await db
     .update(submissions)
     .set(patch)
     .where(eq(submissions.id, submissionId));
 
-  // Tell the creator their post was reviewed (skip "pending" resets).
-  if (status === "approved" || status === "rejected") {
+  // Tell the creator their post was reviewed — only when the status actually
+  // changed, so editing a reward or toggling spotlight doesn't re-send it.
+  if (
+    (status === "approved" || status === "rejected") &&
+    status !== existing[0].status
+  ) {
     const verb =
       status === "approved"
         ? patch.reward > 0
@@ -148,5 +181,20 @@ export async function POST(req) {
     });
   }
 
-  return NextResponse.json({ ok: true, status, reward: patch.reward });
+  // Celebrate a fresh spotlight (or a bumped bonus) separately.
+  if (spotlightRewarded && (patch.spotlightBonus || 0) > 0) {
+    await notifyUser(existing[0].userId, {
+      type: "review",
+      message: `✦ Your post to ${existing[0].challengeId} was Spotlighted! You earned a $${patch.spotlightBonus} bonus.`,
+      link: "/dashboard/profile",
+    });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    status,
+    reward: patch.reward,
+    spotlighted: patch.spotlighted,
+    spotlightBonus: patch.spotlightBonus,
+  });
 }

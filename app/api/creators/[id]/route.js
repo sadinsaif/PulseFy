@@ -44,6 +44,10 @@ export async function GET(_req, { params }) {
       postUrl: submissions.postUrl,
       status: submissions.status,
       reward: submissions.reward,
+      views: submissions.views,
+      engagement: submissions.engagement,
+      spotlighted: submissions.spotlighted,
+      spotlightBonus: submissions.spotlightBonus,
       createdAt: submissions.createdAt,
     })
     .from(submissions)
@@ -53,12 +57,18 @@ export async function GET(_req, { params }) {
   const approvedRows = all.filter((s) => s.status === "approved");
   const rejected = all.filter((s) => s.status === "rejected").length;
   const reviewed = approvedRows.length + rejected;
+  // Earnings = approved campaign rewards + spotlight bonuses (mirrors profile).
+  const rewardEarnings = approvedRows.reduce((sum, s) => sum + (s.reward || 0), 0);
+  const spotlightEarnings = all.reduce(
+    (sum, s) => sum + (s.spotlighted ? s.spotlightBonus || 0 : 0),
+    0
+  );
   const stats = {
     submitted: all.length,
     approved: approvedRows.length,
     rejected,
     approvalRate: reviewed ? Math.round((approvedRows.length / reviewed) * 100) : 0,
-    earnings: approvedRows.reduce((sum, s) => sum + (s.reward || 0), 0),
+    earnings: rewardEarnings + spotlightEarnings,
   };
 
   // Public portfolio = approved clips only.

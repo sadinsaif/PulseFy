@@ -28,6 +28,7 @@ export default function ReviewBoard() {
   const [busy, setBusy] = useState("");
   const [rewards, setRewards] = useState({}); // per-submission $ input
   const [metrics, setMetrics] = useState({}); // per-submission { views, engagement }
+  const [spotBonus, setSpotBonus] = useState({}); // per-submission spotlight $ input
 
   async function load() {
     try {
@@ -93,7 +94,43 @@ export default function ReviewBoard() {
     }
   }
 
-  if (err) return <div className="alert err">{err}</div>;
+  // Toggle a spotlight on/off. Keeps the current status so no re-review happens;
+  // sends the flexible bonus the admin typed. Turning it off clears the bonus.
+  async function sendSpotlight(id, on) {
+    setBusy(id + "spot");
+    try {
+      const row = rows.find((x) => x.id === id) || {};
+      const payload = { submissionId: id, status: row.status, spotlighted: on };
+      if (on) {
+        const b = Number(spotBonus[id] ?? row.spotlightBonus);
+        payload.spotlightBonus = Number.isFinite(b) && b >= 0 ? Math.floor(b) : 0;
+      }
+      const res = await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setRows((prev) =>
+          prev.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  spotlighted: data.spotlighted != null ? data.spotlighted : on,
+                  spotlightBonus:
+                    data.spotlightBonus != null ? data.spotlightBonus : r.spotlightBonus,
+                }
+              : r
+          )
+        );
+      }
+    } catch {
+      /* ignore — button just won't update */
+    } finally {
+      setBusy("");
+    }
+  }
   if (rows === null) return <p className="brief">Loading submissions…</p>;
 
   const counts = {
@@ -136,6 +173,7 @@ export default function ReviewBoard() {
                 <th>Views</th>
                 <th>Engagement</th>
                 <th>Status</th>
+                <th>Spotlight</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -209,6 +247,35 @@ export default function ReviewBoard() {
                     <span className={`status ${STATUS_CLASS[r.status] || "review"}`}>
                       {r.status}
                     </span>
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <div className="reward-input" title="Spotlight bonus (USD)">
+                        <span>$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={spotBonus[r.id] ?? (r.spotlightBonus || "")}
+                          onChange={(e) =>
+                            setSpotBonus((p) => ({ ...p, [r.id]: e.target.value }))
+                          }
+                          disabled={r.spotlighted}
+                        />
+                      </div>
+                      <button
+                        className={`btn btn-sm ${r.spotlighted ? "btn-spotlight-on" : "btn-ghost"}`}
+                        disabled={busy === r.id + "spot"}
+                        onClick={() => sendSpotlight(r.id, !r.spotlighted)}
+                        title={
+                          r.spotlighted
+                            ? "Remove spotlight"
+                            : "Spotlight this post and grant the bonus"
+                        }
+                      >
+                        {r.spotlighted ? "✦ Spotlighted" : "✦ Spotlight"}
+                      </button>
+                    </div>
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>

@@ -1367,3 +1367,96 @@ tbody tr:last-child td { border-bottom: none; }
   white-space: nowrap;
 }
 .addr-ic { flex-shrink: 0; font-size: 12px; opacity: .8; }
+
+/* ============================================================
+   SPOTLIGHT — admin highlights a standout post; creator earns a
+   flexible bonus. Amber/orange sunset accent, ✦ star motif.
+   ============================================================ */
+
+/* Public showcase panel on the Overview */
+.spotlight-panel {
+  border: 1px solid var(--accent-line);
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(255,180,58,.08), transparent 60%),
+    var(--bg-card);
+}
+.spotlight-panel .panel-head h3 { display: flex; align-items: center; gap: 8px; }
+.spot-star, .spot-flag { color: var(--accent-3); }
+
+.spot-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+.spot-card {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--bg-card-2);
+  border: 1px solid var(--accent-line);
+  border-radius: 14px; padding: 14px;
+  position: relative;
+  transition: border-color .15s, transform .15s;
+}
+.spot-card:hover { border-color: var(--accent-3); transform: translateY(-2px); }
+.spot-card-top { display: flex; align-items: center; justify-content: space-between; }
+.spot-flag { font-size: 18px; line-height: 1; }
+.spot-earn {
+  background: linear-gradient(135deg, var(--accent-3), var(--accent));
+  color: #1a1205; font-weight: 800; font-size: 13px;
+  padding: 3px 10px; border-radius: 999px;
+}
+.spot-title {
+  font-weight: 700; font-size: 15px; color: var(--text);
+  text-decoration: none; line-height: 1.3;
+}
+.spot-title:hover { color: var(--accent); }
+.spot-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.spot-plat { font-size: 13px; color: var(--text-dim); }
+.spot-views { font-size: 13px; color: var(--text-dim); font-weight: 600; }
+.spot-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border-soft);
+}
+.spot-creator {
+  display: inline-flex; align-items: center; gap: 8px;
+  text-decoration: none; color: var(--text); min-width: 0;
+}
+.spot-av {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; color: #1a1205;
+  object-fit: cover; flex-shrink: 0;
+}
+.spot-name {
+  font-size: 13px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.spot-creator:hover .spot-name { color: var(--accent); }
+.spot-open { color: var(--accent); font-size: 13px; font-weight: 600; text-decoration: none; flex-shrink: 0; }
+
+/* Admin ReviewBoard — the spotlight toggle button */
+.btn-spotlight-on {
+  background: linear-gradient(135deg, var(--accent-3), var(--accent));
+  color: #1a1205; border: none; font-weight: 700;
+}
+.btn-spotlight-on:hover { filter: brightness(1.05); }
+
+/* Spotlight badge on profile tables + a subtle row highlight */
+.spot-badge {
+  display: inline-block; margin-left: 8px;
+  background: rgba(255,180,58,.14); color: var(--accent-3);
+  border: 1px solid var(--accent-line);
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  vertical-align: middle;
+}
+.row-spotlight { background: rgba(255,180,58,.045); }
+.earn-bonus { color: var(--accent-3); }
+
+/* Spotlight badge on the public creator portfolio clip cards */
+.clip-card { position: relative; }
+.clip-card.spotlight { border-color: var(--accent-line); }
+.clip-card.spotlight:hover { border-color: var(--accent-3); }
+.clip-spot {
+  position: absolute; top: 10px; right: 10px;
+  background: linear-gradient(135deg, var(--accent-3), var(--accent));
+  color: #1a1205; font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border-radius: 999px;
+}

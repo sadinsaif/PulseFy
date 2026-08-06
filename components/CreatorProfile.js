@@ -137,8 +137,9 @@ export default function CreatorProfile({ id }) {
                 href={c.postUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="clip-card"
+                className={`clip-card ${c.spotlighted ? "spotlight" : ""}`}
               >
+                {c.spotlighted && <span className="clip-spot">✦ Spotlight</span>}
                 <div className="clip-plat">{PLATFORM_LABEL[c.platform] || c.platform}</div>
                 <div className="clip-title">{c.challengeId}</div>
                 <div className="clip-foot">

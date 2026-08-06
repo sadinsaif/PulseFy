@@ -7,6 +7,7 @@ import { campaigns, users, submissions } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import TopbarSearch from "@/components/TopbarSearch";
+import Spotlighted from "@/components/Spotlighted";
 import { isAdminEmail } from "@/lib/admin";
 
 const PLABEL = {
@@ -71,11 +72,16 @@ export default async function DashboardPage() {
       .select({ n: sql`coalesce(sum(${submissions.reward}), 0)` })
       .from(submissions)
       .where(sql`${submissions.status} = 'approved'`);
+    // Spotlight bonuses are real payouts too — fold them into rewards paid.
+    const [sp] = await db
+      .select({ n: sql`coalesce(sum(${submissions.spotlightBonus}), 0)` })
+      .from(submissions)
+      .where(sql`${submissions.spotlighted} = true`);
     stats = {
       activeCampaigns: Number(ac?.n || 0),
       creators: Number(cr?.n || 0),
       submissions: Number(sb?.n || 0),
-      rewardsPaid: Number(rw?.n || 0),
+      rewardsPaid: Number(rw?.n || 0) + Number(sp?.n || 0),
     };
   } catch {
     // leave zeros if the DB is unreachable
@@ -124,6 +130,9 @@ export default async function DashboardPage() {
             <div className="k-lbl">Rewards paid</div>
           </div>
         </section>
+
+        {/* SPOTLIGHTED — hand-picked standout posts (renders only when non-empty) */}
+        <Spotlighted />
 
         {/* ALL CAMPAIGNS */}
         <section className="panel">

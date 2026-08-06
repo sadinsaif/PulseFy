@@ -428,8 +428,15 @@ export default function ProfileView() {
               </thead>
               <tbody>
                 {subs.map((s) => (
-                  <tr key={s.id}>
-                    <td><b>{s.challengeId}</b></td>
+                  <tr key={s.id} className={s.spotlighted ? "row-spotlight" : ""}>
+                    <td>
+                      <b>{s.challengeId}</b>
+                      {s.spotlighted && (
+                        <span className="spot-badge" title={`Spotlighted — $${s.spotlightBonus || 0} bonus`}>
+                          ✦ Spotlight
+                        </span>
+                      )}
+                    </td>
                     <td>{PLATFORM_LABEL[s.platform] || s.platform}</td>
                     <td>
                       <span className={`status ${STATUS_CLASS[s.status] || "review"}`}>
@@ -450,11 +457,19 @@ export default function ProfileView() {
                       )}
                     </td>
                     <td>
-                      {s.status === "approved" && s.reward > 0 ? (
-                        <b style={{ color: "var(--ok)" }}>${s.reward}</b>
-                      ) : (
-                        <span style={{ color: "var(--text-dim)" }}>—</span>
-                      )}
+                      {(() => {
+                        const reward = s.status === "approved" ? s.reward || 0 : 0;
+                        const bonus = s.spotlighted ? s.spotlightBonus || 0 : 0;
+                        const total = reward + bonus;
+                        if (total <= 0)
+                          return <span style={{ color: "var(--text-dim)" }}>—</span>;
+                        return (
+                          <b style={{ color: "var(--ok)" }} title={bonus > 0 ? `$${reward} reward + $${bonus} spotlight bonus` : undefined}>
+                            ${total}
+                            {bonus > 0 && <span className="earn-bonus"> ✦</span>}
+                          </b>
+                        );
+                      })()}
                     </td>
                     <td>
                       <a

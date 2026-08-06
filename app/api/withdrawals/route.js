@@ -13,7 +13,8 @@ const FEE_RATE = 0.05; // 5% processing fee, matching GIMI
 
 /**
  * Compute a creator's balance in CENTS:
- *   earned  = sum of approved submission rewards (stored in whole dollars)
+ *   earned  = sum of approved submission rewards (whole dollars)
+ *           + sum of spotlight bonuses on spotlighted posts (whole dollars)
  *   drawn   = sum of all non-failed withdrawal amounts (stored in cents)
  *   available = earned - drawn
  */
@@ -22,7 +23,15 @@ async function getBalanceCents(userId) {
     .select({ n: sql`coalesce(sum(${submissions.reward}), 0)` })
     .from(submissions)
     .where(and(eq(submissions.userId, userId), eq(submissions.status, "approved")));
-  const earnedCents = Number(er?.n || 0) * 100;
+
+  // Spotlight bonuses count on their own (a standout post the admin highlighted),
+  // independent of campaign approval.
+  const [sr] = await db
+    .select({ n: sql`coalesce(sum(${submissions.spotlightBonus}), 0)` })
+    .from(submissions)
+    .where(and(eq(submissions.userId, userId), eq(submissions.spotlighted, true)));
+
+  const earnedCents = (Number(er?.n || 0) + Number(sr?.n || 0)) * 100;
 
   const [wr] = await db
     .select({ n: sql`coalesce(sum(${withdrawals.amount}), 0)` })

@@ -6,6 +6,7 @@ import {
   serial,
   integer,
   bigint,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -123,6 +124,11 @@ export const submissions = pgTable("submissions", {
   // under 2^53. Verified at review or auto-fetched from YouTube.
   views: bigint("views", { mode: "number" }).notNull().default(0),
   engagement: bigint("engagement", { mode: "number" }).notNull().default(0), // likes+comments(+shares)
+  // Spotlight — admin highlights an outstanding post; the creator earns a bonus
+  // (whole dollars) on top of the campaign reward, and it shows in the public
+  // "Spotlighted" showcase. Bonus counts toward earnings + withdrawable balance.
+  spotlighted: boolean("spotlighted").notNull().default(false),
+  spotlightBonus: integer("spotlight_bonus").notNull().default(0), // dollars
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 

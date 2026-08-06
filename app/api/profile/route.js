@@ -31,7 +31,14 @@ export async function GET() {
   const approved = subs.filter((s) => s.status === "approved");
   const rejected = subs.filter((s) => s.status === "rejected");
   const reviewed = approved.length + rejected.length;
-  const earnings = approved.reduce((sum, s) => sum + (s.reward || 0), 0);
+  // Earnings = approved campaign rewards + spotlight bonuses (a standout post the
+  // admin highlighted counts on its own, regardless of approval status).
+  const rewardEarnings = approved.reduce((sum, s) => sum + (s.reward || 0), 0);
+  const spotlightEarnings = subs.reduce(
+    (sum, s) => sum + (s.spotlighted ? s.spotlightBonus || 0 : 0),
+    0
+  );
+  const earnings = rewardEarnings + spotlightEarnings;
   const totalViews = subs.reduce((sum, s) => sum + (s.views || 0), 0);
   const totalEngagement = subs.reduce((sum, s) => sum + (s.engagement || 0), 0);
 
