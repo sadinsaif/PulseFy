@@ -961,11 +961,36 @@ tbody tr:last-child td { border-bottom: none; }
 /* --- Campaign marketplace --- */
 .camp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .camp-card {
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column;
   background: var(--bg-card); border: 1px solid var(--border-soft);
-  border-radius: 16px; padding: 20px; transition: transform .15s, border-color .15s;
+  border-radius: 16px; overflow: hidden; transition: transform .15s, border-color .15s;
 }
 .camp-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+
+/* Thumbnail container (full width at top of card, fixed aspect) */
+.camp-thumb {
+  position: relative; width: 100%; height: 180px; overflow: hidden;
+  background: linear-gradient(135deg, #1a1f2e, #0f1419);
+}
+.camp-thumb img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.camp-thumb-fallback {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.9);
+}
+.camp-badge {
+  position: absolute; bottom: 10px; left: 10px;
+  background: rgba(0,0,0,0.75); color: #fff;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 4px 10px; border-radius: 6px; backdrop-filter: blur(8px);
+}
+
+/* Body content (padding moved here from .camp-card) */
+.camp-body {
+  display: flex; flex-direction: column; gap: 8px; padding: 20px;
+}
 .camp-top { display: flex; align-items: center; justify-content: space-between; }
 .camp-reward { font-size: 20px; font-weight: 800; color: var(--accent-3); }
 .camp-reward small { font-size: 12px; color: var(--text-mute); font-weight: 600; }
