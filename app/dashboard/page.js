@@ -7,7 +7,6 @@ import { campaigns, users, submissions, referralEarnings } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import TopbarSearch from "@/components/TopbarSearch";
-import Spotlighted from "@/components/Spotlighted";
 import { isAdminEmail } from "@/lib/admin";
 
 const PLABEL = {
@@ -137,9 +136,6 @@ export default async function DashboardPage() {
             <div className="k-lbl">Rewards paid</div>
           </div>
         </section>
-
-        {/* SPOTLIGHTED — hand-picked standout posts (renders only when non-empty) */}
-        <Spotlighted />
 
         {/* ALL CAMPAIGNS */}
         <section className="panel">

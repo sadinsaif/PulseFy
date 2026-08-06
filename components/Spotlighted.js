@@ -25,15 +25,21 @@ function fmtCompact(n) {
  * highlighted: a ✦ star badge, the creator's avatar + name (links to their
  * profile), the platform, live view count, and the earned bonus badge.
  * Data comes from /api/spotlight. Renders nothing until at least one post is
- * spotlighted, so the dashboard stays clean before the first pick.
+ * spotlighted, so the section stays clean before the first pick.
+ *
+ * Pass `campaignId` to scope the list to a single campaign's spotlighted posts
+ * (used at the bottom of the campaign detail page).
  */
-export default function Spotlighted() {
+export default function Spotlighted({ campaignId }) {
   const [rows, setRows] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/spotlight");
+        const url = campaignId
+          ? `/api/spotlight?campaignId=${encodeURIComponent(campaignId)}`
+          : "/api/spotlight";
+        const res = await fetch(url);
         if (!res.ok) {
           setRows([]);
           return;
@@ -44,7 +50,7 @@ export default function Spotlighted() {
         setRows([]);
       }
     })();
-  }, []);
+  }, [campaignId]);
 
   // Hide the whole section until there's something to show.
   if (!rows || rows.length === 0) return null;

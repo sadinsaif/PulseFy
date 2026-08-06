@@ -14,12 +14,22 @@ const MAX = 24;
  * Public "Spotlighted" showcase — every post an admin highlighted, joined with
  * the creator's name/username/avatar so the card can link to their profile.
  * Any signed-in user can view it (matches the rest of the dashboard).
+ *
+ * ?campaignId=<id> narrows the list to a single campaign's spotlighted posts,
+ * used at the bottom of the campaign detail page.
  */
-export async function GET() {
+export async function GET(req) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
+
+  const campaignId = new URL(req.url).searchParams.get("campaignId");
+
+  // Only-spotlighted, optionally scoped to one campaign.
+  const filter = campaignId
+    ? and(eq(submissions.spotlighted, true), eq(submissions.campaignId, campaignId))
+    : eq(submissions.spotlighted, true);
 
   let rows = [];
   try {
@@ -41,7 +51,7 @@ export async function GET() {
       })
       .from(submissions)
       .leftJoin(users, eq(submissions.userId, users.id))
-      .where(eq(submissions.spotlighted, true))
+      .where(filter)
       .orderBy(desc(submissions.spotlightBonus), desc(submissions.createdAt))
       .limit(MAX);
   } catch {

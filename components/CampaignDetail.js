@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Spotlighted from "@/components/Spotlighted";
 
   const PLABEL = {
   any: "Any platform",
@@ -216,6 +217,11 @@ export default function CampaignDetail({ id }) {
             </button>
           </form>
         )}
+      </div>
+
+      {/* Spotlighted posts for THIS campaign (renders only when non-empty) */}
+      <div style={{ marginTop: 18 }}>
+        <Spotlighted campaignId={id} />
       </div>
 
       <p style={{ marginTop: 16 }}>
