@@ -1242,18 +1242,18 @@ tbody tr:last-child td { border-bottom: none; }
   border-bottom: 1px solid var(--border-soft);
 }
 .wd-head-titles { flex: 1; text-align: center; }
-.wd-head-titles h3 { font-size: 18px; }
-.wd-head-titles p { font-size: 13px; color: var(--text-mute); margin-top: 2px; }
+.wd-head-titles h3 { font-size: 18px; font-weight: 700; color: #ffffff; }
+.wd-head-titles p { font-size: 13px; color: #c3c9d4; margin-top: 2px; }
 .wd-back, .wd-close {
-  background: var(--bg-card-2); border: 1px solid var(--border-soft); color: var(--text-dim);
+  background: var(--bg-card-2); border: 1px solid var(--border-soft); color: #c3c9d4;
   width: 32px; height: 32px; border-radius: 9px; cursor: pointer; font-size: 15px;
 }
 .wd-back:hover, .wd-close:hover { color: #fff; border-color: var(--accent); }
 .wd-balance {
-  text-align: center; padding: 10px; font-size: 13px; color: var(--text-mute);
+  text-align: center; padding: 10px; font-size: 13px; color: #c3c9d4; font-weight: 600;
   background: rgba(52,211,153,.08); border-bottom: 1px solid var(--border-soft);
 }
-.wd-balance b { color: var(--accent-3); }
+.wd-balance b { color: var(--accent-3); font-weight: 800; }
 .wd-body { padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 12px; }
 
 .wd-option {
@@ -1269,59 +1269,64 @@ tbody tr:last-child td { border-bottom: none; }
   align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
 }
 .wd-opt-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.wd-opt-txt b { font-size: 15px; }
-.wd-opt-txt span { font-size: 12px; color: var(--text-mute); }
+.wd-opt-txt b { font-size: 15px; font-weight: 700; color: #ffffff; }
+.wd-opt-txt span { font-size: 12.5px; color: #bcc3ce; }
 .wd-tag {
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
-  color: var(--accent-3); background: rgba(52,211,153,.15); padding: 2px 7px; border-radius: 6px; margin-left: 6px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px;
+  color: #0a0b0d; background: #34d399; padding: 2px 7px; border-radius: 6px; margin-left: 6px;
 }
-.wd-tag.muted { color: var(--text-mute); background: rgba(255,255,255,.06); }
-.wd-arrow { color: var(--text-mute); font-size: 20px; }
+.wd-tag.muted { color: #cdd3dc; background: rgba(255,255,255,.14); }
+.wd-arrow { color: #c3c9d4; font-size: 20px; }
 .wd-check { color: var(--accent-3); font-size: 18px; font-weight: 800; }
 .wd-soon {
-  text-align: center; font-size: 12px; color: var(--text-mute);
-  border: 1px dashed var(--border-soft); border-radius: 10px; padding: 10px;
+  text-align: center; font-size: 12.5px; color: #bcc3ce;
+  border: 1px dashed var(--border); border-radius: 10px; padding: 10px;
 }
 
-.wd-label { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+.wd-label { font-size: 13px; font-weight: 700; color: #ffffff; letter-spacing: .2px; }
 .wd-amount {
   display: flex; align-items: center; gap: 8px;
   background: var(--bg-card-2); border: 1px solid var(--accent-3);
   border-radius: 12px; padding: 12px 14px;
 }
-.wd-currency { font-size: 22px; font-weight: 800; color: var(--text-dim); }
+.wd-currency { font-size: 22px; font-weight: 800; color: #ffffff; }
 .wd-amount input {
   flex: 1; background: none; border: none; outline: none;
   font-size: 22px; font-weight: 800; color: #fff;
 }
+.wd-amount input::placeholder { color: #9aa1af; opacity: 1; }
 .wd-max {
-  background: rgba(52,211,153,.15); color: var(--accent-3); border: none;
-  padding: 6px 14px; border-radius: 8px; font-weight: 700; cursor: pointer;
+  background: rgba(255,180,58,.18); color: var(--accent-3); border: none;
+  padding: 6px 14px; border-radius: 8px; font-weight: 800; cursor: pointer;
 }
+.wd-max:hover { background: rgba(255,180,58,.28); }
 .wd-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .wd-quick button {
-  background: var(--bg-card-2); border: 1px solid var(--border-soft); color: var(--text-dim);
-  padding: 9px 0; border-radius: 9px; cursor: pointer; font-weight: 600;
+  background: var(--bg-card-2); border: 1px solid var(--border); color: #e6e9ee;
+  padding: 9px 0; border-radius: 9px; cursor: pointer; font-weight: 700;
 }
 .wd-quick button:hover:not(:disabled) { border-color: var(--accent); color: #fff; }
-.wd-quick button:disabled { opacity: .35; cursor: not-allowed; }
-.wd-minmax { text-align: center; font-size: 12px; color: var(--text-mute); }
+.wd-quick button:disabled { opacity: .4; cursor: not-allowed; }
+.wd-minmax { text-align: center; font-size: 12.5px; color: #a9afbb; font-weight: 500; }
 .wd-breakdown {
-  background: var(--bg-card-2); border: 1px solid var(--border-soft);
-  border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+  background: var(--bg-card-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 9px;
 }
-.wd-breakdown > div { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-dim); }
-.wd-receive { padding-top: 8px; border-top: 1px solid var(--border-soft); }
-.wd-receive b { color: var(--accent-3); font-size: 15px; }
+.wd-breakdown > div { display: flex; justify-content: space-between; font-size: 14px; color: #dfe3e9; font-weight: 500; }
+.wd-breakdown > div > span:last-child { color: #ffffff; font-weight: 700; }
+.wd-receive { padding-top: 9px; border-top: 1px solid var(--border); }
+.wd-receive b { color: var(--accent-3); font-size: 16px; font-weight: 800; }
+.wd-receive b:first-child { color: #ffffff; }
 .wd-dest {
-  width: 100%; background: var(--bg-card-2); border: 1px solid var(--border-soft);
-  border-radius: 12px; padding: 12px 14px; color: #fff; outline: none; font-size: 14px;
+  width: 100%; background: var(--bg-card-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; color: #fff; outline: none; font-size: 14px; font-weight: 500;
 }
+.wd-dest::placeholder { color: #9aa1af; opacity: 1; }
 .wd-dest:focus { border-color: var(--accent); }
 .wd-done { padding: 32px 26px; text-align: center; display: flex; flex-direction: column; gap: 10px; }
 .wd-done-ic { font-size: 48px; }
-.wd-done h3 { font-size: 20px; }
-.wd-done p { font-size: 14px; color: var(--text-mute); line-height: 1.5; }
+.wd-done h3 { font-size: 20px; font-weight: 800; color: #ffffff; }
+.wd-done p { font-size: 14px; color: #c3c9d4; line-height: 1.5; }
 
 @media (max-width: 560px) {
   .wallet-hero { flex-direction: column; align-items: stretch; text-align: center; }
