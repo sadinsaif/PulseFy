@@ -59,6 +59,8 @@ export default function ProfileView() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshErr, setRefreshErr] = useState("");
   const fileRef = useRef(null);
 
   // Read a chosen image file, downscale it to a 256px square, and store the
@@ -111,6 +113,34 @@ export default function ProfileView() {
   useEffect(() => {
     load();
   }, []);
+
+  // Pull the latest REAL counts for the creator's own submissions (YouTube
+  // auto-fetches; other platforms stay as-is until a provider is wired up).
+  async function refreshMetrics() {
+    setRefreshing(true);
+    setRefreshErr("");
+    try {
+      const res = await fetch("/api/metrics/refresh", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRefreshErr(data.error || "Could not refresh metrics.");
+        return;
+      }
+      if (data.updated > 0) {
+        await load();
+      } else {
+        setRefreshErr(
+          data.keyConfigured
+            ? "No new metrics yet. Auto-fetch works for YouTube links today."
+            : "Metrics auto-fetch isn't configured yet."
+        );
+      }
+    } catch {
+      setRefreshErr("Network error while refreshing.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   function startEdit() {
     setForm(profile);
@@ -357,9 +387,24 @@ export default function ProfileView() {
 
       {/* Submissions table */}
       <div className="panel">
-        <div className="panel-head">
+        <div className="panel-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <h3>My submissions</h3>
+          {subs.length > 0 && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={refreshMetrics}
+              disabled={refreshing}
+              title="Pull the latest views & engagement (YouTube links auto-update)"
+            >
+              {refreshing ? "Refreshing…" : "↻ Refresh metrics"}
+            </button>
+          )}
         </div>
+        {refreshErr && (
+          <p className="brief" style={{ marginTop: 6, color: "var(--text-mute)" }}>
+            {refreshErr}
+          </p>
+        )}
         {subs.length === 0 ? (
           <p className="brief" style={{ marginTop: 8 }}>
             You haven&apos;t submitted anything yet. Open a challenge and submit

@@ -7,6 +7,7 @@ import { submissions, campaigns } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { submissionSchema } from "@/lib/validation";
 import { notifyAdmins, notifyUser } from "@/lib/notify";
+import { fetchMetrics } from "@/lib/metrics";
 
 /**
  * POST /api/submit
@@ -57,6 +58,10 @@ export async function POST(req) {
 
   const creatorName = session.user.name || "A creator";
 
+  // Try to pull REAL metrics right away (YouTube only for now). null means we
+  // couldn't fetch — we leave views/engagement untouched rather than fake them.
+  const metrics = await fetchMetrics(platform, postUrl);
+
   // One submission per creator per campaign (or per legacy challenge) — resubmit
   // updates the existing row and puts it back in review.
   const dupeWhere = campaignId
@@ -68,7 +73,13 @@ export async function POST(req) {
   if (existing[0]) {
     await db
       .update(submissions)
-      .set({ platform, postUrl, caption: caption || null, status: "pending" })
+      .set({
+        platform,
+        postUrl,
+        caption: caption || null,
+        status: "pending",
+        ...(metrics ? { views: metrics.views, engagement: metrics.engagement } : {}),
+      })
       .where(eq(submissions.id, existing[0].id));
     await notifyReviewers(brandId, {
       type: "submission",
@@ -88,6 +99,7 @@ export async function POST(req) {
     platform,
     postUrl,
     caption: caption || null,
+    ...(metrics ? { views: metrics.views, engagement: metrics.engagement } : {}),
   });
 
   await notifyReviewers(brandId, {
