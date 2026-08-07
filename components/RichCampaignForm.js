@@ -22,6 +22,10 @@ const EMPTY = {
   brief: "",
   platform: "any",
   reward: "",
+  budget: "",
+  spotlightReward: "",
+  performanceMult: "1",
+  durationDays: "",
   submitType: "distribution",
   requirements: "",
   contentType: "ugc",
@@ -302,7 +306,7 @@ export default function RichCampaignForm({ onCancel, onSuccess }) {
           </select>
         </div>
         <div className="field">
-          <label>Reward per approved post ($)</label>
+          <label>Approval reward per post ($)</label>
           <input
             type="number"
             min="0"
@@ -310,6 +314,60 @@ export default function RichCampaignForm({ onCancel, onSuccess }) {
             placeholder="50"
             onChange={(e) => setForm({ ...form, reward: e.target.value })}
           />
+        </div>
+      </div>
+
+      {/* Campaign economics — total Budget (pool), Spotlight bonus, Performance
+          multiplier and how long the campaign runs (drives the live countdown). */}
+      <div className="two-col">
+        <div className="field">
+          <label>Budget ($)</label>
+          <input
+            type="number"
+            min="0"
+            value={form.budget}
+            placeholder="1000"
+            onChange={(e) => setForm({ ...form, budget: e.target.value })}
+          />
+          <p className="field-hint">Total pool funding this campaign.</p>
+        </div>
+        <div className="field">
+          <label>Spotlight bonus ($)</label>
+          <input
+            type="number"
+            min="0"
+            value={form.spotlightReward}
+            placeholder="10"
+            onChange={(e) => setForm({ ...form, spotlightReward: e.target.value })}
+          />
+          <p className="field-hint">Extra reward for a spotlighted post.</p>
+        </div>
+      </div>
+
+      <div className="two-col">
+        <div className="field">
+          <label>Performance multiplier (×)</label>
+          <input
+            type="number"
+            min="1"
+            max="100"
+            value={form.performanceMult}
+            placeholder="1"
+            onChange={(e) => setForm({ ...form, performanceMult: e.target.value })}
+          />
+          <p className="field-hint">Rewards scale with views/engagement (e.g. ×1, ×2).</p>
+        </div>
+        <div className="field">
+          <label>Campaign duration (days)</label>
+          <input
+            type="number"
+            min="1"
+            max="365"
+            value={form.durationDays}
+            placeholder="30"
+            onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
+          />
+          <p className="field-hint">How long it stays live. Leave blank for no end date.</p>
         </div>
       </div>
 

@@ -36,31 +36,6 @@ export default function BrandCampaigns() {
     load();
   }, []);
 
-  async function create(e) {
-    e.preventDefault();
-    setSaving(true);
-    setErr("");
-    try {
-      const res = await fetch("/api/campaigns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json().catch(() => ({}));
-      setSaving(false);
-      if (!res.ok) {
-        setErr(data.error || "Could not create the campaign.");
-        return;
-      }
-      setForm(EMPTY);
-      setShowForm(false);
-      load();
-    } catch {
-      setSaving(false);
-      setErr("Network error. Please try again.");
-    }
-  }
-
   async function setStatus(id, status) {
     try {
       const res = await fetch(`/api/campaigns/${id}`, {
@@ -122,6 +97,7 @@ export default function BrandCampaigns() {
                 <tr>
                   <th>Campaign</th>
                   <th>Platform</th>
+                  <th>Budget</th>
                   <th>Reward</th>
                   <th>Submissions</th>
                   <th>Status</th>
@@ -133,6 +109,7 @@ export default function BrandCampaigns() {
                   <tr key={c.id}>
                     <td><b>{c.title}</b></td>
                     <td>{PLABEL[c.platform] || c.platform}</td>
+                    <td>{c.budget > 0 ? `$${Number(c.budget).toLocaleString()}` : "—"}</td>
                     <td>${c.reward}/post</td>
                     <td>{c.submissionCount ?? 0}</td>
                     <td>

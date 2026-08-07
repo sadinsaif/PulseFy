@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Spotlighted from "@/components/Spotlighted";
+import { isLive, statusLabel, countdown } from "@/lib/campaign";
 
   const PLABEL = {
   any: "Any platform",
@@ -34,6 +35,13 @@ export default function CampaignDetail({ id }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  // Slow ticking clock so the live countdown stays fresh.
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(t);
+  }, []);
 
   async function load() {
     try {
@@ -96,7 +104,11 @@ export default function CampaignDetail({ id }) {
     );
   }
 
-  const open = camp.status === "active";
+  // A campaign only accepts submissions while it's live (active AND not past
+  // its end date). An expired active campaign is treated as ended.
+  const live = isLive(camp);
+  const open = live;
+  const left = countdown(camp.endsAt, now);
 
   return (
     <>
@@ -122,12 +134,28 @@ export default function CampaignDetail({ id }) {
           <h1>{camp.title}</h1>
           <div className="meta">
             <span>🏢 {camp.brandName || "A brand"}</span>
+            {camp.budget > 0 && (
+              <span>💰 Budget ${Number(camp.budget).toLocaleString()}</span>
+            )}
             <span>💸 ${camp.reward} per approved post</span>
+            {live && left && <span>⏳ {left}</span>}
           </div>
           <div className="tags">
             <span className="tag-pill">{PLABEL[camp.platform] || camp.platform}</span>
-            <span className={`status ${STATUS_CLASS[camp.status] || "review"}`}>{camp.status}</span>
+            <span className={`status ${live ? "live" : "ended"}`}>{statusLabel(camp)}</span>
           </div>
+
+          {/* Reward pills — Approval / Performance / Spotlight (GIMI-style) */}
+          <div className="camp-pills" style={{ marginTop: 10 }}>
+            <span className="camp-pill">✅ Approval: ${camp.reward}</span>
+            {Number(camp.performanceMult) > 1 && (
+              <span className="camp-pill">📈 Performance: ×{camp.performanceMult}</span>
+            )}
+            {Number(camp.spotlightReward) > 0 && (
+              <span className="camp-pill">⭐ Spotlight: ${camp.spotlightReward}</span>
+            )}
+          </div>
+
           {camp.brief && <p className="brief" style={{ marginTop: 10 }}>{camp.brief}</p>}
         </div>
       </div>
@@ -177,7 +205,11 @@ export default function CampaignDetail({ id }) {
 
         {!open ? (
           <p className="brief" style={{ marginTop: 8 }}>
-            This campaign is <b>{camp.status}</b> and isn&apos;t accepting submissions right now.
+            {camp.status === "paused" ? (
+              <>This campaign is <b>paused</b> and isn&apos;t accepting submissions right now.</>
+            ) : (
+              <>This campaign has <b>ended</b> and isn&apos;t accepting submissions right now.</>
+            )}
           </p>
         ) : (
           <form onSubmit={submit} className="profile-form" style={{ marginTop: 12 }}>

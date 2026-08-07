@@ -90,7 +90,14 @@ export const campaigns = pgTable("campaigns", {
   title: text("title").notNull(),
   brief: text("brief"),
   platform: text("platform").notNull().default("any"), // any|tiktok|instagram|youtube|x
-  reward: integer("reward").notNull().default(0), // dollars per approved post
+  reward: integer("reward").notNull().default(0), // dollars per approved post ("Approval $")
+  // Campaign economics (GIMI-style), all set by the brand at launch.
+  budget: integer("budget").notNull().default(0), // total pool the brand funds ($) — shown as "Budget"
+  spotlightReward: integer("spotlight_reward").notNull().default(0), // bonus ($) for a spotlighted post
+  performanceMult: integer("performance_mult").notNull().default(1), // performance multiplier ("x1", "x2"…)
+  // When the campaign closes. Null = open-ended (no countdown). A past value
+  // means the campaign has effectively ended even if status is still "active".
+  endsAt: timestamp("ends_at", { mode: "date" }),
   status: text("status").notNull().default("active"), // active|paused|ended
   // GIMI-style rich fields
   submitType: text("submit_type").default("distribution"), // distribution | source

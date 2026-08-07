@@ -24,47 +24,46 @@ export async function GET(req) {
 
   const subCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id})`;
 
+  // Columns returned for every card. endsAt drives the live countdown and, when
+  // in the past, marks a campaign as effectively ended (End vs Live badge).
+  const cols = {
+    id: campaigns.id,
+    title: campaigns.title,
+    brief: campaigns.brief,
+    platform: campaigns.platform,
+    reward: campaigns.reward,
+    budget: campaigns.budget,
+    spotlightReward: campaigns.spotlightReward,
+    performanceMult: campaigns.performanceMult,
+    endsAt: campaigns.endsAt,
+    status: campaigns.status,
+    createdAt: campaigns.createdAt,
+    contentType: campaigns.contentType,
+    visibility: campaigns.visibility,
+    thumbnailUrl: campaigns.thumbnailUrl,
+    brandName: users.name,
+    submissionCount: subCount,
+  };
+
+  // A campaign is "live" when active and not past its end date; otherwise it's
+  // treated as ended. Live cards sort first so finished ones sit below (GIMI).
+  const liveFirst = sql`case when ${campaigns.status} = 'active' and (${campaigns.endsAt} is null or ${campaigns.endsAt} > now()) then 0 else 1 end`;
+
   let rows;
   if (mine) {
     rows = await db
-      .select({
-        id: campaigns.id,
-        title: campaigns.title,
-        brief: campaigns.brief,
-        platform: campaigns.platform,
-        reward: campaigns.reward,
-        status: campaigns.status,
-        createdAt: campaigns.createdAt,
-        contentType: campaigns.contentType,
-        visibility: campaigns.visibility,
-        thumbnailUrl: campaigns.thumbnailUrl,
-        brandName: users.name,
-        submissionCount: subCount,
-      })
+      .select(cols)
       .from(campaigns)
       .leftJoin(users, eq(campaigns.brandId, users.id))
       .where(eq(campaigns.brandId, session.user.id))
       .orderBy(desc(campaigns.createdAt));
   } else {
     rows = await db
-      .select({
-        id: campaigns.id,
-        title: campaigns.title,
-        brief: campaigns.brief,
-        platform: campaigns.platform,
-        reward: campaigns.reward,
-        status: campaigns.status,
-        createdAt: campaigns.createdAt,
-        contentType: campaigns.contentType,
-        visibility: campaigns.visibility,
-        thumbnailUrl: campaigns.thumbnailUrl,
-        brandName: users.name,
-        submissionCount: subCount,
-      })
+      .select(cols)
       .from(campaigns)
       .leftJoin(users, eq(campaigns.brandId, users.id))
-      .where(sql`${campaigns.status} = 'active' and ${campaigns.visibility} is distinct from 'private'`)
-      .orderBy(desc(campaigns.createdAt));
+      .where(sql`${campaigns.status} <> 'paused' and ${campaigns.visibility} is distinct from 'private'`)
+      .orderBy(liveFirst, desc(campaigns.createdAt));
   }
 
   return NextResponse.json({ campaigns: rows });
@@ -108,6 +107,10 @@ export async function POST(req) {
     brief,
     platform,
     reward,
+    budget,
+    spotlightReward,
+    performanceMult,
+    durationDays,
     submitType,
     requirements,
     contentType,
@@ -118,6 +121,12 @@ export async function POST(req) {
     bannerUrl,
   } = parsed.data;
 
+  // Turn the brand's chosen duration (in days) into a concrete end date for the
+  // countdown. An empty/absent duration means the campaign is open-ended.
+  const days = Number(durationDays);
+  const endsAt =
+    days >= 1 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
+
   const inserted = await db
     .insert(campaigns)
     .values({
@@ -126,6 +135,10 @@ export async function POST(req) {
       brief: brief ? brief.trim() : null,
       platform,
       reward,
+      budget,
+      spotlightReward,
+      performanceMult,
+      endsAt,
       submitType,
       requirements: requirements ? requirements.trim() : null,
       contentType,

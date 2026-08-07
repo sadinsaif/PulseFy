@@ -1193,6 +1193,63 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .camp-card:hover .camp-join { gap: 9px; color: var(--accent-3); }
 
+/* ---- Campaign economics: Budget, reward pills, Live/End badge, countdown ---- */
+
+/* Budget (total pool) — stacked "Budget" label above a big figure, same
+   display treatment as .camp-reward so cards stay visually consistent. */
+.camp-budget {
+  display: flex; flex-direction: column; line-height: 1.05;
+  font-family: var(--font-display); font-size: 22px; font-weight: var(--fw-display);
+  color: var(--accent-3); letter-spacing: -.02em;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+.camp-budget small {
+  font-family: var(--font); font-size: 11px; font-weight: 600;
+  color: var(--text-mute); letter-spacing: .02em; text-transform: uppercase;
+}
+
+/* Reward pills — Approval / Performance / Spotlight */
+.camp-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.camp-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--glow-green-soft, rgba(74,222,128,0.10));
+  border: 1px solid var(--glow-green-line, rgba(74,222,128,0.28));
+  color: var(--ok); font-size: 12px; font-weight: 700;
+  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+/* Live / End status badge (top-left corner of the thumbnail) */
+.camp-status-badge {
+  position: absolute; top: 10px; left: 10px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
+  padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(8px);
+}
+.camp-status-badge::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+}
+.camp-status-badge.live {
+  color: var(--ok); background: rgba(74,222,128,0.14); border: 1px solid rgba(74,222,128,0.35);
+}
+.camp-status-badge.end {
+  color: var(--text-mute); background: rgba(0,0,0,0.62); border: 1px solid var(--border-soft);
+}
+
+/* Live countdown (top-right corner) */
+.camp-countdown {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  background: rgba(0,0,0,0.72); color: #fff;
+  font-size: 11px; font-weight: 700; letter-spacing: .2px;
+  padding: 4px 9px; border-radius: 999px; backdrop-filter: blur(8px);
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+/* Finished campaigns render dimmed so live ones read as primary (GIMI). */
+.camp-card.is-ended { opacity: .78; }
+.camp-card.is-ended .camp-thumb img { filter: grayscale(0.35) brightness(0.82); }
+.camp-card.is-ended:hover { opacity: 1; }
+
 /* ---- Creator discovery (search + grid) ---- */
 .search-bar {
   display: flex; align-items: center; gap: 10px;
@@ -2006,9 +2063,13 @@ tbody tr:last-child td { border-bottom: none; }
   .camp-thumb-fallback { font-size: 32px; }
   .camp-body { padding: 12px; gap: 6px; }
   .camp-reward { font-size: 16px; }
+  .camp-budget { font-size: 16px; }
+  .camp-budget small { font-size: 10px; }
   .camp-card h3 { font-size: 14px; }
   .camp-brief { -webkit-line-clamp: 2; font-size: 12px; }
   .camp-foot { font-size: 11px; flex-wrap: wrap; gap: 4px; }
+  .camp-pill { font-size: 11px; padding: 3px 8px; }
+  .camp-status-badge, .camp-countdown { font-size: 10px; padding: 3px 8px; }
 }
 
 /* ============================================

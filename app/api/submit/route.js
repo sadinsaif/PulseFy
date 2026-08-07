@@ -54,6 +54,14 @@ export async function POST(req) {
         { status: 400 }
       );
     }
+    // An active campaign past its end date is effectively ended — reject it so
+    // the server agrees with the client's Live/End gate (see lib/campaign.js).
+    if (camp[0].endsAt && new Date(camp[0].endsAt).getTime() <= Date.now()) {
+      return NextResponse.json(
+        { error: "This campaign has ended and is no longer accepting submissions." },
+        { status: 400 }
+      );
+    }
     challengeId = camp[0].title;
     brandId = camp[0].brandId;
   }
