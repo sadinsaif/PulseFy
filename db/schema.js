@@ -199,6 +199,27 @@ export const verificationTokens = pgTable(
 );
 
 /**
+ * Direct messages — one row per message in a 1-on-1 conversation between two
+ * users. senderId/recipientId are the two participants; `read` flips to "yes"
+ * for the recipient when they open the thread. A "conversation" is just all
+ * messages where the two ids match in either direction, ordered by time.
+ */
+export const messages = pgTable("messages", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  senderId: text("sender_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  recipientId: text("recipient_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  read: text("read").notNull().default("no"), // "no" | "yes" (from recipient's side)
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/**
  * Referral earnings — one row each time a referred creator's withdrawal is paid.
  * The referrer earns 5% of that payout (stored in CENTS to match withdrawals).
  * We record the source withdrawalId so a payout can never be counted twice.

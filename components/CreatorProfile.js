@@ -16,7 +16,7 @@ const PLATFORM_LABEL = {
  * interests, socials), stat cards, and their approved clips (portfolio of
  * submitted videos). Data comes from /api/creators/[id].
  */
-export default function CreatorProfile({ id }) {
+export default function CreatorProfile({ id, meId = "" }) {
   const [data, setData] = useState(null);
   const [notFound, setNotFound] = useState(false);
 
@@ -91,6 +91,13 @@ export default function CreatorProfile({ id }) {
             <div className="tags" style={{ marginTop: 8 }}>
               {profile.twitter && <span className="tag-pill">𝕏 {profile.twitter}</span>}
               {profile.instagram && <span className="tag-pill">📸 {profile.instagram}</span>}
+            </div>
+          )}
+          {meId && meId !== profile.id && (
+            <div style={{ marginTop: 14 }}>
+              <Link href={`/dashboard/inbox?to=${profile.id}`} className="btn btn-primary">
+                ✉️ Message
+              </Link>
             </div>
           )}
         </div>

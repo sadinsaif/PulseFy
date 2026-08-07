@@ -17,7 +17,7 @@ export default async function CreatorPage({ params }) {
     <div className="app">
       <Sidebar user={user} isAdmin={isAdminEmail(user?.email)} />
       <main className="main">
-        <CreatorProfile id={params.id} />
+        <CreatorProfile id={params.id} meId={user?.id || ""} />
       </main>
     </div>
   );
