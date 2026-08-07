@@ -16,7 +16,7 @@ const NAV = [
   { href: "/dashboard/payouts", icon: "💸", label: "Payouts" },
   { href: "/dashboard/referrals", icon: "🔗", label: "Referrals", creatorOnly: true },
   { href: "#", icon: "📈", label: "Analytics" },
-  { href: "#", icon: "⚙️", label: "Settings" },
+  { href: "/dashboard/settings", icon: "⚙️", label: "Settings" },
 ];
 
 /**
