@@ -26,6 +26,16 @@
   --accent-soft: rgba(255,122,69,.10);
   --accent-line: rgba(255,122,69,.22);
 
+  /* emerald glow tints — echo the animated backdrop for hover/active polish */
+  --glow-green:      rgba(74,222,150,.28);
+  --glow-green-soft: rgba(74,222,150,.11);
+  --glow-green-line: rgba(74,222,150,.42);
+
+  /* shared easing + timing for the premium hover/focus transitions */
+  --ease:       cubic-bezier(.22,.61,.36,1);
+  --t-fast:     .16s;
+  --t-med:      .22s;
+
   --radius:      16px;
   --radius-sm:   10px;
   --radius-lg:   24px;
@@ -85,25 +95,35 @@ button { font-family: inherit; cursor: pointer; border: none; }
   border-radius: 999px;
   font-weight: 600;
   font-size: 15px;
-  transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
+  transition: transform var(--t-med) var(--ease), background var(--t-med) var(--ease),
+    box-shadow var(--t-med) var(--ease), border-color var(--t-med) var(--ease), filter var(--t-med) var(--ease);
   white-space: nowrap;
 }
-.btn:active { transform: translateY(1px); }
+.btn:active { transform: translateY(1px) scale(.99); }
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 1px var(--accent);
+}
 
 .btn-primary {
   background: var(--accent);
   color: #0a0b0d;
 }
 .btn-primary:hover {
-  box-shadow: 0 8px 30px -6px rgba(255,122,69,.5);
-  transform: translateY(-2px);
+  box-shadow: 0 10px 34px -8px rgba(255,122,69,.55);
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.03);
 }
 .btn-ghost {
   background: transparent;
   color: var(--text);
   border: 1px solid var(--border);
 }
-.btn-ghost:hover { background: var(--bg-card); border-color: #333947; }
+.btn-ghost:hover {
+  background: var(--bg-card); border-color: var(--glow-green-line);
+  box-shadow: 0 8px 26px -12px var(--glow-green);
+  transform: translateY(-1px);
+}
 
 .btn-block { width: 100%; justify-content: center; }
 .btn-lg { padding: 15px 30px; font-size: 16px; }
@@ -447,11 +467,20 @@ button { font-family: inherit; cursor: pointer; border: none; }
   border-radius: 10px;
   color: var(--text-dim);
   font-size: 15px; font-weight: 500;
-  transition: background .18s, color .18s;
+  transition: background var(--t-med) var(--ease), color var(--t-med) var(--ease),
+    box-shadow var(--t-med) var(--ease), transform var(--t-fast) var(--ease);
 }
-.side-nav a:hover { background: var(--bg-card); color: var(--text); }
-.side-nav a.active { background: var(--bg-card-2); color: var(--text); }
-.side-nav a .ic { font-size: 18px; width: 22px; text-align: center; }
+.side-nav a:hover {
+  background: var(--bg-card); color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--glow-green-line), 0 6px 20px -14px var(--glow-green);
+  transform: translateX(2px);
+}
+.side-nav a.active {
+  background: var(--bg-card-2); color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--glow-green-soft);
+}
+.side-nav a .ic { font-size: 18px; width: 22px; text-align: center; transition: transform var(--t-med) var(--ease); }
+.side-nav a:hover .ic { transform: scale(1.12); }
 .side-foot {
   border-top: 1px solid var(--border-soft);
   padding-top: 16px;
@@ -483,6 +512,15 @@ button { font-family: inherit; cursor: pointer; border: none; }
   color: var(--text);
   font-size: 14px;
   width: 220px;
+  transition: border-color var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease),
+    background var(--t-med) var(--ease), width var(--t-med) var(--ease);
+}
+.search:hover { border-color: var(--border); }
+.search:focus {
+  outline: none;
+  border-color: var(--glow-green-line);
+  box-shadow: 0 0 0 3px var(--glow-green-soft);
+  background: var(--bg-card-2);
 }
 .search::placeholder { color: var(--text-mute); }
 .mobile-menu { display: none; background: none; color: var(--text); font-size: 24px; }
@@ -493,15 +531,24 @@ button { font-family: inherit; cursor: pointer; border: none; }
   border: 1px solid var(--border-soft);
   border-radius: var(--radius);
   padding: 22px;
+  transition: transform var(--t-med) var(--ease), border-color var(--t-med) var(--ease),
+    box-shadow var(--t-med) var(--ease);
+}
+.kpi:hover {
+  transform: translateY(-3px);
+  border-color: var(--glow-green-line);
+  box-shadow: 0 16px 40px -22px var(--glow-green), inset 0 0 0 1px var(--glow-green-soft);
 }
 .kpi .k-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .kpi .k-ic {
   width: 40px; height: 40px; border-radius: 11px;
   display: grid; place-items: center; font-size: 19px;
   background: var(--accent-soft); border: 1px solid var(--accent-line);
+  transition: transform var(--t-med) var(--ease);
 }
-.kpi .k-val { font-size: 30px; font-weight: 800; letter-spacing: -1px; }
-.kpi .k-lbl { color: var(--text-mute); font-size: 14px; margin-top: 4px; }
+.kpi:hover .k-ic { transform: scale(1.08); }
+.kpi .k-val { font-size: 34px; font-weight: 900; letter-spacing: -1.2px; line-height: 1.05; }
+.kpi .k-lbl { color: var(--text-mute); font-size: 14px; margin-top: 6px; }
 .chip { font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; }
 .chip.up { background: rgba(74,222,128,.14); color: var(--ok); }
 .chip.down { background: rgba(244,82,106,.14); color: var(--danger); }
@@ -593,6 +640,12 @@ tbody tr:last-child td { border-bottom: none; }
 }
 @media (max-width: 480px) {
   .kpis { grid-template-columns: 1fr; }
+  /* On phones let the topbar controls span the row so search + profile fit
+     cleanly without cramping or horizontal scroll. The search input lives in
+     a <form>, so flex the form and let the input fill it. */
+  .topbar-actions { width: 100%; }
+  .topbar-actions form { flex: 1; min-width: 0; }
+  .topbar-actions .search { width: 100%; min-width: 0; }
 }
 
 /* ============================================
@@ -988,9 +1041,15 @@ tbody tr:last-child td { border-bottom: none; }
 .camp-card {
   display: flex; flex-direction: column;
   background: var(--bg-card); border: 1px solid var(--border-soft);
-  border-radius: 16px; overflow: hidden; transition: transform .15s, border-color .15s;
+  border-radius: 16px; overflow: hidden;
+  transition: transform var(--t-med) var(--ease), border-color var(--t-med) var(--ease),
+    box-shadow var(--t-med) var(--ease);
 }
-.camp-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.camp-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--glow-green-line);
+  box-shadow: 0 20px 46px -24px var(--glow-green), 0 0 0 1px var(--glow-green-soft);
+}
 
 /* Thumbnail container (full width at top of card, fixed aspect) */
 .camp-thumb {
@@ -999,7 +1058,9 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .camp-thumb img {
   width: 100%; height: 100%; object-fit: cover;
+  transition: transform .45s var(--ease);
 }
+.camp-card:hover .camp-thumb img { transform: scale(1.06); }
 .camp-thumb-fallback {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
@@ -1017,7 +1078,7 @@ tbody tr:last-child td { border-bottom: none; }
   display: flex; flex-direction: column; gap: 8px; padding: 20px;
 }
 .camp-top { display: flex; align-items: center; justify-content: space-between; }
-.camp-reward { font-size: 20px; font-weight: 800; color: var(--accent-3); }
+.camp-reward { font-size: 22px; font-weight: 900; color: var(--accent-3); letter-spacing: -.4px; }
 .camp-reward small { font-size: 12px; color: var(--text-mute); font-weight: 600; }
 .camp-card h3 { font-size: 18px; letter-spacing: -.3px; }
 .camp-brand { font-size: 13px; color: var(--text-dim); margin-top: -4px; }
@@ -1030,15 +1091,29 @@ tbody tr:last-child td { border-bottom: none; }
   margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border-soft);
   font-size: 13px; color: var(--text-dim);
 }
-.camp-join { color: var(--accent); font-weight: 600; }
+.camp-join {
+  color: var(--accent); font-weight: 700;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: gap var(--t-med) var(--ease), color var(--t-med) var(--ease);
+}
+.camp-card:hover .camp-join { gap: 9px; color: var(--accent-3); }
 
 /* ---- Creator discovery (search + grid) ---- */
 .search-bar {
   display: flex; align-items: center; gap: 10px;
   background: var(--bg-card); border: 1px solid var(--border-soft);
   border-radius: 12px; padding: 12px 16px; margin-bottom: 20px;
+  transition: border-color var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease),
+    background var(--t-med) var(--ease);
 }
-.search-bar .search-ic { font-size: 16px; opacity: .8; }
+.search-bar:hover { border-color: var(--border); }
+.search-bar:focus-within {
+  border-color: var(--glow-green-line);
+  box-shadow: 0 0 0 3px var(--glow-green-soft);
+  background: var(--bg-card-2);
+}
+.search-bar .search-ic { font-size: 16px; opacity: .8; transition: opacity var(--t-med) var(--ease); }
+.search-bar:focus-within .search-ic { opacity: 1; }
 .search-bar input {
   flex: 1; background: transparent; border: none; outline: none;
   color: var(--text); font-size: 15px;
@@ -1637,6 +1712,15 @@ tbody tr:last-child td { border-bottom: none; }
    ============================================ */
 /* Sidebar unread badge (Inbox nav item) */
 .side-nav a { position: relative; }
+/* Clean active-state indicator: a soft emerald bar on the left edge. */
+.side-nav a.active::before {
+  content: "";
+  position: absolute;
+  left: 4px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 20px; border-radius: 3px;
+  background: linear-gradient(180deg, #4ade96, #2ecc94);
+  box-shadow: 0 0 10px var(--glow-green);
+}
 .nav-badge {
   margin-left: auto;
   background: var(--accent);
@@ -1830,4 +1914,43 @@ tbody tr:last-child td { border-bottom: none; }
   .camp-card h3 { font-size: 14px; }
   .camp-brief { -webkit-line-clamp: 2; font-size: 12px; }
   .camp-foot { font-size: 11px; flex-wrap: wrap; gap: 4px; }
+}
+
+/* ============================================
+   PREMIUM POLISH — focus states + motion safety
+   (additive only; changes no layout, text, or logic)
+   ============================================ */
+
+/* Keyboard focus ring for sidebar links, matching the emerald hover accent. */
+.side-nav a:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--glow-green-line), 0 0 0 3px var(--glow-green-soft);
+}
+
+/* Guard against horizontal overflow from hover translate/scale on small screens. */
+.main { max-width: 100%; }
+
+/* Respect users who prefer reduced motion: keep the UI fully usable but drop
+   the decorative movement (hover lifts, zooms, the animated backdrop's motion
+   is already handled in WaveBackground.js). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .btn:hover,
+  .kpi:hover,
+  .camp-card:hover,
+  .side-nav a:hover,
+  .lb-row:hover,
+  .feature:hover,
+  .sub-card:hover,
+  .creator-card:hover { transform: none !important; }
+  .camp-card:hover .camp-thumb img,
+  .kpi:hover .k-ic,
+  .side-nav a:hover .ic { transform: none !important; }
 }
