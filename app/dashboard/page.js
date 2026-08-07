@@ -109,7 +109,7 @@ export default async function DashboardPage() {
           </div>
           <div className="topbar-actions">
             <TopbarSearch />
-            <Link href="/dashboard/campaigns" className="btn btn-primary">Go to Campaigns</Link>
+            <Link href="/dashboard/profile" className="btn btn-primary">My Profile</Link>
           </div>
         </div>
 

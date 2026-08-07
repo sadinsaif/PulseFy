@@ -2,14 +2,13 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@/auth";
 import Sidebar from "@/components/Sidebar";
-import CreatorsDirectory from "@/components/CreatorsDirectory";
+import Leaderboard from "@/components/Leaderboard";
 import { isAdminEmail } from "@/lib/admin";
 
 /**
- * Discover page — search any creator by name/username, then click through to
- * their public profile.
+ * Leaderboard — every creator ranked by total dollars earned, highest first.
  */
-export default async function CreatorsPage({ searchParams }) {
+export default async function LeaderboardPage({ searchParams }) {
   const session = await auth();
   const user = session?.user;
   const initialQ = typeof searchParams?.q === "string" ? searchParams.q : "";
@@ -20,11 +19,11 @@ export default async function CreatorsPage({ searchParams }) {
       <main className="main">
         <div className="topbar">
           <div>
-            <h1>Discover creators</h1>
-            <p className="sub">Search any creator, view their profile, clips &amp; earnings.</p>
+            <h1>Leaderboard</h1>
+            <p className="sub">Top creators ranked by total earnings — highest first.</p>
           </div>
         </div>
-        <CreatorsDirectory initialQ={initialQ} />
+        <Leaderboard initialQ={initialQ} />
       </main>
     </div>
   );

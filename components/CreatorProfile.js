@@ -84,7 +84,7 @@ export default function CreatorProfile({ id, meId = "" }) {
       <div className="panel">
         <p className="brief">This creator could not be found.</p>
         <Link href="/dashboard/creators" className="btn btn-ghost" style={{ marginTop: 10 }}>
-          ← Back to creators
+          ← Back to leaderboard
         </Link>
       </div>
     );
@@ -102,7 +102,7 @@ export default function CreatorProfile({ id, meId = "" }) {
   return (
     <>
       <p className="breadcrumb">
-        <Link href="/dashboard/creators">Creators</Link> / {profile.name || "Creator"}
+        <Link href="/dashboard/creators">Leaderboard</Link> / {profile.name || "Creator"}
       </p>
 
       {/* Header */}

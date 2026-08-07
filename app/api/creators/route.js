@@ -20,7 +20,12 @@ export async function GET(req) {
   const q = (new URL(req.url).searchParams.get("q") || "").trim();
 
   const approved = sql`(select count(*) from submissions where submissions.user_id = ${users.id} and submissions.status = 'approved')`;
-  const earnings = sql`(select coalesce(sum(reward),0) from submissions where submissions.user_id = ${users.id} and submissions.status = 'approved')`;
+  // Total dollars earned = approved campaign rewards + spotlight bonuses
+  // (mirrors the creator profile's "earnings"). Drives the leaderboard rank.
+  const earnings = sql`(
+    (select coalesce(sum(reward),0) from submissions where submissions.user_id = ${users.id} and submissions.status = 'approved')
+    + (select coalesce(sum(spotlight_bonus),0) from submissions where submissions.user_id = ${users.id} and submissions.spotlighted = true)
+  )`;
 
   const notBrand = sql`${users.role} is distinct from 'brand'`;
   const where = q
