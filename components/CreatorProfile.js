@@ -19,6 +19,9 @@ const PLATFORM_LABEL = {
 export default function CreatorProfile({ id, meId = "" }) {
   const [data, setData] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followers, setFollowers] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -28,12 +31,53 @@ export default function CreatorProfile({ id, meId = "" }) {
           setNotFound(true);
           return;
         }
-        setData(await res.json());
+        const json = await res.json();
+        setData(json);
+        setFollowers(json.stats?.followers || 0);
       } catch {
         setNotFound(true);
       }
     })();
   }, [id]);
+
+  // Load whether the signed-in user follows this profile (skip own profile).
+  useEffect(() => {
+    if (!meId || meId === id) return;
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/follow?user=${encodeURIComponent(id)}`);
+        if (!res.ok) return;
+        const d = await res.json();
+        if (alive) setFollowing(Boolean(d.following));
+      } catch {
+        /* silent */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [id, meId]);
+
+  async function toggleFollow() {
+    if (followLoading) return;
+    setFollowLoading(true);
+    try {
+      const res = await fetch("/api/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setFollowing(result.following);
+        setFollowers((prev) => Math.max(0, prev + (result.following ? 1 : -1)));
+      }
+    } catch {
+      /* silent */
+    }
+    setFollowLoading(false);
+  }
 
   if (notFound) {
     return (
@@ -94,8 +138,15 @@ export default function CreatorProfile({ id, meId = "" }) {
             </div>
           )}
           {meId && meId !== profile.id && (
-            <div style={{ marginTop: 14 }}>
-              <Link href={`/dashboard/inbox?to=${profile.id}`} className="btn btn-primary">
+            <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
+              <button
+                className={following ? "btn btn-ghost" : "btn btn-primary"}
+                onClick={toggleFollow}
+                disabled={followLoading}
+              >
+                {following ? "Following ✓" : "＋ Follow"}
+              </button>
+              <Link href={`/dashboard/inbox?to=${profile.id}`} className="btn btn-ghost">
                 ✉️ Message
               </Link>
             </div>
@@ -124,6 +175,14 @@ export default function CreatorProfile({ id, meId = "" }) {
         <div className="stat-box">
           <div className="n" style={{ color: "var(--accent-3)" }}>${stats.earnings}</div>
           <div className="l">Earnings</div>
+        </div>
+        <div className="stat-box">
+          <div className="n">{followers}</div>
+          <div className="l">Followers</div>
+        </div>
+        <div className="stat-box">
+          <div className="n">{stats.following || 0}</div>
+          <div className="l">Following</div>
         </div>
       </div>
 

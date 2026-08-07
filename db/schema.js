@@ -220,6 +220,25 @@ export const messages = pgTable("messages", {
 });
 
 /**
+ * Follows — one row per follow relationship. followerId follows followingId.
+ * A "follower count" is rows where followingId = the user; a "following count"
+ * is rows where followerId = the user. The (follower_id, following_id) unique
+ * index prevents duplicate follows. Both sides cascade-delete with the user.
+ */
+export const follows = pgTable("follows", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  followerId: text("follower_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  followingId: text("following_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/**
  * Referral earnings — one row each time a referred creator's withdrawal is paid.
  * The referrer earns 5% of that payout (stored in CENTS to match withdrawals).
  * We record the source withdrawalId so a payout can never be counted twice.
