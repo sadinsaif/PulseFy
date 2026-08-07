@@ -1756,6 +1756,14 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* 480px and below: campaign grid switches to 2-column, cards scale down */
 @media (max-width: 480px) {
+  /* KPI cards: compact 2x2 grid at the top instead of full-width stacked. */
+  .kpis { grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
+  .kpi { padding: 14px; }
+  .kpi .k-top { margin-bottom: 8px; }
+  .kpi .k-ic { width: 32px; height: 32px; font-size: 16px; }
+  .kpi .k-val { font-size: 22px; }
+  .kpi .k-lbl { font-size: 12px; }
+
   .camp-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
   .camp-thumb { height: 110px; }
   .camp-thumb-fallback { font-size: 32px; }
