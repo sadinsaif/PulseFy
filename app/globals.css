@@ -121,14 +121,16 @@ button { font-family: inherit; cursor: pointer; border: none; }
   letter-spacing: -.5px;
 }
 .logo-mark {
-  width: 30px; height: 30px;
+  display: inline-block;
+  width: 34px; height: 34px;
   border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-3));
-  display: grid;
-  place-items: center;
-  color: #0a0b0d;
-  font-weight: 900;
-  font-size: 17px;
+  background-image: url('/logo.jpg');
+  background-repeat: no-repeat;
+  background-position: 50% 30%;
+  background-size: 200%;
+  background-color: #000;
+  font-size: 0;
+  flex: none;
 }
 .nav-links {
   display: flex;

@@ -1,4 +1,4 @@
--- Srijon — database setup
+-- Pulsefy — database setup
 -- Run this ONCE in the Vercel Postgres "Query" tab to create all tables.
 -- (This is an alternative to `npm run db:push` for when Node.js is not
 --  installed locally.) Safe to re-run: every statement uses IF NOT EXISTS.

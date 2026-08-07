@@ -1,4 +1,4 @@
-# Srijon
+# Pulsefy
 
 **Infrastructure for the AI Creator Economy.** Brands launch content challenges, creators submit, AI filters what's on-brand, and rewards pay out automatically — from brief to payout.
 
@@ -58,7 +58,7 @@ In Vercel → project → **Settings → Environment Variables**, add:
 | `AUTH_URL` | Your deployment URL, e.g. `https://srijon-clips.vercel.app` |
 | `NEXTAUTH_URL` | Same as `AUTH_URL` |
 | `RESEND_API_KEY` | Your Resend API key |
-| `EMAIL_FROM` | `Srijon <onboarding@resend.dev>` (or your verified sender) |
+| `EMAIL_FROM` | `Pulsefy <onboarding@resend.dev>` (or your verified sender) |
 
 `POSTGRES_URL` / `POSTGRES_URL_NON_POOLING` are set automatically by step 3 — you don't add them by hand.
 

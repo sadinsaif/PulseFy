@@ -2,7 +2,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 
 export const metadata = {
-  title: "Srijon — Infrastructure for the AI Creator Economy",
+  title: "Pulsefy — Infrastructure for the AI Creator Economy",
   description: "Run content challenges at scale. From brief to payout — automated.",
 };
 

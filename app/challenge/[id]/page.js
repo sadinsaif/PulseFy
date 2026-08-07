@@ -48,14 +48,14 @@ export default async function ChallengePage({ params }) {
               <p className="brief">
                 Create a vibrant 15–30 second reel featuring our new summer collection. Show at least one product
                 clearly, use bright outdoor lighting, and add trending audio. The caption must include the{" "}
-                <b>#SrijonSummer</b> hashtag.
+                <b>#PulsefySummer</b> hashtag.
               </p>
               <div style={{ marginTop: 18 }}>
                 <h4 style={{ fontSize: 14, marginBottom: 6 }}>Rules</h4>
                 <ul className="rules">
                   <li>Video length 15–30 seconds</li>
                   <li>At least one product clearly visible</li>
-                  <li>Caption includes #SrijonSummer</li>
+                  <li>Caption includes #PulsefySummer</li>
                   <li>Original content — no reused footage</li>
                 </ul>
               </div>
@@ -66,7 +66,7 @@ export default async function ChallengePage({ params }) {
                 <h3>Ready to enter?</h3>
                 <p>Post your clip on TikTok, Instagram, YouTube or X, then drop the link here to join the challenge.</p>
               </div>
-              <SubmitButton challengeId={challengeId} requiredCaption="#SrijonSummer" />
+              <SubmitButton challengeId={challengeId} requiredCaption="#PulsefySummer" />
             </div>
 
             <div className="panel">

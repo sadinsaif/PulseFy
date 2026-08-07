@@ -75,7 +75,7 @@ function SignupInner() {
       <main className="auth-wrap">
         <div className="auth-card">
           <Link href="/" className="logo">
-            <span className="logo-mark">S</span> Srijon
+            <span className="logo-mark" aria-hidden="true" /> Pulsefy
           </Link>
           <h1>{needsEmail ? "Check your inbox" : "You're all set 🎉"}</h1>
           <p className="lead">{msg}</p>
@@ -97,7 +97,7 @@ function SignupInner() {
     <main className="auth-wrap">
       <div className="auth-card">
         <Link href="/" className="logo">
-          <span className="logo-mark">S</span> Srijon
+          <span className="logo-mark" aria-hidden="true" /> Pulsefy
         </Link>
         <h1>Create your account</h1>
         <p className="lead">{cfg.lead}</p>

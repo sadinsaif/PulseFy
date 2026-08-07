@@ -50,10 +50,10 @@ function LoginInner() {
   return (
     <div className="auth-card">
       <Link href="/" className="logo">
-        <span className="logo-mark">S</span> Srijon
+        <span className="logo-mark" aria-hidden="true" /> Pulsefy
       </Link>
       <h1>Welcome back</h1>
-      <p className="lead">Sign in to your Srijon workspace.</p>
+      <p className="lead">Sign in to your Pulsefy workspace.</p>
 
       {notice && <div className={`alert ${notice.type}`}>{notice.msg}</div>}
       {err && <div className="alert err">{err}</div>}
@@ -93,7 +93,7 @@ function LoginInner() {
       </form>
 
       <p className="auth-foot">
-        New to Srijon? <Link href="/signup">Create an account</Link>
+        New to Pulsefy? <Link href="/signup">Create an account</Link>
       </p>
     </div>
   );

@@ -61,7 +61,7 @@ export default function Sidebar({ user, isAdmin = false }) {
       <button className="mobile-menu" onClick={() => setOpen((v) => !v)}>☰</button>
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <Link href="/" className="logo">
-          <span className="logo-mark">S</span> Srijon
+          <span className="logo-mark" aria-hidden="true" /> Pulsefy
         </Link>
         <div className="side-notif">
           <NotificationBell />
