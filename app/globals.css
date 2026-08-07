@@ -571,29 +571,12 @@ tbody tr:last-child td { border-bottom: none; }
     transition: left .25s ease;
   }
   .sidebar.open { left: 0; }
-  /* Menu button pinned to the top-left corner (not centered in the flow). */
-  .mobile-menu {
-    display: flex; align-items: center; justify-content: center;
-    position: fixed; top: 12px; left: 12px; z-index: 70;
-    width: 44px; height: 44px; padding: 0;
-    background: var(--bg-card); border: 1px solid var(--border-soft);
-    border-radius: 12px; line-height: 1;
-  }
-  /* Push page content clear of the fixed menu button. */
-  .main { padding: 20px; padding-top: 68px; }
+  .mobile-menu { display: block; }
+  .main { padding: 20px; }
   .search { width: 140px; }
 }
 @media (max-width: 480px) {
   .kpis { grid-template-columns: 1fr; }
-  /* Two campaigns side-by-side instead of one stacked under another. */
-  .camp-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .camp-thumb { height: 110px; }
-  .camp-thumb-fallback { font-size: 32px; }
-  .camp-body { padding: 12px; gap: 6px; }
-  .camp-reward { font-size: 16px; }
-  .camp-card h3 { font-size: 14px; }
-  .camp-brief { -webkit-line-clamp: 2; font-size: 12px; }
-  .camp-foot { font-size: 11px; flex-wrap: wrap; gap: 4px; }
 }
 
 /* ============================================
@@ -1753,4 +1736,32 @@ tbody tr:last-child td { border-bottom: none; }
   .conv-list { max-height: 280px; }
   .conv-thread { min-height: 420px; }
   .conv-body { max-width: 60vw; }
+}
+
+/* ============================================
+   MOBILE OVERRIDES — placed last to win over base rules
+   ============================================ */
+
+/* 780px and below: hamburger menu appears, pinned to top-left corner */
+@media (max-width: 780px) {
+  .mobile-menu {
+    display: flex; align-items: center; justify-content: center;
+    position: fixed; top: 12px; left: 12px; z-index: 70;
+    width: 44px; height: 44px; padding: 0;
+    background: var(--bg-card); border: 1px solid var(--border-soft);
+    border-radius: 12px; line-height: 1;
+  }
+  .main { padding-top: 68px; }
+}
+
+/* 480px and below: campaign grid switches to 2-column, cards scale down */
+@media (max-width: 480px) {
+  .camp-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
+  .camp-thumb { height: 110px; }
+  .camp-thumb-fallback { font-size: 32px; }
+  .camp-body { padding: 12px; gap: 6px; }
+  .camp-reward { font-size: 16px; }
+  .camp-card h3 { font-size: 14px; }
+  .camp-brief { -webkit-line-clamp: 2; font-size: 12px; }
+  .camp-foot { font-size: 11px; flex-wrap: wrap; gap: 4px; }
 }
