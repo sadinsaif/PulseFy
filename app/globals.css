@@ -43,7 +43,21 @@
   --shadow:      0 20px 60px -20px rgba(0,0,0,.6);
   --maxw:        1180px;
 
-  --font: 'Hind Siliguri', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Type system — premium modern sans for an AI / Web3 / creator platform.
+     --font (body): Inter leads for crisp UI/body text; 'Hind Siliguri' is kept
+     as a LATE fallback so any Bengali glyphs still render. --font-display:
+     Plus Jakarta Sans for headings, brand, nav and buttons — more character
+     without feeling decorative. Both are loaded in app/layout.js. */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Hind Siliguri', sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Consistent weight scale — use these, not arbitrary numbers.
+     400 regular · 500 medium · 600 semibold · 700 bold · 800 display */
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+  --fw-display:  800;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -57,8 +71,23 @@ body {
   background: transparent;
   color: var(--text);
   line-height: 1.6;
+  font-weight: var(--fw-regular);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv11', 'ss01', 'kern', 'liga';
   overflow-x: hidden;
+}
+
+/* Headings share the display face with a tuned baseline: confident weight,
+   tight-but-not-cramped tracking, and a compact line-height. Per-selector
+   sizes below still win; this only sets the family/weight/rhythm defaults. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  line-height: 1.18;
+  letter-spacing: -.01em;
+  text-wrap: balance;
 }
 
 /* Animated liveframe.ai-style backdrop. Fixed to the viewport, painted behind
@@ -93,8 +122,10 @@ button { font-family: inherit; cursor: pointer; border: none; }
   gap: 8px;
   padding: 12px 22px;
   border-radius: 999px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
   font-size: 15px;
+  letter-spacing: -.006em;
   transition: transform var(--t-med) var(--ease), background var(--t-med) var(--ease),
     box-shadow var(--t-med) var(--ease), border-color var(--t-med) var(--ease), filter var(--t-med) var(--ease);
   white-space: nowrap;
@@ -150,9 +181,10 @@ button { font-family: inherit; cursor: pointer; border: none; }
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: var(--fw-display);
   font-size: 21px;
-  letter-spacing: -.5px;
+  letter-spacing: -.028em;
 }
 .logo-mark {
   display: inline-block;
@@ -171,7 +203,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   align-items: center;
   gap: 32px;
 }
-.nav-links a { color: var(--text-dim); font-size: 15px; font-weight: 500; transition: color .2s; }
+.nav-links a { color: var(--text-dim); font-size: 14.5px; font-weight: var(--fw-medium); letter-spacing: -.006em; transition: color .2s; }
 .nav-links a:hover { color: var(--text); }
 .nav-cta { display: flex; align-items: center; gap: 12px; }
 .nav-toggle { display: none; background: none; color: var(--text); font-size: 26px; }
@@ -222,8 +254,8 @@ button { font-family: inherit; cursor: pointer; border: none; }
 .hero h1 {
   font-size: clamp(38px, 6.5vw, 72px);
   line-height: 1.05;
-  letter-spacing: -2px;
-  font-weight: 800;
+  letter-spacing: -.03em;
+  font-weight: var(--fw-display);
   margin-bottom: 24px;
 }
 .hero h1 .grad {
@@ -370,7 +402,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
 .price-card h3 { font-size: 20px; margin-bottom: 6px; }
 .price-card .desc { color: var(--text-mute); font-size: 14px; margin-bottom: 22px; }
 .price-amt { display: flex; align-items: baseline; gap: 4px; margin-bottom: 4px; }
-.price-amt .num { font-size: 46px; font-weight: 800; letter-spacing: -1px; }
+.price-amt .num { font-family: var(--font-display); font-size: 46px; font-weight: var(--fw-display); letter-spacing: -.03em; font-feature-settings: 'tnum' 1, 'lnum' 1; }
 .price-amt .per { color: var(--text-mute); font-size: 15px; }
 .price-fee { font-size: 13px; color: var(--text-dim); margin-bottom: 26px; }
 .price-list { list-style: none; margin-bottom: 28px; }
@@ -387,7 +419,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   border-radius: var(--radius-lg);
   padding: 64px 40px;
 }
-.cta-band h2 { font-size: clamp(28px, 4vw, 42px); letter-spacing: -1px; margin-bottom: 14px; font-weight: 800; }
+.cta-band h2 { font-size: clamp(28px, 4vw, 42px); letter-spacing: -.028em; margin-bottom: 14px; font-weight: var(--fw-display); }
 .cta-band p { color: var(--text-dim); font-size: 17px; margin-bottom: 30px; }
 
 /* ============================================
@@ -466,7 +498,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   padding: 11px 14px;
   border-radius: 10px;
   color: var(--text-dim);
-  font-size: 15px; font-weight: 500;
+  font-size: 14.5px; font-weight: var(--fw-medium); letter-spacing: -.006em;
   transition: background var(--t-med) var(--ease), color var(--t-med) var(--ease),
     box-shadow var(--t-med) var(--ease), transform var(--t-fast) var(--ease);
 }
@@ -501,8 +533,8 @@ button { font-family: inherit; cursor: pointer; border: none; }
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 30px; flex-wrap: wrap; gap: 16px;
 }
-.topbar h1 { font-size: 26px; letter-spacing: -.5px; }
-.topbar .sub { color: var(--text-mute); font-size: 14px; margin-top: 2px; }
+.topbar h1 { font-size: 26px; font-weight: var(--fw-bold); letter-spacing: -.022em; line-height: 1.15; }
+.topbar .sub { color: var(--text-mute); font-size: 14px; margin-top: 3px; }
 .topbar-actions { display: flex; gap: 12px; align-items: center; }
 .search {
   background: var(--bg-card);
@@ -547,8 +579,12 @@ button { font-family: inherit; cursor: pointer; border: none; }
   transition: transform var(--t-med) var(--ease);
 }
 .kpi:hover .k-ic { transform: scale(1.08); }
-.kpi .k-val { font-size: 34px; font-weight: 900; letter-spacing: -1.2px; line-height: 1.05; }
-.kpi .k-lbl { color: var(--text-mute); font-size: 14px; margin-top: 6px; }
+.kpi .k-val {
+  font-family: var(--font-display);
+  font-size: 34px; font-weight: var(--fw-display); letter-spacing: -.03em; line-height: 1.05;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+.kpi .k-lbl { color: var(--text-mute); font-size: 13.5px; font-weight: var(--fw-medium); margin-top: 6px; }
 .chip { font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; }
 .chip.up { background: rgba(74,222,128,.14); color: var(--ok); }
 .chip.down { background: rgba(244,82,106,.14); color: var(--danger); }
@@ -646,6 +682,12 @@ tbody tr:last-child td { border-bottom: none; }
   .topbar-actions { width: 100%; }
   .topbar-actions form { flex: 1; min-width: 0; }
   .topbar-actions .search { width: 100%; min-width: 0; }
+  /* Typography: keep headings and big numbers balanced on small screens.
+     NOTE: .auth-card overrides live in a media block AFTER the base
+     .auth-card rules (~line 811) — placing them here would lose the
+     source-order tie-break (@media adds no specificity) and never apply. */
+  .topbar h1 { font-size: 22px; }
+  .kpi .k-val { font-size: 30px; }
 }
 
 /* ============================================
@@ -766,11 +808,20 @@ tbody tr:last-child td { border-bottom: none; }
   box-shadow: var(--shadow);
 }
 .auth-card .logo { justify-content: center; margin-bottom: 26px; }
-.auth-card h1 { font-size: 24px; text-align: center; letter-spacing: -.5px; margin-bottom: 6px; }
-.auth-card .lead { text-align: center; color: var(--text-dim); font-size: 14px; margin-bottom: 26px; }
+.auth-card h1 { font-size: 25px; font-weight: var(--fw-bold); text-align: center; letter-spacing: -.02em; line-height: 1.2; margin-bottom: 7px; }
+.auth-card .lead { text-align: center; color: var(--text-dim); font-size: 14.5px; line-height: 1.5; margin-bottom: 26px; }
+/* Mobile auth-card overrides — placed AFTER the base rules above so they
+   win the source-order tie-break (@media adds no specificity). */
+@media (max-width: 480px) {
+  .auth-card { padding: 32px 22px; }
+  .auth-card h1 { font-size: 22px; }
+}
 
 .field { margin-bottom: 16px; }
-.field label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 7px; font-weight: 500; }
+.field label {
+  display: block; font-size: 13px; color: var(--text-dim);
+  margin-bottom: 8px; font-weight: var(--fw-semibold); letter-spacing: -.005em;
+}
 .field input {
   width: 100%;
   background: var(--bg-elev);
@@ -780,6 +831,8 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--text);
   font-size: 15px;
   font-family: inherit;
+  font-weight: var(--fw-medium);
+  letter-spacing: -.003em;
   transition: border-color .18s, box-shadow .18s;
 }
 .field input:focus {
@@ -787,7 +840,7 @@ tbody tr:last-child td { border-bottom: none; }
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
-.field input::placeholder { color: var(--text-mute); }
+.field input::placeholder { color: var(--text-mute); font-weight: var(--fw-regular); }
 
 .auth-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; font-size: 13px; }
 .auth-row a { color: var(--accent); font-weight: 500; }
@@ -846,7 +899,7 @@ tbody tr:last-child td { border-bottom: none; }
   justify-content: space-between;
   margin-bottom: 18px;
 }
-.modal-head h3 { font-size: 19px; letter-spacing: -.3px; }
+.modal-head h3 { font-size: 19px; font-weight: var(--fw-bold); letter-spacing: -.018em; }
 .modal-x {
   background: none;
   border: none;
@@ -877,6 +930,8 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--text);
   font-size: 15px;
   font-family: inherit;
+  font-weight: var(--fw-medium);
+  line-height: 1.55;
   resize: vertical;
   transition: border-color .18s, box-shadow .18s;
 }
@@ -1021,19 +1076,59 @@ tbody tr:last-child td { border-bottom: none; }
   .profile-form .two-col { grid-template-columns: 1fr; }
 }
 
-/* --- Signup role picker (Creator vs Brand) --- */
-.role-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0 6px; }
+/* --- Signup role picker (Creator vs Brand) ---
+   Premium product-selection cards. Layout is unchanged (icon → title → blurb,
+   stacked); only the typography, spacing, icon framing and active/hover states
+   are refined. The icon sits in a soft chip that mirrors the dashboard .k-ic
+   idiom so it reads as part of the same design system. */
+.role-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0 8px; }
 .role-opt {
   display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-  text-align: left; padding: 14px; border-radius: 14px; cursor: pointer;
+  text-align: left; padding: 16px 16px 15px; border-radius: 16px; cursor: pointer;
   background: var(--bg-card-2); border: 1.5px solid var(--border);
-  color: #f3f5f7; transition: border-color .15s, background .15s, transform .1s;
+  color: var(--text);
+  transition: border-color var(--t-med) var(--ease), background var(--t-med) var(--ease),
+    transform var(--t-fast) var(--ease), box-shadow var(--t-med) var(--ease);
 }
-.role-opt:hover { border-color: var(--accent); }
-.role-opt.active { border-color: var(--accent); background: rgba(255,122,69,.10); }
-.role-opt .role-ic { font-size: 22px; }
-.role-opt b { font-size: 14px; }
-.role-opt .role-blurb { font-size: 12px; color: var(--text-mute); line-height: 1.35; }
+.role-opt:hover {
+  border-color: var(--accent-line);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px -20px rgba(255,122,69,.55);
+}
+.role-opt:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.role-opt.active {
+  border-color: var(--accent);
+  background: rgba(255,122,69,.10);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 12px 30px -20px rgba(255,122,69,.55);
+}
+.role-opt .role-ic {
+  width: 40px; height: 40px; border-radius: 11px;
+  display: grid; place-items: center; font-size: 20px; line-height: 1;
+  margin-bottom: 12px;
+  background: var(--bg-elev); border: 1px solid var(--border-soft);
+  transition: transform var(--t-med) var(--ease), border-color var(--t-med) var(--ease),
+    background var(--t-med) var(--ease);
+}
+.role-opt:hover .role-ic,
+.role-opt.active .role-ic {
+  transform: scale(1.06);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.role-opt b {
+  font-family: var(--font-display);
+  font-size: 15.5px; font-weight: 650;
+  letter-spacing: -.012em; line-height: 1.25;
+  color: var(--text);
+}
+.role-opt .role-blurb {
+  font-size: 12.5px; font-weight: var(--fw-regular);
+  color: var(--text-dim); line-height: 1.45;
+}
 @media (max-width: 480px) { .role-picker { grid-template-columns: 1fr; } }
 
 /* --- Campaign marketplace --- */
@@ -1078,9 +1173,9 @@ tbody tr:last-child td { border-bottom: none; }
   display: flex; flex-direction: column; gap: 8px; padding: 20px;
 }
 .camp-top { display: flex; align-items: center; justify-content: space-between; }
-.camp-reward { font-size: 22px; font-weight: 900; color: var(--accent-3); letter-spacing: -.4px; }
+.camp-reward { font-family: var(--font-display); font-size: 22px; font-weight: var(--fw-display); color: var(--accent-3); letter-spacing: -.02em; font-feature-settings: 'tnum' 1, 'lnum' 1; }
 .camp-reward small { font-size: 12px; color: var(--text-mute); font-weight: 600; }
-.camp-card h3 { font-size: 18px; letter-spacing: -.3px; }
+.camp-card h3 { font-size: 18px; font-weight: var(--fw-bold); letter-spacing: -.018em; line-height: 1.25; }
 .camp-brand { font-size: 13px; color: var(--text-dim); margin-top: -4px; }
 .camp-brief {
   font-size: 13px; color: var(--text-mute); line-height: 1.5;
@@ -1363,7 +1458,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .wallet-bal { display: flex; flex-direction: column; gap: 4px; }
 .wallet-lbl { font-size: 13px; color: var(--text-mute); text-transform: uppercase; letter-spacing: .6px; }
-.wallet-val { font-size: 40px; font-weight: 800; letter-spacing: -1px; color: var(--accent-3); }
+.wallet-val { font-family: var(--font-display); font-size: 40px; font-weight: var(--fw-display); letter-spacing: -.028em; color: var(--accent-3); font-feature-settings: 'tnum' 1, 'lnum' 1; }
 .wallet-sub { font-size: 13px; color: var(--text-dim); }
 .wallet-hero .btn { padding: 12px 22px; font-size: 15px; white-space: nowrap; }
 .wallet-hero .btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -1946,11 +2041,13 @@ tbody tr:last-child td { border-bottom: none; }
   .kpi:hover,
   .camp-card:hover,
   .side-nav a:hover,
+  .role-opt:hover,
   .lb-row:hover,
   .feature:hover,
   .sub-card:hover,
   .creator-card:hover { transform: none !important; }
   .camp-card:hover .camp-thumb img,
   .kpi:hover .k-ic,
+  .role-opt:hover .role-ic,
   .side-nav a:hover .ic { transform: none !important; }
 }
