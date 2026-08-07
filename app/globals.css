@@ -38,15 +38,29 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; }
+/* The base colour lives on <html> so the fixed animated canvas (z-index:-1)
+   paints ABOVE it but BELOW all page content. <body> stays transparent. */
+html { scroll-behavior: smooth; background: var(--bg); }
 
 body {
   font-family: var(--font);
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+}
+
+/* Animated liveframe.ai-style backdrop. Fixed to the viewport, painted behind
+   every UI layer, and click/scroll-transparent. See components/WaveBackground.js. */
+#wave-bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  display: block;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -1816,108 +1830,4 @@ tbody tr:last-child td { border-bottom: none; }
   .camp-card h3 { font-size: 14px; }
   .camp-brief { -webkit-line-clamp: 2; font-size: 12px; }
   .camp-foot { font-size: 11px; flex-wrap: wrap; gap: 4px; }
-}
-
-/* ============================================
-   SETTINGS — appearance card + theme toggle
-   ============================================ */
-
-.settings-card {
-  background: var(--bg-card); border: 1px solid var(--border-soft);
-  border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow);
-  max-width: 640px;
-}
-.settings-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 20px; flex-wrap: wrap;
-}
-.settings-row-txt h3 { font-size: 16px; font-weight: 700; color: var(--text); }
-.settings-row-txt p {
-  font-size: 13.5px; color: var(--text-dim); margin-top: 4px; max-width: 380px;
-  line-height: 1.5;
-}
-.theme-toggle {
-  display: inline-flex; gap: 4px; padding: 4px; flex: none;
-  background: var(--bg-card-2); border: 1px solid var(--border-soft);
-  border-radius: 12px;
-}
-.theme-opt {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border: none; background: none; cursor: pointer;
-  font-family: inherit; font-size: 13.5px; font-weight: 600;
-  color: var(--text-dim); border-radius: 9px; transition: background .15s, color .15s;
-}
-.theme-opt:hover { color: var(--text); }
-.theme-opt.active {
-  background: var(--bg-card); color: var(--text);
-  box-shadow: 0 1px 3px rgba(0,0,0,.18);
-}
-
-/* ============================================
-   LIGHT THEME — opt-in override of the dark defaults.
-   Applied via <html data-theme="light"> (the default on first visit).
-   Kept last so its rules win by cascade order as well as specificity.
-   ============================================ */
-
-:root[data-theme="light"] {
-  --bg:          #f7f8fa;
-  --bg-elev:     #ffffff;
-  --bg-card:     #ffffff;
-  --bg-card-2:   #f1f3f6;
-  --border:      #e2e5ea;
-  --border-soft: #eceef2;
-
-  --text:        #1a1d23;
-  --text-dim:    #5a6270;
-  --text-mute:   #8b93a1;
-
-  --shadow:      0 20px 60px -24px rgba(20,24,40,.18);
-}
-
-/* Translucent top navbar reads dark by default — flip it to frosted white. */
-[data-theme="light"] .nav { background: rgba(255,255,255,.72); }
-[data-theme="light"] .btn-ghost:hover { border-color: var(--border); }
-
-/* Texts that were hardcoded near-white so they'd stand on the dark UI. */
-[data-theme="light"] .notif-item p,
-[data-theme="light"] .profile-form input,
-[data-theme="light"] .profile-form textarea,
-[data-theme="light"] .profile-form select,
-[data-theme="light"] .reward-input input,
-[data-theme="light"] .metric-input,
-[data-theme="light"] .role-opt { color: var(--text); }
-
-/* Alerts: swap the light-on-dark text for darker, readable tones. */
-[data-theme="light"] .alert.err  { color: #b42318; }
-[data-theme="light"] .alert.info { color: #b45309; }
-
-/* Withdraw modal — its panel is var(--bg-card) (white in light mode), so the
-   baked-in white/grey text needs to darken to stay legible. */
-[data-theme="light"] .wd-head-titles h3,
-[data-theme="light"] .wd-opt-txt b,
-[data-theme="light"] .wd-label,
-[data-theme="light"] .wd-currency,
-[data-theme="light"] .wd-amount input,
-[data-theme="light"] .wd-breakdown > div > span:last-child,
-[data-theme="light"] .wd-receive b:first-child,
-[data-theme="light"] .wd-dest,
-[data-theme="light"] .wd-done h3 { color: var(--text); }
-
-[data-theme="light"] .wd-head-titles p,
-[data-theme="light"] .wd-back,
-[data-theme="light"] .wd-close,
-[data-theme="light"] .wd-balance,
-[data-theme="light"] .wd-opt-txt span,
-[data-theme="light"] .wd-arrow,
-[data-theme="light"] .wd-soon,
-[data-theme="light"] .wd-quick button,
-[data-theme="light"] .wd-breakdown > div,
-[data-theme="light"] .wd-done p { color: var(--text-dim); }
-
-[data-theme="light"] .wd-back:hover,
-[data-theme="light"] .wd-close:hover,
-[data-theme="light"] .wd-quick button:hover:not(:disabled) { color: var(--text); }
-
-[data-theme="light"] .wd-tag.muted {
-  color: var(--text-dim); background: rgba(0,0,0,.06);
 }

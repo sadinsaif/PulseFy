@@ -1,5 +1,6 @@
 import "./globals.css";
 import Providers from "@/components/Providers";
+import WaveBackground from "@/components/WaveBackground";
 
 export const metadata = {
   title: "Pulsefy — Infrastructure for the AI Creator Economy",
@@ -10,14 +11,6 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* Set the theme before first paint to avoid a flash. Defaults to
-            light on first visit; respects the user's saved choice after that. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}",
-          }}
-        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
@@ -26,6 +19,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        {/* Animated liveframe.ai-style backdrop — purely decorative, sits
+            behind every UI layer (see components/WaveBackground.js). */}
+        <WaveBackground />
         <Providers>{children}</Providers>
       </body>
     </html>
