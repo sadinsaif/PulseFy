@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Spotlighted from "@/components/Spotlighted";
+import CampaignSubmissions from "@/components/CampaignSubmissions";
 import { isLive, statusLabel, countdown, budgetLeft } from "@/lib/campaign";
 
   const PLABEL = {
@@ -253,6 +254,11 @@ export default function CampaignDetail({ id }) {
       <div style={{ marginTop: 18 }}>
         <Spotlighted campaignId={id} />
       </div>
+
+      {/* Every submission to this campaign, with per-creator earnings. Only the
+          owning brand + admins can load it (the API 403s everyone else), so
+          regular creators see nothing here — just the Spotlighted section above. */}
+      <CampaignSubmissions campaignId={id} />
 
       <p style={{ marginTop: 16 }}>
         <Link href="/dashboard/campaigns" style={{ color: "var(--accent)" }}>← Back to campaigns</Link>
