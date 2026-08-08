@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { campaigns, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { campaigns, users, submissions } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { campaignStatusSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
 
@@ -26,6 +26,12 @@ export async function GET(_req, { params }) {
       platform: campaigns.platform,
       reward: campaigns.reward,
       budget: campaigns.budget,
+      budgetSpent: sql`(
+        (select coalesce(sum(${submissions.reward}), 0) from ${submissions}
+           where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'approved')
+        + (select coalesce(sum(${submissions.spotlightBonus}), 0) from ${submissions}
+           where ${submissions.campaignId} = ${campaigns.id} and ${submissions.spotlighted} = true)
+      )`,
       spotlightReward: campaigns.spotlightReward,
       performanceMult: campaigns.performanceMult,
       endsAt: campaigns.endsAt,

@@ -24,6 +24,16 @@ export async function GET(req) {
 
   const subCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id})`;
 
+  // Dollars already paid out of a campaign's pool: approved-post rewards plus
+  // spotlight bonuses. The card shows budget MINUS this, so the pool ticks down
+  // as the brand approves posts (see budgetLeft in lib/campaign.js).
+  const budgetSpent = sql`(
+    (select coalesce(sum(${submissions.reward}), 0) from ${submissions}
+       where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'approved')
+    + (select coalesce(sum(${submissions.spotlightBonus}), 0) from ${submissions}
+       where ${submissions.campaignId} = ${campaigns.id} and ${submissions.spotlighted} = true)
+  )`;
+
   // Columns returned for every card. endsAt drives the live countdown and, when
   // in the past, marks a campaign as effectively ended (End vs Live badge).
   const cols = {
@@ -33,6 +43,7 @@ export async function GET(req) {
     platform: campaigns.platform,
     reward: campaigns.reward,
     budget: campaigns.budget,
+    budgetSpent,
     spotlightReward: campaigns.spotlightReward,
     performanceMult: campaigns.performanceMult,
     endsAt: campaigns.endsAt,

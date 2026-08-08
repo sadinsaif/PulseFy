@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isLive, statusLabel, countdown } from "@/lib/campaign";
+import { isLive, statusLabel, countdown, budgetLeft } from "@/lib/campaign";
 
 const PLABEL = {
   any: "Any platform",
@@ -29,6 +29,9 @@ const CONTENT_TYPE_LABEL = {
 export default function CampaignCard({ c, now }) {
   const live = isLive(c, now);
   const left = countdown(c.endsAt, now);
+  // Budget shown on the card is what's LEFT in the pool — it ticks down as the
+  // brand approves posts and pays out rewards/spotlight bonuses.
+  const budgetRemaining = budgetLeft(c);
   const hasMeta = c.budget > 0 || (live && left);
 
   return (
@@ -68,7 +71,7 @@ export default function CampaignCard({ c, now }) {
             {c.budget > 0 && (
               <span className="camp-thumb-budget">
                 <small>Budget</small>
-                <b>${Number(c.budget).toLocaleString()}</b>
+                <b>${Number(budgetRemaining).toLocaleString()}</b>
               </span>
             )}
             {live && left && <span className="camp-thumb-count">⏳ {left}</span>}
@@ -90,9 +93,7 @@ export default function CampaignCard({ c, now }) {
         {/* Reward pills — Approval / Performance / Spotlight */}
         <div className="camp-pills">
           <span className="camp-pill">✅ Approval: ${c.reward}</span>
-          {Number(c.performanceMult) > 1 && (
-            <span className="camp-pill">📈 Performance: ×{c.performanceMult}</span>
-          )}
+          <span className="camp-pill">📈 Performance: ×{Number(c.performanceMult) || 1}</span>
           {Number(c.spotlightReward) > 0 && (
             <span className="camp-pill">⭐ Spotlight: ${c.spotlightReward}</span>
           )}

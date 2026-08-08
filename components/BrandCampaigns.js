@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import RichCampaignForm from "@/components/RichCampaignForm";
+import { budgetLeft } from "@/lib/campaign";
 
 const PLABEL = {
   any: "Any platform",
@@ -109,7 +110,18 @@ export default function BrandCampaigns() {
                   <tr key={c.id}>
                     <td><b>{c.title}</b></td>
                     <td>{PLABEL[c.platform] || c.platform}</td>
-                    <td>{c.budget > 0 ? `$${Number(c.budget).toLocaleString()}` : "—"}</td>
+                    <td>
+                      {c.budget > 0 ? (
+                        <>
+                          ${Number(budgetLeft(c)).toLocaleString()}
+                          <span style={{ color: "var(--text-mute)", fontSize: 12 }}>
+                            {" "}/ ${Number(c.budget).toLocaleString()}
+                          </span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>${c.reward}/post</td>
                     <td>{c.submissionCount ?? 0}</td>
                     <td>

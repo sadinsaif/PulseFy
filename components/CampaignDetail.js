@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Spotlighted from "@/components/Spotlighted";
-import { isLive, statusLabel, countdown } from "@/lib/campaign";
+import { isLive, statusLabel, countdown, budgetLeft } from "@/lib/campaign";
 
   const PLABEL = {
   any: "Any platform",
@@ -135,7 +135,7 @@ export default function CampaignDetail({ id }) {
           <div className="meta">
             <span>🏢 {camp.brandName || "A brand"}</span>
             {camp.budget > 0 && (
-              <span>💰 Budget ${Number(camp.budget).toLocaleString()}</span>
+              <span>💰 Budget ${Number(budgetLeft(camp)).toLocaleString()}</span>
             )}
             <span>💸 ${camp.reward} per approved post</span>
             {live && left && <span>⏳ {left}</span>}
@@ -148,9 +148,7 @@ export default function CampaignDetail({ id }) {
           {/* Reward pills — Approval / Performance / Spotlight (GIMI-style) */}
           <div className="camp-pills" style={{ marginTop: 10 }}>
             <span className="camp-pill">✅ Approval: ${camp.reward}</span>
-            {Number(camp.performanceMult) > 1 && (
-              <span className="camp-pill">📈 Performance: ×{camp.performanceMult}</span>
-            )}
+            <span className="camp-pill">📈 Performance: ×{Number(camp.performanceMult) || 1}</span>
             {Number(camp.spotlightReward) > 0 && (
               <span className="camp-pill">⭐ Spotlight: ${camp.spotlightReward}</span>
             )}

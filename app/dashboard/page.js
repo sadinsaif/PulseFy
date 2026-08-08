@@ -19,6 +19,14 @@ export default async function DashboardPage() {
   // brand name + live submission count. Live campaigns sort above finished ones
   // (same GIMI ordering as the Discover grid); paused campaigns stay hidden.
   const subCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id})`;
+  // Dollars paid out of the pool so far (approved rewards + spotlight bonuses);
+  // the card shows budget minus this so the pool ticks down as posts get paid.
+  const budgetSpent = sql`(
+    (select coalesce(sum(${submissions.reward}), 0) from ${submissions}
+       where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'approved')
+    + (select coalesce(sum(${submissions.spotlightBonus}), 0) from ${submissions}
+       where ${submissions.campaignId} = ${campaigns.id} and ${submissions.spotlighted} = true)
+  )`;
   const liveFirst = sql`case when ${campaigns.status} = 'active' and (${campaigns.endsAt} is null or ${campaigns.endsAt} > now()) then 0 else 1 end`;
   let allCampaigns = [];
   try {
@@ -30,6 +38,7 @@ export default async function DashboardPage() {
         platform: campaigns.platform,
         reward: campaigns.reward,
         budget: campaigns.budget,
+        budgetSpent,
         spotlightReward: campaigns.spotlightReward,
         performanceMult: campaigns.performanceMult,
         endsAt: campaigns.endsAt,
