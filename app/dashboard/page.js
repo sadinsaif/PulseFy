@@ -8,12 +8,170 @@ import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import TopbarSearch from "@/components/TopbarSearch";
 import CampaignGrid from "@/components/CampaignGrid";
+import PerfChart from "@/components/PerfChart";
 import { isAdminEmail } from "@/lib/admin";
 
 export default async function DashboardPage() {
   const session = await auth();
   const user = session?.user;
   const firstName = (user?.name || "there").split(" ")[0];
+  const isBrand = user?.role === "brand";
+
+  // ---- BRAND OVERVIEW ------------------------------------------------------
+  // Brands get a business-focused Overview: KPIs + campaign performance, all
+  // derived from their own campaigns/submissions. The creator/admin path below
+  // is left exactly as-is.
+  if (isBrand) {
+    const me = user.id;
+    let bstats = { active: 0, spend: 0, content: 0, hired: 0, views: 0, engagement: 0 };
+    let perf = [];
+    try {
+      const [ac] = await db
+        .select({ n: sql`count(*)` })
+        .from(campaigns)
+        .where(
+          sql`${campaigns.brandId} = ${me} and ${campaigns.status} = 'active' and (${campaigns.endsAt} is null or ${campaigns.endsAt} > now())`
+        );
+
+      const spendExpr = sql`coalesce(sum(case when ${submissions.status} = 'approved' then ${submissions.reward} else 0 end), 0)
+        + coalesce(sum(case when ${submissions.spotlighted} = true then ${submissions.spotlightBonus} else 0 end), 0)`;
+
+      const [agg] = await db
+        .select({
+          spend: spendExpr,
+          content: sql`count(${submissions.id})`,
+          hired: sql`count(distinct case when ${submissions.status} = 'approved' then ${submissions.userId} end)`,
+          views: sql`coalesce(sum(${submissions.views}), 0)`,
+          engagement: sql`coalesce(sum(${submissions.engagement}), 0)`,
+        })
+        .from(submissions)
+        .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
+        .where(eq(campaigns.brandId, me));
+
+      bstats = {
+        active: Number(ac?.n || 0),
+        spend: Number(agg?.spend || 0),
+        content: Number(agg?.content || 0),
+        hired: Number(agg?.hired || 0),
+        views: Number(agg?.views || 0),
+        engagement: Number(agg?.engagement || 0),
+      };
+
+      // Per-campaign performance for the chart (top 8 by views). leftJoin so a
+      // campaign with no submissions still appears (as a zero bar).
+      perf = await db
+        .select({
+          label: campaigns.title,
+          views: sql`coalesce(sum(${submissions.views}), 0)`,
+          spend: spendExpr,
+        })
+        .from(campaigns)
+        .leftJoin(submissions, eq(submissions.campaignId, campaigns.id))
+        .where(eq(campaigns.brandId, me))
+        .groupBy(campaigns.id, campaigns.title)
+        .orderBy(desc(sql`coalesce(sum(${submissions.views}), 0)`))
+        .limit(8);
+    } catch {
+      // leave zeros if the DB is unreachable
+    }
+
+    const chartData = perf.map((p) => ({
+      label: p.label,
+      primary: Number(p.views || 0),
+      secondary: Number(p.spend || 0),
+    }));
+
+    return (
+      <div className="app">
+        <Sidebar user={user} isAdmin={isAdminEmail(user?.email)} />
+
+        <main className="main">
+          <div className="topbar">
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div>
+                <h1>Overview</h1>
+                <p className="sub">
+                  Welcome back, {firstName} — here&apos;s how your campaigns are performing.
+                </p>
+              </div>
+            </div>
+            <div className="topbar-actions">
+              <TopbarSearch to="/dashboard/discover" />
+              <Link href="/dashboard/campaigns?new=1" className="btn btn-primary">
+                + Create Campaign
+              </Link>
+            </div>
+          </div>
+
+          {/* Brand KPIs */}
+          <section className="kpis">
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">🎯</div></div>
+              <div className="k-val">{bstats.active.toLocaleString()}</div>
+              <div className="k-lbl">Active campaigns</div>
+            </div>
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">💰</div></div>
+              <div className="k-val">${bstats.spend.toLocaleString()}</div>
+              <div className="k-lbl">Total campaign spend</div>
+            </div>
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">🎬</div></div>
+              <div className="k-val">{bstats.content.toLocaleString()}</div>
+              <div className="k-lbl">Content received</div>
+            </div>
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">🤝</div></div>
+              <div className="k-val">{bstats.hired.toLocaleString()}</div>
+              <div className="k-lbl">Creators hired</div>
+            </div>
+          </section>
+
+          {/* Campaign performance */}
+          <section className="panel">
+            <div className="panel-head">
+              <h3>Campaign performance</h3>
+              <Link href="/dashboard/analytics" style={{ color: "var(--accent)" }}>
+                Full analytics
+              </Link>
+            </div>
+
+            <div className="perf-tiles">
+              <div className="perf-tile">
+                <div className="pt-val">{bstats.views.toLocaleString()}</div>
+                <div className="pt-lbl">Total views</div>
+              </div>
+              <div className="perf-tile">
+                <div className="pt-val">{bstats.engagement.toLocaleString()}</div>
+                <div className="pt-lbl">Engagement</div>
+              </div>
+              <div className="perf-tile">
+                <div className="pt-val">{bstats.content.toLocaleString()}</div>
+                <div className="pt-lbl">Content created</div>
+              </div>
+              <div className="perf-tile">
+                <div className="pt-val">{bstats.hired.toLocaleString()}</div>
+                <div className="pt-lbl">Creators hired</div>
+              </div>
+              <div className="perf-tile">
+                <div className="pt-val">${bstats.spend.toLocaleString()}</div>
+                <div className="pt-lbl">Total spend</div>
+              </div>
+            </div>
+
+            <PerfChart
+              data={chartData}
+              primaryLabel="Views"
+              secondaryLabel="Spend"
+              primaryFormat="compact"
+              secondaryFormat="money"
+            />
+          </section>
+        </main>
+      </div>
+    );
+  }
+
 
   // Pull public campaigns so the Overview shows the real marketplace feed with
   // brand name + live submission count. Live campaigns sort above finished ones

@@ -2158,3 +2158,147 @@ tbody tr:last-child td { border-bottom: none; }
   .role-opt:hover .role-ic,
   .side-nav a:hover .ic { transform: none !important; }
 }
+
+/* ============================================
+   BRAND ACCOUNT — performance chart, KPI 5-up,
+   discover filters + creator cards, filter chips.
+   Additive only: brand-scoped views reuse these;
+   the creator UI is untouched.
+   ============================================ */
+
+/* KPI row that holds five tiles (Analytics + brand Performance). */
+.kpis-5 { grid-template-columns: repeat(5, 1fr); }
+
+/* Filter tabs (Campaigns / Applications) — the container was previously
+   unstyled; a flex row keeps the chips on one line with the count badge. */
+.review-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-count {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 7px;
+  margin-left: 2px;
+  border-radius: 999px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-soft);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.platform-chip.active .chip-count {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+/* ---- PerfChart — dependency-free bar chart (Overview + Analytics) ---- */
+.perf-chart { display: flex; flex-direction: column; gap: 16px; }
+.perf-chart.empty {
+  align-items: center; justify-content: center;
+  min-height: 160px; text-align: center;
+  border: 1px dashed var(--border-soft); border-radius: var(--radius);
+  color: var(--text-mute);
+}
+.perf-chart.empty p { font-size: 14px; max-width: 340px; }
+.perf-legend { display: flex; flex-wrap: wrap; gap: 18px; }
+.perf-key {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-dim); font-weight: 600;
+}
+.perf-key i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.perf-key i.dot-primary { background: var(--accent); box-shadow: 0 0 10px var(--accent-line); }
+.perf-key i.dot-secondary { background: var(--accent-2); box-shadow: 0 0 10px rgba(168,85,247,.4); }
+.perf-bars {
+  display: flex; align-items: flex-end; gap: 14px;
+  height: 230px; padding-top: 8px; overflow-x: auto;
+}
+.perf-col {
+  flex: 1 1 0; min-width: 54px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  height: 100%;
+}
+.perf-stack {
+  flex: 1; width: 100%;
+  display: flex; align-items: flex-end; justify-content: center; gap: 6px;
+}
+.perf-bar {
+  position: relative;
+  width: 100%; max-width: 40px;
+  border-radius: 8px 8px 0 0;
+  min-height: 4px;
+  transition: height 1s cubic-bezier(.2,.8,.2,1);
+}
+.perf-bar.primary { background: linear-gradient(180deg, var(--accent), rgba(255,122,69,.35)); }
+.perf-bar.secondary { background: linear-gradient(180deg, var(--accent-2), rgba(168,85,247,.32)); }
+.perf-val {
+  position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; font-weight: 700; color: var(--text-dim); white-space: nowrap;
+}
+.perf-label {
+  font-size: 12px; color: var(--text-mute); text-align: center;
+  max-width: 92px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---- Discover Creators — filter bar ---- */
+.discover-filters { display: flex; flex-direction: column; gap: 4px; }
+.discover-filters .field { margin-bottom: 0; }
+.discover-filter-row {
+  display: grid; gap: 14px; margin-top: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.discover-filters select {
+  width: 100%;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 15px; font-family: inherit; font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: border-color .18s, box-shadow .18s;
+}
+.discover-filters select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---- Discover Creators — card internals (reuses .creator-grid/.creator-card) ---- */
+.cc-head { display: flex; align-items: center; gap: 12px; }
+.cc-avatar {
+  width: 52px; height: 52px; border-radius: 50%; flex: none;
+  object-fit: cover; background: var(--bg-card-2);
+}
+.cc-avatar-fallback {
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 20px; color: #1a1220;
+  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+}
+.cc-id { min-width: 0; }
+.cc-id b { font-size: 16px; display: block; line-height: 1.2; }
+.cc-plats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.cc-plat {
+  font-size: 11px; font-weight: 600; text-transform: capitalize;
+  padding: 3px 8px; border-radius: 999px;
+  background: var(--bg-elev); border: 1px solid var(--border-soft);
+  color: var(--text-dim);
+}
+.creator-card .cc-stats { gap: 10px; justify-content: space-between; }
+.cc-stat { flex: 1; text-align: center; }
+.cc-num { font-weight: 700; font-size: 17px; }
+.cc-lbl { color: var(--text-mute); font-size: 11.5px; margin-top: 2px; }
+.cc-meta {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  font-size: 13px; color: var(--text-dim);
+}
+.cc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.cc-tag {
+  font-size: 11px; padding: 3px 9px; border-radius: 999px;
+  background: var(--accent-soft); border: 1px solid var(--accent-line);
+  color: var(--accent);
+}
+.cc-actions { display: flex; gap: 8px; margin-top: auto; }
+.cc-actions .btn { flex: 1; padding: 9px 12px; font-size: 13px; text-align: center; }
+
+/* Brand KPI 5-up collapses gracefully; the appended media rules win the
+   source-order tie against the earlier .kpis breakpoints. */
+@media (max-width: 1100px) { .kpis-5 { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px)  { .kpis-5 { grid-template-columns: repeat(2, 1fr); } }

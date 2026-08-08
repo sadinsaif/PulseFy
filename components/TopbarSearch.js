@@ -5,15 +5,16 @@ import { useState } from "react";
 
 /**
  * The Overview top-bar search. Typing a name and pressing Enter jumps to the
- * Creators discovery page with the query pre-filled.
+ * discovery page with the query pre-filled. `to` sets the destination route so
+ * brands land on /dashboard/discover while creators keep /dashboard/creators.
  */
-export default function TopbarSearch() {
+export default function TopbarSearch({ to = "/dashboard/creators" }) {
   const router = useRouter();
   const [q, setQ] = useState("");
 
   function go(e) {
     e.preventDefault();
-    router.push(`/dashboard/creators?q=${encodeURIComponent(q.trim())}`);
+    router.push(`${to}?q=${encodeURIComponent(q.trim())}`);
   }
 
   return (

@@ -9,12 +9,14 @@ import NotificationBell from "@/components/NotificationBell";
 const NAV = [
   { href: "/dashboard", icon: "▦", label: "Overview" },
   { href: "/dashboard/campaigns", icon: "🎯", label: "Campaigns" },
-  { href: "/dashboard/creators", icon: "🏆", label: "Leaderboard" },
+  { href: "/dashboard/creators", icon: "🏆", label: "Leaderboard", creatorOnly: true },
+  { href: "/dashboard/discover", icon: "🔎", label: "Discover Creators", brandOnly: true },
+  { href: "/dashboard/applications", icon: "📥", label: "Applications", brandOnly: true },
   { href: "/dashboard/inbox", icon: "✉️", label: "Inbox", badge: "messages" },
   { href: "/dashboard/submissions", icon: "✅", label: "Submissions", adminOnly: true },
-  { href: "/dashboard/payouts", icon: "💸", label: "Payouts" },
+  { href: "/dashboard/payouts", icon: "💸", label: "Payouts", brandLabel: "Payments" },
   { href: "/dashboard/referrals", icon: "🔗", label: "Referrals", creatorOnly: true },
-  { href: "#", icon: "📈", label: "Analytics" },
+  { href: "/dashboard/analytics", icon: "📈", label: "Analytics", brandOnly: true },
 ];
 
 /**
@@ -29,6 +31,7 @@ export default function Sidebar({ user, isAdmin = false }) {
   const isBrand = user?.role === "brand";
   const nav = NAV.filter((item) => {
     if (item.adminOnly) return isAdmin;
+    if (item.brandOnly) return isBrand;
     if (item.creatorOnly) return !isBrand;
     return true;
   });
@@ -72,9 +75,10 @@ export default function Sidebar({ user, isAdmin = false }) {
               (pathname === item.href ||
                 (item.href !== "/dashboard" && pathname.startsWith(item.href + "/")));
             const showBadge = item.badge === "messages" && unreadMsgs > 0;
+            const label = isBrand && item.brandLabel ? item.brandLabel : item.label;
             return (
               <Link key={i} href={item.href} className={active ? "active" : ""}>
-                <span className="ic">{item.icon}</span> {item.label}
+                <span className="ic">{item.icon}</span> {label}
                 {showBadge && <span className="nav-badge">{unreadMsgs}</span>}
               </Link>
             );

@@ -44,6 +44,7 @@ export default async function PayoutsPage() {
       const cols = {
         id: submissions.id,
         challengeId: submissions.challengeId,
+        campaignId: submissions.campaignId,
         platform: submissions.platform,
         postUrl: submissions.postUrl,
         reward: submissions.reward,
@@ -73,8 +74,45 @@ export default async function PayoutsPage() {
       rows = [];
     }
 
-    const totalPaid = rows.reduce((sum, r) => sum + (r.reward || 0), 0);
-    const creatorsPaid = new Set(rows.map((r) => r.creatorEmail)).size;
+    // Total spent = approved rewards + spotlight bonuses (canonical budgetSpent),
+    // scoped to the brand's campaigns (admin: platform-wide). Pending = money
+    // owed if the whole review queue were approved — an estimate = Σ campaign
+    // reward across the brand's pending submissions.
+    let totalSpent = 0;
+    let pendingEstimate = 0;
+    try {
+      const spendExpr = sql`coalesce(sum(case when ${submissions.status} = 'approved' then ${submissions.reward} else 0 end), 0)
+        + coalesce(sum(case when ${submissions.spotlighted} = true then ${submissions.spotlightBonus} else 0 end), 0)`;
+      if (admin) {
+        const [ts] = await db.select({ n: spendExpr }).from(submissions);
+        totalSpent = Number(ts?.n || 0);
+        const [pe] = await db
+          .select({ n: sql`coalesce(sum(${campaigns.reward}), 0)` })
+          .from(submissions)
+          .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
+          .where(eq(submissions.status, "pending"));
+        pendingEstimate = Number(pe?.n || 0);
+      } else {
+        const [ts] = await db
+          .select({ n: spendExpr })
+          .from(submissions)
+          .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
+          .where(eq(campaigns.brandId, user.id));
+        totalSpent = Number(ts?.n || 0);
+        const [pe] = await db
+          .select({ n: sql`coalesce(sum(${campaigns.reward}), 0)` })
+          .from(submissions)
+          .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
+          .where(
+            and(eq(submissions.status, "pending"), eq(campaigns.brandId, user.id))
+          );
+        pendingEstimate = Number(pe?.n || 0);
+      }
+    } catch {
+      /* leave zeros */
+    }
+
+    const title = isBrand ? "Payments" : "Payouts";
 
     return (
       <div className="app">
@@ -82,7 +120,7 @@ export default async function PayoutsPage() {
         <main className="main">
           <div className="topbar">
             <div>
-              <h1>Payouts</h1>
+              <h1>{title}</h1>
               <p className="sub">
                 {admin
                   ? "Every reward paid to creators across the platform."
@@ -94,18 +132,18 @@ export default async function PayoutsPage() {
           <section className="kpis">
             <div className="kpi">
               <div className="k-top"><div className="k-ic">💸</div></div>
-              <div className="k-val">${totalPaid.toLocaleString()}</div>
-              <div className="k-lbl">Total paid out</div>
+              <div className="k-val">${totalSpent.toLocaleString()}</div>
+              <div className="k-lbl">Total spent</div>
+            </div>
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">⏳</div></div>
+              <div className="k-val">${pendingEstimate.toLocaleString()}</div>
+              <div className="k-lbl">Pending payments (est.)</div>
             </div>
             <div className="kpi">
               <div className="k-top"><div className="k-ic">✅</div></div>
               <div className="k-val">{rows.length.toLocaleString()}</div>
-              <div className="k-lbl">Paid posts</div>
-            </div>
-            <div className="kpi">
-              <div className="k-top"><div className="k-ic">👥</div></div>
-              <div className="k-val">{creatorsPaid.toLocaleString()}</div>
-              <div className="k-lbl">Creators paid</div>
+              <div className="k-lbl">Completed payments</div>
             </div>
           </section>
 
@@ -114,14 +152,14 @@ export default async function PayoutsPage() {
           <section className="panel" style={{ marginTop: 18 }}>
             <div className="panel-head">
               <h3>Payment history</h3>
-              <Link href="/dashboard/submissions" style={{ color: "var(--accent)" }}>
-                Review submissions →
+              <Link href="/dashboard/applications" style={{ color: "var(--accent)" }}>
+                Review applications →
               </Link>
             </div>
 
             {rows.length === 0 ? (
               <p className="brief" style={{ marginTop: 10 }}>
-                No payouts yet. When you approve a submission with a reward, it
+                No payments yet. When you approve a submission with a reward, it
                 shows up here.
               </p>
             ) : (
@@ -132,9 +170,10 @@ export default async function PayoutsPage() {
                       <th>Creator</th>
                       <th>Campaign</th>
                       <th>Platform</th>
-                      <th>Post</th>
                       <th>Amount</th>
+                      <th>Status</th>
                       <th>Date</th>
+                      <th>View</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -143,15 +182,16 @@ export default async function PayoutsPage() {
                         <td><b>{r.creatorName || r.creatorEmail || "Creator"}</b></td>
                         <td>{r.challengeId}</td>
                         <td>{PLABEL[r.platform] || r.platform}</td>
+                        <td style={{ color: "var(--accent-3)", fontWeight: 700 }}>
+                          ${(r.reward || 0).toLocaleString()}
+                        </td>
+                        <td><span className="status live">Paid</span></td>
+                        <td>{fmtDate(r.createdAt)}</td>
                         <td>
                           <a href={r.postUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>
                             View ↗
                           </a>
                         </td>
-                        <td style={{ color: "var(--accent-3)", fontWeight: 700 }}>
-                          ${(r.reward || 0).toLocaleString()}
-                        </td>
-                        <td>{fmtDate(r.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>

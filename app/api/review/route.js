@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { submissions, users, campaigns } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { reviewSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
 import { notifyUser } from "@/lib/notify";
@@ -43,6 +43,18 @@ export async function GET() {
     creatorId: submissions.userId,
     creatorName: users.name,
     creatorEmail: users.email,
+    // Campaign reward — shown as the "Offer" in the brand Applications view.
+    campaignReward: sql`(select reward from campaigns where campaigns.id = ${submissions.campaignId})`,
+    // Per-creator reputation stats for the brand Applications view. Additive —
+    // ReviewBoard ignores fields it doesn't read.
+    creatorFollowers: sql`(select count(*) from follows where follows.following_id = ${submissions.userId})`,
+    creatorAvgViews: sql`(select coalesce(round(avg(views)),0) from submissions s2 where s2.user_id = ${submissions.userId})`,
+    creatorEngagementRate: sql`(
+      select case when coalesce(sum(views),0) > 0
+        then round(sum(engagement)::numeric / sum(views)::numeric * 100, 1)
+        else 0 end
+      from submissions s3 where s3.user_id = ${submissions.userId}
+    )`,
   };
 
   // Admin sees every submission; a brand sees only submissions to campaigns

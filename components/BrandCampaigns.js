@@ -3,25 +3,28 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import RichCampaignForm from "@/components/RichCampaignForm";
-import { budgetLeft } from "@/lib/campaign";
 
-const PLABEL = {
-  any: "Any platform",
-  tiktok: "🎵 TikTok",
-  instagram: "📸 Instagram",
-  youtube: "▶️ YouTube",
-  x: "𝕏 X",
-};
 const STATUS_CLASS = { active: "live", paused: "review", ended: "ended" };
+
+// Filter tabs — the real campaign enum (no "draft" status exists).
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "paused", label: "Paused" },
+  { key: "ended", label: "Ended" },
+];
 
 /**
  * Brand view of /dashboard/campaigns — create a campaign with a GIMI-style
- * rich form, and manage the ones you own (pause / resume / end), with a live
- * submission count and a link to review incoming clips.
+ * rich form, and manage the ones you own (pause / resume / end). The table
+ * shows the full business picture: budget, amount spent, applications (pending
+ * submissions), creators selected, total submissions, approved content, views.
+ * Opening the page with ?new=1 auto-opens the create form.
  */
 export default function BrandCampaigns() {
   const [rows, setRows] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [filter, setFilter] = useState("all");
 
   async function load() {
     try {
@@ -35,6 +38,14 @@ export default function BrandCampaigns() {
 
   useEffect(() => {
     load();
+    // ?new=1 (e.g. the Overview "+ Create Campaign" button) opens the form.
+    try {
+      if (new URLSearchParams(window.location.search).get("new") === "1") {
+        setShowForm(true);
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   async function setStatus(id, status) {
@@ -51,6 +62,15 @@ export default function BrandCampaigns() {
       /* ignore */
     }
   }
+
+  const list = rows || [];
+  const counts = {
+    all: list.length,
+    active: list.filter((c) => c.status === "active").length,
+    paused: list.filter((c) => c.status === "paused").length,
+    ended: list.filter((c) => c.status === "ended").length,
+  };
+  const shown = filter === "all" ? list : list.filter((c) => c.status === filter);
 
   return (
     <>
@@ -80,16 +100,31 @@ export default function BrandCampaigns() {
       <div className="panel" style={{ marginTop: 18 }}>
         <div className="panel-head">
           <h3>Live &amp; past campaigns</h3>
-          <Link href="/dashboard/submissions" style={{ color: "var(--accent)" }}>
-            Review submissions →
+          <Link href="/dashboard/applications" style={{ color: "var(--accent)" }}>
+            Review applications →
           </Link>
+        </div>
+
+        {/* Status filter tabs with live counts */}
+        <div className="review-filters" style={{ marginTop: 12 }}>
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              className={`platform-chip ${filter === f.key ? "active" : ""}`}
+              onClick={() => setFilter(f.key)}
+            >
+              {f.label} <span className="chip-count">{counts[f.key]}</span>
+            </button>
+          ))}
         </div>
 
         {rows === null ? (
           <p className="brief" style={{ marginTop: 10 }}>Loading…</p>
-        ) : rows.length === 0 ? (
+        ) : shown.length === 0 ? (
           <p className="brief" style={{ marginTop: 10 }}>
-            No campaigns yet. Click <b>+ New campaign</b> to launch your first one.
+            {list.length === 0
+              ? "No campaigns yet. Click + New campaign to launch your first one."
+              : "No campaigns match this filter."}
           </p>
         ) : (
           <div className="table-wrap" style={{ marginTop: 12 }}>
@@ -97,38 +132,37 @@ export default function BrandCampaigns() {
               <thead>
                 <tr>
                   <th>Campaign</th>
-                  <th>Platform</th>
-                  <th>Budget</th>
-                  <th>Reward</th>
-                  <th>Submissions</th>
                   <th>Status</th>
+                  <th>Budget</th>
+                  <th>Amount spent</th>
+                  <th>Applications</th>
+                  <th>Creators selected</th>
+                  <th>Submissions</th>
+                  <th>Approved content</th>
+                  <th>Views</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((c) => (
+                {shown.map((c) => (
                   <tr key={c.id}>
-                    <td><b>{c.title}</b></td>
-                    <td>{PLABEL[c.platform] || c.platform}</td>
                     <td>
-                      {c.budget > 0 ? (
-                        <>
-                          ${Number(budgetLeft(c)).toLocaleString()}
-                          <span style={{ color: "var(--text-mute)", fontSize: 12 }}>
-                            {" "}/ ${Number(c.budget).toLocaleString()}
-                          </span>
-                        </>
-                      ) : (
-                        "—"
-                      )}
+                      <Link href={`/campaign/${c.id}`}><b>{c.title}</b></Link>
                     </td>
-                    <td>${c.reward}/post</td>
-                    <td>{c.submissionCount ?? 0}</td>
                     <td>
                       <span className={`status ${STATUS_CLASS[c.status] || "review"}`}>
                         {c.status}
                       </span>
                     </td>
+                    <td>
+                      {c.budget > 0 ? `$${Number(c.budget).toLocaleString()}` : "—"}
+                    </td>
+                    <td>${Number(c.budgetSpent || 0).toLocaleString()}</td>
+                    <td>{Number(c.pendingCount ?? 0).toLocaleString()}</td>
+                    <td>{Number(c.creatorsSelected ?? 0).toLocaleString()}</td>
+                    <td>{Number(c.submissionCount ?? 0).toLocaleString()}</td>
+                    <td>{Number(c.approvedCount ?? 0).toLocaleString()}</td>
+                    <td>{Number(c.totalViews ?? 0).toLocaleString()}</td>
                     <td>
                       <div style={{ display: "flex", gap: 6 }}>
                         {c.status !== "active" && (

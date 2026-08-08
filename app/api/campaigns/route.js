@@ -60,10 +60,26 @@ export async function GET(req) {
   // treated as ended. Live cards sort first so finished ones sit below (GIMI).
   const liveFirst = sql`case when ${campaigns.status} = 'active' and (${campaigns.endsAt} is null or ${campaigns.endsAt} > now()) then 0 else 1 end`;
 
+  // Brand-only aggregates for the campaigns table (only selected in ?mine=1).
+  // pendingCount   = submissions awaiting the brand's decision (Applications).
+  // approvedCount  = approved posts (Approved Content).
+  // creatorsSelected = distinct creators with at least one approved post.
+  // totalViews     = Σ views across this campaign's submissions.
+  const pendingCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'pending')`;
+  const approvedCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'approved')`;
+  const creatorsSelected = sql`(select count(distinct ${submissions.userId}) from ${submissions} where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'approved')`;
+  const totalViews = sql`(select coalesce(sum(${submissions.views}), 0) from ${submissions} where ${submissions.campaignId} = ${campaigns.id})`;
+
   let rows;
   if (mine) {
     rows = await db
-      .select(cols)
+      .select({
+        ...cols,
+        pendingCount,
+        approvedCount,
+        creatorsSelected,
+        totalViews,
+      })
       .from(campaigns)
       .leftJoin(users, eq(campaigns.brandId, users.id))
       .where(eq(campaigns.brandId, session.user.id))
