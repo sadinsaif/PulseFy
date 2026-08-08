@@ -205,7 +205,7 @@ export default async function Home() {
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
-              <Link href="/" className="logo"><span className="logo-mark" aria-hidden="true" /> Pulsefy</Link>
+              <Link href="/" className="logo"><span className="logo-mark" aria-hidden="true" /><span className="wordmark">Pulse<span className="wm-fy">Fy</span></span></Link>
               <p>Infrastructure for the AI creator economy. From brief to payout — automated.</p>
             </div>
             <div className="footer-col">

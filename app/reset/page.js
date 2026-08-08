@@ -43,7 +43,7 @@ function ResetInner() {
   return (
     <div className="auth-card">
       <Link href="/" className="logo">
-        <span className="logo-mark" aria-hidden="true" /> Pulsefy
+        <span className="logo-mark" aria-hidden="true" /><span className="wordmark">Pulse<span className="wm-fy">Fy</span></span>
       </Link>
       <h1>Set a new password</h1>
 

@@ -17,7 +17,7 @@ export default function Navbar({ session }) {
       <div className="container nav-inner">
         <Link href="/" className="logo">
           <span className="logo-mark" aria-hidden="true" />
-          Pulsefy
+          <span className="wordmark">Pulse<span className="wm-fy">Fy</span></span>
         </Link>
         <div className="nav-links" style={open ? mobileOpen : undefined}>
           <a href="/#how">How it works</a>

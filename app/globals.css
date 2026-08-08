@@ -190,13 +190,22 @@ button { font-family: inherit; cursor: pointer; border: none; }
   display: inline-block;
   width: 34px; height: 34px;
   border-radius: 9px;
-  background-image: url('/logo.jpg');
+  background-image: url('/logo-mark.png');
   background-repeat: no-repeat;
-  background-position: 50% 30%;
-  background-size: 200%;
-  background-color: #000;
+  background-position: center;
+  background-size: cover;
+  background-color: #0a0a0f;
   font-size: 0;
   flex: none;
+}
+/* Colorful "PulseFy" wordmark: "Pulse" keeps the logo's white; "Fy" takes the
+   magenta→blue gradient from the brand logo. */
+.wm-fy {
+  background: linear-gradient(135deg, #e64be0 0%, #a05cf0 48%, #3d8bff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 .nav-links {
   display: flex;

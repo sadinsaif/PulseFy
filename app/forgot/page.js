@@ -28,7 +28,7 @@ export default function ForgotPage() {
     <main className="auth-wrap">
       <div className="auth-card">
         <Link href="/" className="logo">
-          <span className="logo-mark" aria-hidden="true" /> Pulsefy
+          <span className="logo-mark" aria-hidden="true" /><span className="wordmark">Pulse<span className="wm-fy">Fy</span></span>
         </Link>
         <h1>Reset your password</h1>
         <p className="lead">
