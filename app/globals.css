@@ -1148,7 +1148,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* Thumbnail container (full width at top of card, fixed aspect) */
 .camp-thumb {
-  position: relative; width: 100%; height: 180px; overflow: hidden;
+  position: relative; width: 100%; height: 200px; overflow: hidden;
   background: linear-gradient(135deg, #1a1f2e, #0f1419);
 }
 .camp-thumb img {
@@ -1162,10 +1162,11 @@ tbody tr:last-child td { border-bottom: none; }
   font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.9);
 }
 .camp-badge {
-  position: absolute; bottom: 10px; left: 10px;
-  background: rgba(0,0,0,0.75); color: #fff;
-  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-  padding: 4px 10px; border-radius: 6px; backdrop-filter: blur(8px);
+  position: absolute; top: 12px; right: 12px; z-index: 2;
+  background: rgba(8,10,14,0.72); color: #fff;
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 5px 12px; border-radius: 999px; backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.14);
 }
 
 /* Body content (padding moved here from .camp-card) */
@@ -1173,18 +1174,18 @@ tbody tr:last-child td { border-bottom: none; }
   display: flex; flex-direction: column; gap: 8px; padding: 20px;
 }
 .camp-top { display: flex; align-items: center; justify-content: space-between; }
-.camp-reward { font-family: var(--font-display); font-size: 22px; font-weight: var(--fw-display); color: var(--accent-3); letter-spacing: -.02em; font-feature-settings: 'tnum' 1, 'lnum' 1; }
-.camp-reward small { font-size: 12px; color: var(--text-mute); font-weight: 600; }
-.camp-card h3 { font-size: 18px; font-weight: var(--fw-bold); letter-spacing: -.018em; line-height: 1.25; }
-.camp-brand { font-size: 13px; color: var(--text-dim); margin-top: -4px; }
+.camp-reward { font-family: var(--font-display); font-size: 24px; font-weight: var(--fw-display); color: var(--accent-3); letter-spacing: -.02em; font-feature-settings: 'tnum' 1, 'lnum' 1; }
+.camp-reward small { font-size: 13px; color: var(--text-mute); font-weight: 600; }
+.camp-card h3 { font-size: 19px; font-weight: var(--fw-bold); letter-spacing: -.018em; line-height: 1.25; }
+.camp-brand { font-size: 14px; color: var(--text-dim); margin-top: -2px; }
 .camp-brief {
-  font-size: 13px; color: var(--text-mute); line-height: 1.5;
+  font-size: 14px; color: var(--text-mute); line-height: 1.55;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .camp-foot {
   display: flex; align-items: center; justify-content: space-between;
   margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border-soft);
-  font-size: 13px; color: var(--text-dim);
+  font-size: 14px; color: var(--text-dim);
 }
 .camp-join {
   color: var(--accent); font-weight: 700;
@@ -1195,59 +1196,91 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ---- Campaign economics: Budget, reward pills, Live/End badge, countdown ---- */
 
-/* Budget (total pool) — stacked "Budget" label above a big figure, same
-   display treatment as .camp-reward so cards stay visually consistent. */
+/* Budget shown in the card BODY (legacy / detail meta). Cards now surface the
+   Budget on the thumbnail strip below, but keep this for other layouts. */
 .camp-budget {
   display: flex; flex-direction: column; line-height: 1.05;
-  font-family: var(--font-display); font-size: 22px; font-weight: var(--fw-display);
+  font-family: var(--font-display); font-size: 24px; font-weight: var(--fw-display);
   color: var(--accent-3); letter-spacing: -.02em;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 .camp-budget small {
   font-family: var(--font); font-size: 11px; font-weight: 600;
-  color: var(--text-mute); letter-spacing: .02em; text-transform: uppercase;
+  color: var(--text-mute); letter-spacing: .04em; text-transform: uppercase;
+}
+
+/* Bottom gradient strip on the thumbnail — carries Budget + countdown, GIMI
+   style, so the money reads at a glance without opening the campaign. */
+.camp-thumb-meta {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
+  padding: 26px 14px 12px;
+  background: linear-gradient(to top, rgba(6,8,12,0.92) 8%, rgba(6,8,12,0.55) 55%, transparent);
+}
+.camp-thumb-budget {
+  display: flex; flex-direction: column; line-height: 1;
+}
+.camp-thumb-budget small {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: rgba(255,255,255,0.72); margin-bottom: 3px;
+}
+.camp-thumb-budget b {
+  font-family: var(--font-display); font-size: 26px; font-weight: var(--fw-display);
+  color: #fff; letter-spacing: -.02em; font-feature-settings: 'tnum' 1, 'lnum' 1;
+  text-shadow: 0 1px 12px rgba(0,0,0,0.4);
+}
+.camp-thumb-count {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(0,0,0,0.55); color: #fff;
+  font-size: 13px; font-weight: 700; letter-spacing: .2px;
+  padding: 5px 11px; border-radius: 999px; backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.16); white-space: nowrap;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
 /* Reward pills — Approval / Performance / Spotlight */
-.camp-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.camp-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 2px; }
 .camp-pill {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; gap: 5px;
   background: var(--glow-green-soft, rgba(74,222,128,0.10));
   border: 1px solid var(--glow-green-line, rgba(74,222,128,0.28));
-  color: var(--ok); font-size: 12px; font-weight: 700;
-  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  color: var(--ok); font-size: 13px; font-weight: 700;
+  padding: 6px 12px; border-radius: 999px; white-space: nowrap;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
 /* Live / End status badge (top-left corner of the thumbnail) */
 .camp-status-badge {
-  position: absolute; top: 10px; left: 10px; z-index: 2;
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
-  padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(8px);
+  position: absolute; top: 12px; left: 12px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
+  padding: 5px 12px; border-radius: 999px; backdrop-filter: blur(10px);
 }
 .camp-status-badge::before {
-  content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor;
 }
 .camp-status-badge.live {
-  color: var(--ok); background: rgba(74,222,128,0.14); border: 1px solid rgba(74,222,128,0.35);
+  color: var(--ok); background: rgba(74,222,128,0.16); border: 1px solid rgba(74,222,128,0.42);
+  box-shadow: 0 0 0 1px rgba(74,222,128,0.12), 0 4px 14px -6px rgba(74,222,128,0.5);
 }
 .camp-status-badge.end {
-  color: var(--text-mute); background: rgba(0,0,0,0.62); border: 1px solid var(--border-soft);
+  color: rgba(255,255,255,0.72); background: rgba(8,10,14,0.72);
+  border: 1px solid rgba(255,255,255,0.16);
 }
 
-/* Live countdown (top-right corner) */
+/* Standalone countdown pill (top-right) — kept for layouts that don't use the
+   thumbnail strip. */
 .camp-countdown {
-  position: absolute; top: 10px; right: 10px; z-index: 2;
+  position: absolute; top: 12px; right: 12px; z-index: 2;
   background: rgba(0,0,0,0.72); color: #fff;
-  font-size: 11px; font-weight: 700; letter-spacing: .2px;
-  padding: 4px 9px; border-radius: 999px; backdrop-filter: blur(8px);
+  font-size: 12px; font-weight: 700; letter-spacing: .2px;
+  padding: 5px 11px; border-radius: 999px; backdrop-filter: blur(8px);
   font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
 /* Finished campaigns render dimmed so live ones read as primary (GIMI). */
-.camp-card.is-ended { opacity: .78; }
-.camp-card.is-ended .camp-thumb img { filter: grayscale(0.35) brightness(0.82); }
+.camp-card.is-ended { opacity: .82; }
+.camp-card.is-ended .camp-thumb img { filter: grayscale(0.3) brightness(0.85); }
 .camp-card.is-ended:hover { opacity: 1; }
 
 /* ---- Creator discovery (search + grid) ---- */
@@ -2059,17 +2092,21 @@ tbody tr:last-child td { border-bottom: none; }
   .kpi .k-lbl { font-size: 12px; }
 
   .camp-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
-  .camp-thumb { height: 110px; }
+  .camp-thumb { height: 130px; }
   .camp-thumb-fallback { font-size: 32px; }
   .camp-body { padding: 12px; gap: 6px; }
-  .camp-reward { font-size: 16px; }
-  .camp-budget { font-size: 16px; }
+  .camp-reward { font-size: 18px; }
+  .camp-budget { font-size: 18px; }
   .camp-budget small { font-size: 10px; }
-  .camp-card h3 { font-size: 14px; }
+  .camp-card h3 { font-size: 15px; }
+  .camp-brand { font-size: 12px; }
   .camp-brief { -webkit-line-clamp: 2; font-size: 12px; }
-  .camp-foot { font-size: 11px; flex-wrap: wrap; gap: 4px; }
-  .camp-pill { font-size: 11px; padding: 3px 8px; }
-  .camp-status-badge, .camp-countdown { font-size: 10px; padding: 3px 8px; }
+  .camp-foot { font-size: 12px; flex-wrap: wrap; gap: 4px; }
+  .camp-pill { font-size: 12px; padding: 4px 9px; }
+  .camp-status-badge, .camp-badge, .camp-countdown { font-size: 11px; padding: 4px 9px; }
+  .camp-thumb-meta { padding: 20px 10px 9px; }
+  .camp-thumb-budget b { font-size: 18px; }
+  .camp-thumb-count { font-size: 11px; padding: 4px 8px; }
 }
 
 /* ============================================

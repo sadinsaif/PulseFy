@@ -7,31 +7,19 @@ import { campaigns, users, submissions, referralEarnings } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import TopbarSearch from "@/components/TopbarSearch";
+import CampaignGrid from "@/components/CampaignGrid";
 import { isAdminEmail } from "@/lib/admin";
-
-const PLABEL = {
-  any: "Any platform",
-  tiktok: "🎵 TikTok",
-  instagram: "📸 Instagram",
-  youtube: "▶️ YouTube",
-  x: "𝕏 X",
-};
-
-const CONTENT_TYPE_LABEL = {
-  ugc: "UGC",
-  edit: "Edit",
-  ai: "AI Generated",
-  open: "Open Format",
-};
 
 export default async function DashboardPage() {
   const session = await auth();
   const user = session?.user;
   const firstName = (user?.name || "there").split(" ")[0];
 
-  // Pull every active, public campaign so the Overview shows the real
-  // marketplace feed (newest first) with brand name + live submission count.
+  // Pull public campaigns so the Overview shows the real marketplace feed with
+  // brand name + live submission count. Live campaigns sort above finished ones
+  // (same GIMI ordering as the Discover grid); paused campaigns stay hidden.
   const subCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id})`;
+  const liveFirst = sql`case when ${campaigns.status} = 'active' and (${campaigns.endsAt} is null or ${campaigns.endsAt} > now()) then 0 else 1 end`;
   let allCampaigns = [];
   try {
     allCampaigns = await db
@@ -41,6 +29,10 @@ export default async function DashboardPage() {
         brief: campaigns.brief,
         platform: campaigns.platform,
         reward: campaigns.reward,
+        budget: campaigns.budget,
+        spotlightReward: campaigns.spotlightReward,
+        performanceMult: campaigns.performanceMult,
+        endsAt: campaigns.endsAt,
         status: campaigns.status,
         contentType: campaigns.contentType,
         thumbnailUrl: campaigns.thumbnailUrl,
@@ -49,8 +41,8 @@ export default async function DashboardPage() {
       })
       .from(campaigns)
       .leftJoin(users, eq(campaigns.brandId, users.id))
-      .where(sql`${campaigns.status} = 'active' and ${campaigns.visibility} is distinct from 'private'`)
-      .orderBy(desc(campaigns.createdAt));
+      .where(sql`${campaigns.status} <> 'paused' and ${campaigns.visibility} is distinct from 'private'`)
+      .orderBy(liveFirst, desc(campaigns.createdAt));
   } catch {
     allCampaigns = [];
   }
@@ -149,42 +141,7 @@ export default async function DashboardPage() {
               No active campaigns yet. Brands can launch one from the Campaigns page.
             </p>
           ) : (
-            <div className="camp-grid" style={{ marginTop: 14 }}>
-              {allCampaigns.map((c) => (
-                <Link key={c.id} href={`/dashboard/campaigns/${c.id}`} className="camp-card">
-                  <div className="camp-thumb">
-                    {c.thumbnailUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={c.thumbnailUrl} alt={c.title} />
-                    ) : (
-                      <div
-                        className="camp-thumb-fallback"
-                        style={{ background: "linear-gradient(135deg,#ffb43a,#ff7a45)" }}
-                      >
-                        {(c.title || "C")[0].toUpperCase()}
-                      </div>
-                    )}
-                    {c.contentType && (
-                      <span className="camp-badge">{CONTENT_TYPE_LABEL[c.contentType] || c.contentType}</span>
-                    )}
-                  </div>
-
-                  <div className="camp-body">
-                    <div className="camp-top">
-                      <span className="camp-reward">${c.reward}<small>/post</small></span>
-                      <span className="tag-pill">{PLABEL[c.platform] || c.platform}</span>
-                    </div>
-                    <h3>{c.title}</h3>
-                    <p className="camp-brand">by {c.brandName || "A brand"}</p>
-                    {c.brief && <p className="camp-brief">{c.brief}</p>}
-                    <div className="camp-foot">
-                      <span>{c.submissionCount ?? 0} submissions</span>
-                      <span className="camp-join">View &amp; submit →</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <CampaignGrid campaigns={allCampaigns} now={Date.now()} style={{ marginTop: 14 }} />
           )}
         </section>
       </main>
