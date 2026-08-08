@@ -21,6 +21,7 @@ export default async function ReferralsPage() {
   // DB so there's no client fetch/loading flicker.
   let username = "";
   let referredCount = 0;
+  let successfulCount = 0;
   let earnedCents = 0;
   try {
     const [u] = await db
@@ -35,6 +36,14 @@ export default async function ReferralsPage() {
       .where(eq(users.referredBy, user.id));
     referredCount = Number(rc?.count || 0);
 
+    // Successful = referrals that have actually paid out a commission at least
+    // once (distinct referees appearing in referralEarnings).
+    const [sc] = await db
+      .select({ count: sql`count(distinct ${referralEarnings.refereeId})` })
+      .from(referralEarnings)
+      .where(eq(referralEarnings.referrerId, user.id));
+    successfulCount = Number(sc?.count || 0);
+
     const [ec] = await db
       .select({ total: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
       .from(referralEarnings)
@@ -43,6 +52,10 @@ export default async function ReferralsPage() {
   } catch {
     // leave defaults if the DB is unreachable
   }
+
+  // Pending = referred users who haven't produced a commission yet (a count,
+  // not a dollar figure — there's no pending-payout amount in the data).
+  const pendingCount = Math.max(0, referredCount - successfulCount);
 
   return (
     <div className="app">
@@ -60,6 +73,8 @@ export default async function ReferralsPage() {
         <ReferralCard
           username={username}
           referredCount={referredCount}
+          successfulCount={successfulCount}
+          pendingCount={pendingCount}
           earnedCents={earnedCents}
         />
 

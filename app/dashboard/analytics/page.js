@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { campaigns, submissions } from "@/db/schema";
+import { campaigns, submissions, referralEarnings } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import PerfChart from "@/components/PerfChart";
@@ -19,22 +19,98 @@ export default async function AnalyticsPage() {
   const admin = isAdminEmail(user?.email);
   const isBrand = user?.role === "brand";
 
+  // ---- CREATOR: their own performance across every campaign ----
   if (!isBrand && !admin) {
+    let cstats = { views: 0, submissions: 0, approved: 0, earnings: 0 };
+    let cperf = [];
+    try {
+      const [agg] = await db
+        .select({
+          views: sql`coalesce(sum(${submissions.views}), 0)`,
+          submissions: sql`count(${submissions.id})`,
+          approved: sql`count(case when ${submissions.status} = 'approved' then 1 end)`,
+          reward: sql`coalesce(sum(case when ${submissions.status} = 'approved' then ${submissions.reward} else 0 end), 0)`,
+          spotlight: sql`coalesce(sum(case when ${submissions.spotlighted} = true then ${submissions.spotlightBonus} else 0 end), 0)`,
+        })
+        .from(submissions)
+        .where(eq(submissions.userId, user.id));
+
+      const [ref] = await db
+        .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
+        .from(referralEarnings)
+        .where(eq(referralEarnings.referrerId, user.id));
+
+      cstats = {
+        views: Number(agg?.views || 0),
+        submissions: Number(agg?.submissions || 0),
+        approved: Number(agg?.approved || 0),
+        earnings:
+          Number(agg?.reward || 0) +
+          Number(agg?.spotlight || 0) +
+          Number(ref?.n || 0) / 100,
+      };
+
+      // Per-campaign views for this creator (top 8). Legacy rows with a null
+      // campaignId naturally drop from the chart but still count in the KPIs.
+      cperf = await db
+        .select({
+          label: campaigns.title,
+          views: sql`coalesce(sum(${submissions.views}), 0)`,
+        })
+        .from(submissions)
+        .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
+        .where(eq(submissions.userId, user.id))
+        .groupBy(campaigns.id, campaigns.title)
+        .orderBy(desc(sql`coalesce(sum(${submissions.views}), 0)`))
+        .limit(8);
+    } catch {
+      /* leave zeros */
+    }
+
+    const cperfData = cperf.map((p) => ({
+      label: p.label,
+      primary: Number(p.views || 0),
+    }));
+
+    const ctiles = [
+      { ic: "👁️", val: cstats.views.toLocaleString(), lbl: "Total views" },
+      { ic: "🎬", val: cstats.submissions.toLocaleString(), lbl: "Total submissions" },
+      { ic: "✅", val: cstats.approved.toLocaleString(), lbl: "Approved posts" },
+      { ic: "💰", val: `$${cstats.earnings.toLocaleString()}`, lbl: "Total earnings" },
+    ];
+
     return (
       <div className="app">
-        <Sidebar user={user} isAdmin={admin} />
+        <Sidebar user={user} isAdmin={false} />
         <main className="main">
           <div className="topbar">
             <div>
               <h1>Analytics</h1>
-              <p className="sub">This area is for brands.</p>
+              <p className="sub">
+                How your clips are performing across every campaign.
+              </p>
             </div>
           </div>
-          <section className="panel">
-            <p className="brief">
-              Campaign analytics are for brands. Head to <b>Campaigns</b> to find
-              work and track your own submissions from your profile.
-            </p>
+
+          <section className="kpis">
+            {ctiles.map((t) => (
+              <div className="kpi" key={t.lbl}>
+                <div className="k-top"><div className="k-ic">{t.ic}</div></div>
+                <div className="k-val">{t.val}</div>
+                <div className="k-lbl">{t.lbl}</div>
+              </div>
+            ))}
+          </section>
+
+          <section className="panel" style={{ marginTop: 18 }}>
+            <div className="panel-head">
+              <h3>Campaign performance</h3>
+            </div>
+            <PerfChart
+              data={cperfData}
+              primaryLabel="Views"
+              primaryFormat="compact"
+            />
           </section>
         </main>
       </div>

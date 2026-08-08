@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { submissions, users, campaigns } from "@/db/schema";
+import { submissions, users, campaigns, withdrawals, referralEarnings } from "@/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import CreatorWallet from "@/components/CreatorWallet";
@@ -206,7 +206,9 @@ export default async function PayoutsPage() {
 
   // ---- CREATOR: money earned from approved posts ----
   let rows = [];
-  let pendingCount = 0;
+  let totalEarned = 0; // approved rewards + spotlight bonuses + referral commissions
+  let totalWithdrawn = 0; // money actually paid out (paid withdrawals)
+  let pendingEst = 0; // estimated value of submissions still in review
   try {
     rows = await db
       .select({
@@ -224,18 +226,50 @@ export default async function PayoutsPage() {
       )
       .orderBy(desc(submissions.createdAt));
 
-    const [pc] = await db
-      .select({ n: sql`count(*)` })
+    // Total earned — the authoritative earnings number (matches getBalanceCents):
+    // approved rewards + spotlight bonuses (whole dollars) + referral (cents).
+    const [er] = await db
+      .select({ n: sql`coalesce(sum(${submissions.reward}), 0)` })
       .from(submissions)
+      .where(
+        and(eq(submissions.userId, user.id), eq(submissions.status, "approved"))
+      );
+    const [sr] = await db
+      .select({ n: sql`coalesce(sum(${submissions.spotlightBonus}), 0)` })
+      .from(submissions)
+      .where(
+        and(eq(submissions.userId, user.id), eq(submissions.spotlighted, true))
+      );
+    const [rr] = await db
+      .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
+      .from(referralEarnings)
+      .where(eq(referralEarnings.referrerId, user.id));
+    totalEarned =
+      Number(er?.n || 0) + Number(sr?.n || 0) + Number(rr?.n || 0) / 100;
+
+    // Total withdrawn = withdrawals actually marked paid (stored in cents).
+    const [wd] = await db
+      .select({ n: sql`coalesce(sum(${withdrawals.amount}), 0)` })
+      .from(withdrawals)
+      .where(
+        and(eq(withdrawals.userId, user.id), eq(withdrawals.status, "paid"))
+      );
+    totalWithdrawn = Number(wd?.n || 0) / 100;
+
+    // Pending (est.) — what the in-review queue is worth if every clip gets
+    // approved: Σ campaign reward across the creator's pending submissions.
+    // Mirrors the brand "Pending payments (est.)" convention.
+    const [pe] = await db
+      .select({ n: sql`coalesce(sum(${campaigns.reward}), 0)` })
+      .from(submissions)
+      .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
       .where(
         and(eq(submissions.userId, user.id), eq(submissions.status, "pending"))
       );
-    pendingCount = Number(pc?.n || 0);
+    pendingEst = Number(pe?.n || 0);
   } catch {
     rows = [];
   }
-
-  const totalEarned = rows.reduce((sum, r) => sum + (r.reward || 0), 0);
 
   return (
     <div className="app">
@@ -252,25 +286,25 @@ export default async function PayoutsPage() {
 
         <section className="kpis" style={{ marginTop: 18 }}>
           <div className="kpi">
+            <div className="k-top"><div className="k-ic">⏳</div></div>
+            <div className="k-val">${pendingEst.toLocaleString()}</div>
+            <div className="k-lbl">Pending (est.)</div>
+          </div>
+          <div className="kpi">
             <div className="k-top"><div className="k-ic">💰</div></div>
             <div className="k-val">${totalEarned.toLocaleString()}</div>
             <div className="k-lbl">Total earned</div>
           </div>
           <div className="kpi">
-            <div className="k-top"><div className="k-ic">✅</div></div>
-            <div className="k-val">{rows.length.toLocaleString()}</div>
-            <div className="k-lbl">Approved posts</div>
-          </div>
-          <div className="kpi">
-            <div className="k-top"><div className="k-ic">⏳</div></div>
-            <div className="k-val">{pendingCount.toLocaleString()}</div>
-            <div className="k-lbl">In review</div>
+            <div className="k-top"><div className="k-ic">🏦</div></div>
+            <div className="k-val">${totalWithdrawn.toLocaleString()}</div>
+            <div className="k-lbl">Total withdrawn</div>
           </div>
         </section>
 
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
-            <h3>Earnings history</h3>
+            <h3>Payment history</h3>
             <Link href="/dashboard/campaigns" style={{ color: "var(--accent)" }}>
               Browse campaigns →
             </Link>

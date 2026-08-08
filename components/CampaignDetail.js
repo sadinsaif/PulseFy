@@ -20,6 +20,11 @@ const CONTENT_TYPE_LABEL = {
   open: "Open Format (Memes, slides, screenshots, etc.)",
 };
 const STATUS_CLASS = { pending: "review", approved: "live", rejected: "ended" };
+const STATUS_LABEL = {
+  pending: "Pending Review",
+  approved: "Approved",
+  rejected: "Rejected",
+};
 const POST_PLATFORMS = ["tiktok", "instagram", "youtube", "x"];
 
 /**
@@ -194,12 +199,26 @@ export default function CampaignDetail({ id }) {
         <div className="panel-head">
           <h3>{mine ? "Your submission" : "Submit your clip"}</h3>
           {mine && (
-            <span className={`status ${STATUS_CLASS[mine.status] || "review"}`}>{mine.status}</span>
+            <span className={`status ${STATUS_CLASS[mine.status] || "review"}`}>
+              {STATUS_LABEL[mine.status] || mine.status}
+            </span>
           )}
         </div>
 
         {mine && mine.status === "approved" && mine.reward > 0 && (
           <div className="alert info">You earned ${mine.reward} from this campaign 🎉</div>
+        )}
+        {mine && mine.status === "pending" && (
+          <p className="brief" style={{ marginTop: 8 }}>
+            Your submission is <b>in review</b>. You&apos;ll be notified once the brand
+            approves or rejects it. You can update your link below any time before then.
+          </p>
+        )}
+        {mine && mine.status === "rejected" && (
+          <p className="brief" style={{ marginTop: 8 }}>
+            This submission was <b>rejected</b>. You can revise your post and submit
+            again below.
+          </p>
         )}
 
         {!open ? (

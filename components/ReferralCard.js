@@ -7,7 +7,13 @@ import { useEffect, useState } from "react";
  * + the browser origin, with a copy-to-clipboard button. Username and stats
  * come from the server page as props so there's no client fetch/loading state.
  */
-export default function ReferralCard({ username, referredCount, earnedCents }) {
+export default function ReferralCard({
+  username,
+  referredCount,
+  successfulCount = 0,
+  pendingCount = 0,
+  earnedCents,
+}) {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
 
@@ -31,14 +37,22 @@ export default function ReferralCard({ username, referredCount, earnedCents }) {
       <h2>Refer others and earn</h2>
       <div className="referral-stats">
         <div className="stat">
-          <span className="stat-label">Referred</span>
+          <span className="stat-label">Total Referrals</span>
           <span className="stat-value">{referredCount}</span>
         </div>
         <div className="stat">
-          <span className="stat-label">Earned</span>
+          <span className="stat-label">Successful Referrals</span>
+          <span className="stat-value">{successfulCount}</span>
+        </div>
+        <div className="stat">
+          <span className="stat-label">Referral Earnings</span>
           <span className="stat-value">
             ${(earnedCents / 100).toFixed(2)} USDC
           </span>
+        </div>
+        <div className="stat">
+          <span className="stat-label">Pending Referrals</span>
+          <span className="stat-value">{pendingCount}</span>
         </div>
       </div>
 

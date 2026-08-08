@@ -9,6 +9,7 @@ import NotificationBell from "@/components/NotificationBell";
 const NAV = [
   { href: "/dashboard", icon: "▦", label: "Overview" },
   { href: "/dashboard/campaigns", icon: "🎯", label: "Campaigns" },
+  { href: "/dashboard/my-applications", icon: "📄", label: "My Applications", creatorOnly: true },
   { href: "/dashboard/creators", icon: "🏆", label: "Leaderboard", creatorOnly: true },
   { href: "/dashboard/discover", icon: "🔎", label: "Discover Creators", brandOnly: true },
   { href: "/dashboard/applications", icon: "📥", label: "Applications", brandOnly: true },
@@ -16,7 +17,7 @@ const NAV = [
   { href: "/dashboard/submissions", icon: "✅", label: "Submissions", adminOnly: true },
   { href: "/dashboard/payouts", icon: "💸", label: "Payouts", brandLabel: "Payments" },
   { href: "/dashboard/referrals", icon: "🔗", label: "Referrals", creatorOnly: true },
-  { href: "/dashboard/analytics", icon: "📈", label: "Analytics", brandOnly: true },
+  { href: "/dashboard/analytics", icon: "📈", label: "Analytics" },
 ];
 
 /**

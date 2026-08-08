@@ -214,6 +214,128 @@ export default async function DashboardPage() {
     allCampaigns = [];
   }
 
+  // ---- CREATOR OVERVIEW ---------------------------------------------------
+  // A real creator gets KPIs scoped to their own account (not platform-wide).
+  // Admins fall through to the global marketplace stats below, unchanged.
+  const admin = isAdminEmail(user?.email);
+  if (!admin) {
+    const me = user.id;
+    let cstats = { active: 0, submissions: 0, approved: 0, earnings: 0 };
+    try {
+      // Distinct live campaigns this creator has submitted to.
+      const [ac] = await db
+        .select({ n: sql`count(distinct ${campaigns.id})` })
+        .from(submissions)
+        .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
+        .where(
+          sql`${submissions.userId} = ${me} and ${campaigns.status} = 'active' and (${campaigns.endsAt} is null or ${campaigns.endsAt} > now())`
+        );
+
+      const [sb] = await db
+        .select({ n: sql`count(*)` })
+        .from(submissions)
+        .where(eq(submissions.userId, me));
+
+      const [ap] = await db
+        .select({ n: sql`count(*)` })
+        .from(submissions)
+        .where(
+          sql`${submissions.userId} = ${me} and ${submissions.status} = 'approved'`
+        );
+
+      // Total earnings = approved rewards + spotlight bonuses (whole dollars)
+      // + referral commissions (stored in cents). Mirrors getBalanceCents.
+      const [er] = await db
+        .select({ n: sql`coalesce(sum(${submissions.reward}), 0)` })
+        .from(submissions)
+        .where(
+          sql`${submissions.userId} = ${me} and ${submissions.status} = 'approved'`
+        );
+      const [sr] = await db
+        .select({ n: sql`coalesce(sum(${submissions.spotlightBonus}), 0)` })
+        .from(submissions)
+        .where(
+          sql`${submissions.userId} = ${me} and ${submissions.spotlighted} = true`
+        );
+      const [rr] = await db
+        .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
+        .from(referralEarnings)
+        .where(eq(referralEarnings.referrerId, me));
+
+      cstats = {
+        active: Number(ac?.n || 0),
+        submissions: Number(sb?.n || 0),
+        approved: Number(ap?.n || 0),
+        earnings: Number(er?.n || 0) + Number(sr?.n || 0) + Number(rr?.n || 0) / 100,
+      };
+    } catch {
+      // leave zeros if the DB is unreachable
+    }
+
+    return (
+      <div className="app">
+        <Sidebar user={user} isAdmin={false} />
+
+        <main className="main">
+          <div className="topbar">
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div>
+                <h1>Overview</h1>
+                <p className="sub">
+                  Welcome back, {firstName} — here&apos;s how your clips are performing.
+                </p>
+              </div>
+            </div>
+            <div className="topbar-actions">
+              <TopbarSearch />
+              <Link href="/dashboard/profile" className="btn btn-primary">My Profile</Link>
+            </div>
+          </div>
+
+          {/* Creator KPIs — scoped to this account */}
+          <section className="kpis">
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">🎯</div></div>
+              <div className="k-val">{cstats.active.toLocaleString()}</div>
+              <div className="k-lbl">Active campaigns</div>
+            </div>
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">🎬</div></div>
+              <div className="k-val">{cstats.submissions.toLocaleString()}</div>
+              <div className="k-lbl">My submissions</div>
+            </div>
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">✅</div></div>
+              <div className="k-val">{cstats.approved.toLocaleString()}</div>
+              <div className="k-lbl">Approved posts</div>
+            </div>
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">💰</div></div>
+              <div className="k-val">${cstats.earnings.toLocaleString()}</div>
+              <div className="k-lbl">Total earnings</div>
+            </div>
+          </section>
+
+          {/* ALL CAMPAIGNS */}
+          <section className="panel">
+            <div className="panel-head">
+              <h3>All campaigns</h3>
+              <Link href="/dashboard/campaigns" style={{ color: "var(--accent)" }}>See all</Link>
+            </div>
+
+            {allCampaigns.length === 0 ? (
+              <p className="brief" style={{ marginTop: 10 }}>
+                No active campaigns yet. Check back soon — brands post new ones regularly.
+              </p>
+            ) : (
+              <CampaignGrid campaigns={allCampaigns} now={Date.now()} style={{ marginTop: 14 }} />
+            )}
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   // Real KPI numbers straight from the database — no fake stats.
   let stats = { activeCampaigns: 0, creators: 0, submissions: 0, rewardsPaid: 0 };
   try {

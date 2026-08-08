@@ -1,7 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CampaignCard from "@/components/CampaignCard";
+
+// Filter tabs. contentType-based (UGC / AI / Clipping) and platform-based tabs
+// share one row; a campaign matches by its own contentType/platform field.
+// "Clipping" maps to the "edit" contentType (Edit / Remix / Clip) — there is no
+// separate "clipping" value in the schema.
+const FILTERS = [
+  { key: "all", label: "All", test: () => true },
+  { key: "ugc", label: "UGC", test: (c) => c.contentType === "ugc" },
+  { key: "ai", label: "AI Generated", test: (c) => c.contentType === "ai" },
+  { key: "edit", label: "Clipping", test: (c) => c.contentType === "edit" },
+  { key: "tiktok", label: "TikTok", test: (c) => c.platform === "tiktok" },
+  { key: "instagram", label: "Instagram", test: (c) => c.platform === "instagram" },
+  { key: "youtube", label: "YouTube", test: (c) => c.platform === "youtube" },
+  { key: "x", label: "X", test: (c) => c.platform === "x" },
+];
 
 /**
  * Creator view of /dashboard/campaigns — a grid of brand campaigns to browse
@@ -11,6 +26,7 @@ import CampaignCard from "@/components/CampaignCard";
  */
 export default function BrowseCampaigns() {
   const [rows, setRows] = useState(null);
+  const [filter, setFilter] = useState("all");
   // A single slow clock shared by every card's countdown.
   const [now, setNow] = useState(() => Date.now());
 
@@ -31,24 +47,51 @@ export default function BrowseCampaigns() {
     return () => clearInterval(t);
   }, []);
 
+  // Live counts per tab (computed against the full result set).
+  const counts = useMemo(() => {
+    const list = rows || [];
+    const c = {};
+    for (const f of FILTERS) c[f.key] = list.filter(f.test).length;
+    return c;
+  }, [rows]);
+
   if (rows === null) return <p className="brief">Loading campaigns…</p>;
 
-  if (rows.length === 0) {
-    return (
-      <div className="panel">
-        <p className="brief">
-          No open campaigns right now. Check back soon — brands post new ones
-          regularly.
-        </p>
-      </div>
-    );
-  }
+  const active = FILTERS.find((f) => f.key === filter) || FILTERS[0];
+  const shown = rows.filter(active.test);
 
   return (
-    <div className="camp-grid">
-      {rows.map((c) => (
-        <CampaignCard key={c.id} c={c} now={now} />
-      ))}
-    </div>
+    <>
+      <div className="review-filters">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            className={`platform-chip ${filter === f.key ? "active" : ""}`}
+            onClick={() => setFilter(f.key)}
+          >
+            {f.label} <span className="chip-count">{counts[f.key] || 0}</span>
+          </button>
+        ))}
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <p className="brief">
+            No open campaigns right now. Check back soon — brands post new ones
+            regularly.
+          </p>
+        </div>
+      ) : shown.length === 0 ? (
+        <p className="brief" style={{ marginTop: 18 }}>
+          No campaigns match this filter yet.
+        </p>
+      ) : (
+        <div className="camp-grid" style={{ marginTop: 16 }}>
+          {shown.map((c) => (
+            <CampaignCard key={c.id} c={c} now={now} />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
