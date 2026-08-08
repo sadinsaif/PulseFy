@@ -112,6 +112,31 @@ export default async function PayoutsPage() {
       /* leave zeros */
     }
 
+    // Admin-only: platform withdrawal summary straight from the withdrawals
+    // table (amount/fee/net are stored in CENTS → ÷100). Brand rendering is
+    // untouched — every value here is gated behind `admin` below.
+    let wd = { paid: 0, pending: 0, failed: 0, requests: 0 };
+    if (admin) {
+      try {
+        const [w] = await db
+          .select({
+            paid: sql`coalesce(sum(case when ${withdrawals.status} = 'paid' then ${withdrawals.net} else 0 end), 0)`,
+            pending: sql`coalesce(sum(case when ${withdrawals.status} = 'pending' then ${withdrawals.amount} else 0 end), 0)`,
+            failed: sql`coalesce(sum(case when ${withdrawals.status} = 'failed' then ${withdrawals.amount} else 0 end), 0)`,
+            requests: sql`count(*)`,
+          })
+          .from(withdrawals);
+        wd = {
+          paid: Number(w?.paid || 0) / 100,
+          pending: Number(w?.pending || 0) / 100,
+          failed: Number(w?.failed || 0) / 100,
+          requests: Number(w?.requests || 0),
+        };
+      } catch {
+        /* leave zeros */
+      }
+    }
+
     const title = isBrand ? "Payments" : "Payouts";
 
     return (
@@ -146,6 +171,31 @@ export default async function PayoutsPage() {
               <div className="k-lbl">Completed payments</div>
             </div>
           </section>
+
+          {admin && (
+            <section className="kpis" style={{ marginTop: 18 }}>
+              <div className="kpi">
+                <div className="k-top"><div className="k-ic">✅</div></div>
+                <div className="k-val">${wd.paid.toLocaleString()}</div>
+                <div className="k-lbl">Total paid out</div>
+              </div>
+              <div className="kpi">
+                <div className="k-top"><div className="k-ic">⏳</div></div>
+                <div className="k-val">${wd.pending.toLocaleString()}</div>
+                <div className="k-lbl">Pending withdrawals</div>
+              </div>
+              <div className="kpi">
+                <div className="k-top"><div className="k-ic">⚠️</div></div>
+                <div className="k-val">${wd.failed.toLocaleString()}</div>
+                <div className="k-lbl">Failed withdrawals</div>
+              </div>
+              <div className="kpi">
+                <div className="k-top"><div className="k-ic">🧾</div></div>
+                <div className="k-val">{wd.requests.toLocaleString()}</div>
+                <div className="k-lbl">Total requests</div>
+              </div>
+            </section>
+          )}
 
           {admin && <AdminWithdrawals />}
 

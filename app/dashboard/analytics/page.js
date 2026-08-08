@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { campaigns, submissions, referralEarnings } from "@/db/schema";
+import { campaigns, submissions, referralEarnings, users } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import PerfChart from "@/components/PerfChart";
@@ -173,6 +173,63 @@ export default async function AnalyticsPage() {
     /* leave zeros */
   }
 
+  // Admin-only: real month-bucket time series (last 6 months) via
+  // to_char(created_at,'YYYY-MM'). Platform-wide, so no brand scoping. Brand
+  // path never reaches this (guarded by `admin` below).
+  let subsSeries = [];
+  let signupSeries = [];
+  let spendSeries = [];
+  if (admin) {
+    try {
+      subsSeries = await db
+        .select({
+          label: sql`to_char(${submissions.createdAt}, 'YYYY-MM')`,
+          n: sql`count(${submissions.id})`,
+        })
+        .from(submissions)
+        .groupBy(sql`to_char(${submissions.createdAt}, 'YYYY-MM')`)
+        .orderBy(sql`to_char(${submissions.createdAt}, 'YYYY-MM')`);
+
+      signupSeries = await db
+        .select({
+          label: sql`to_char(${users.createdAt}, 'YYYY-MM')`,
+          creators: sql`count(case when ${users.role} is distinct from 'brand' then 1 end)`,
+          brands: sql`count(case when ${users.role} = 'brand' then 1 end)`,
+        })
+        .from(users)
+        .groupBy(sql`to_char(${users.createdAt}, 'YYYY-MM')`)
+        .orderBy(sql`to_char(${users.createdAt}, 'YYYY-MM')`);
+
+      spendSeries = await db
+        .select({
+          label: sql`to_char(${submissions.createdAt}, 'YYYY-MM')`,
+          n: sql`coalesce(sum(case when ${submissions.status} = 'approved' then ${submissions.reward} else 0 end), 0)`,
+        })
+        .from(submissions)
+        .groupBy(sql`to_char(${submissions.createdAt}, 'YYYY-MM')`)
+        .orderBy(sql`to_char(${submissions.createdAt}, 'YYYY-MM')`);
+    } catch {
+      /* leave empty */
+    }
+  }
+
+  const subsData = subsSeries
+    .filter((r) => r.label)
+    .slice(-6)
+    .map((r) => ({ label: r.label, primary: Number(r.n || 0) }));
+  const signupData = signupSeries
+    .filter((r) => r.label)
+    .slice(-6)
+    .map((r) => ({
+      label: r.label,
+      primary: Number(r.creators || 0),
+      secondary: Number(r.brands || 0),
+    }));
+  const spendData = spendSeries
+    .filter((r) => r.label)
+    .slice(-6)
+    .map((r) => ({ label: r.label, primary: Number(r.n || 0) }));
+
   const viewsSpend = perf.map((p) => ({
     label: p.label,
     primary: Number(p.views || 0),
@@ -240,6 +297,45 @@ export default async function AnalyticsPage() {
             primaryFormat="compact"
           />
         </section>
+
+        {admin && (
+          <>
+            <section className="panel" style={{ marginTop: 18 }}>
+              <div className="panel-head">
+                <h3>Submissions over time</h3>
+              </div>
+              <PerfChart
+                data={subsData}
+                primaryLabel="Submissions"
+                primaryFormat="number"
+              />
+            </section>
+
+            <section className="panel" style={{ marginTop: 18 }}>
+              <div className="panel-head">
+                <h3>Signups over time</h3>
+              </div>
+              <PerfChart
+                data={signupData}
+                primaryLabel="Creators"
+                secondaryLabel="Brands"
+                primaryFormat="number"
+                secondaryFormat="number"
+              />
+            </section>
+
+            <section className="panel" style={{ marginTop: 18 }}>
+              <div className="panel-head">
+                <h3>Spend over time</h3>
+              </div>
+              <PerfChart
+                data={spendData}
+                primaryLabel="Spend"
+                primaryFormat="money"
+              />
+            </section>
+          </>
+        )}
       </main>
     </div>
   );

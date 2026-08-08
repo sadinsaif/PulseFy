@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { campaigns, users, submissions, referralEarnings } from "@/db/schema";
+import { campaigns, users, submissions, referralEarnings, withdrawals } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import TopbarSearch from "@/components/TopbarSearch";
@@ -336,43 +336,137 @@ export default async function DashboardPage() {
     );
   }
 
-  // Real KPI numbers straight from the database — no fake stats.
-  let stats = { activeCampaigns: 0, creators: 0, submissions: 0, rewardsPaid: 0 };
+  // ---- ADMIN CONTROL CENTER ----------------------------------------------
+  // Platform-wide management view. Every number is a real aggregate over the
+  // existing tables — no fake data, no new columns.
+  let a = {
+    brands: 0,
+    creators: 0,
+    activeCampaigns: 0,
+    totalCampaigns: 0,
+    submissions: 0,
+    pendingReviews: 0,
+    spend: 0,
+    paidOut: 0,
+  };
+  let activity = { active: 0, paused: 0, ended: 0 };
+  let pending = { submissions: 0, payouts: 0 };
+  let perf = { views: 0, engagement: 0, submissions: 0, approved: 0, spend: 0 };
+  let perfRows = [];
   try {
+    const [br] = await db
+      .select({ n: sql`count(*)` })
+      .from(users)
+      .where(sql`${users.role} = 'brand'`);
+    const [cr] = await db
+      .select({ n: sql`count(*)` })
+      .from(users)
+      .where(sql`${users.role} <> 'brand'`);
     const [ac] = await db
       .select({ n: sql`count(*)` })
       .from(campaigns)
       .where(sql`${campaigns.status} = 'active'`);
-    const [cr] = await db
-      .select({ n: sql`count(*)` })
-      .from(users)
-      .where(sql`${users.role} = 'creator'`);
+    const [tc] = await db.select({ n: sql`count(*)` }).from(campaigns);
     const [sb] = await db.select({ n: sql`count(*)` }).from(submissions);
-    const [rw] = await db
-      .select({ n: sql`coalesce(sum(${submissions.reward}), 0)` })
+    const [pr] = await db
+      .select({ n: sql`count(*)` })
       .from(submissions)
-      .where(sql`${submissions.status} = 'approved'`);
-    // Spotlight bonuses are real payouts too — fold them into rewards paid.
-    const [sp] = await db
-      .select({ n: sql`coalesce(sum(${submissions.spotlightBonus}), 0)` })
-      .from(submissions)
-      .where(sql`${submissions.spotlighted} = true`);
-    // Referral commissions — 5% of referred users' payouts for the first 90 days.
-    // These are already in cents, so convert to dollars for the KPI display.
-    const [rf] = await db
-      .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
-      .from(referralEarnings);
-    const referralDollars = Number(rf?.n || 0) / 100;
+      .where(sql`${submissions.status} = 'pending'`);
 
-    stats = {
-      activeCampaigns: Number(ac?.n || 0),
+    // Total campaign spend = approved rewards + spotlight bonuses (whole dollars).
+    const spendExpr = sql`coalesce(sum(case when ${submissions.status} = 'approved' then ${submissions.reward} else 0 end), 0)
+      + coalesce(sum(case when ${submissions.spotlighted} = true then ${submissions.spotlightBonus} else 0 end), 0)`;
+    const [ts] = await db.select({ n: spendExpr }).from(submissions);
+
+    // Total paid out = net of withdrawals actually marked paid (stored in cents).
+    const [po] = await db
+      .select({ n: sql`coalesce(sum(${withdrawals.net}), 0)` })
+      .from(withdrawals)
+      .where(sql`${withdrawals.status} = 'paid'`);
+
+    a = {
+      brands: Number(br?.n || 0),
       creators: Number(cr?.n || 0),
+      activeCampaigns: Number(ac?.n || 0),
+      totalCampaigns: Number(tc?.n || 0),
       submissions: Number(sb?.n || 0),
-      rewardsPaid: Number(rw?.n || 0) + Number(sp?.n || 0) + referralDollars,
+      pendingReviews: Number(pr?.n || 0),
+      spend: Number(ts?.n || 0),
+      paidOut: Number(po?.n || 0) / 100,
     };
+
+    // Campaign activity breakdown by status.
+    const [pa] = await db
+      .select({ n: sql`count(*)` })
+      .from(campaigns)
+      .where(sql`${campaigns.status} = 'paused'`);
+    const [en] = await db
+      .select({ n: sql`count(*)` })
+      .from(campaigns)
+      .where(sql`${campaigns.status} = 'ended'`);
+    activity = {
+      active: a.activeCampaigns,
+      paused: Number(pa?.n || 0),
+      ended: Number(en?.n || 0),
+    };
+
+    // Pending actions.
+    const [pp] = await db
+      .select({ n: sql`count(*)` })
+      .from(withdrawals)
+      .where(sql`${withdrawals.status} = 'pending'`);
+    pending = { submissions: a.pendingReviews, payouts: Number(pp?.n || 0) };
+
+    // Platform performance tiles — every submission across the platform.
+    const [pf] = await db
+      .select({
+        views: sql`coalesce(sum(${submissions.views}), 0)`,
+        engagement: sql`coalesce(sum(${submissions.engagement}), 0)`,
+        content: sql`count(${submissions.id})`,
+        approved: sql`count(case when ${submissions.status} = 'approved' then 1 end)`,
+        spend: spendExpr,
+      })
+      .from(submissions);
+    perf = {
+      views: Number(pf?.views || 0),
+      engagement: Number(pf?.engagement || 0),
+      submissions: Number(pf?.content || 0),
+      approved: Number(pf?.approved || 0),
+      spend: Number(pf?.spend || 0),
+    };
+
+    // Top-8 campaigns by views for the chart.
+    perfRows = await db
+      .select({
+        label: campaigns.title,
+        views: sql`coalesce(sum(${submissions.views}), 0)`,
+        spend: spendExpr,
+      })
+      .from(campaigns)
+      .leftJoin(submissions, eq(submissions.campaignId, campaigns.id))
+      .groupBy(campaigns.id, campaigns.title)
+      .orderBy(desc(sql`coalesce(sum(${submissions.views}), 0)`))
+      .limit(8);
   } catch {
     // leave zeros if the DB is unreachable
   }
+
+  const perfChart = perfRows.map((p) => ({
+    label: p.label,
+    primary: Number(p.views || 0),
+    secondary: Number(p.spend || 0),
+  }));
+
+  const kpis = [
+    { ic: "🏢", val: a.brands.toLocaleString(), lbl: "Total brands" },
+    { ic: "👥", val: a.creators.toLocaleString(), lbl: "Total creators" },
+    { ic: "🎯", val: a.activeCampaigns.toLocaleString(), lbl: "Active campaigns" },
+    { ic: "📋", val: a.totalCampaigns.toLocaleString(), lbl: "Total campaigns" },
+    { ic: "✅", val: a.submissions.toLocaleString(), lbl: "Total submissions" },
+    { ic: "⏳", val: a.pendingReviews.toLocaleString(), lbl: "Pending reviews" },
+    { ic: "💰", val: `$${a.spend.toLocaleString()}`, lbl: "Total campaign spend" },
+    { ic: "💸", val: `$${a.paidOut.toLocaleString()}`, lbl: "Total paid out" },
+  ];
 
   return (
     <div className="app">
@@ -384,54 +478,112 @@ export default async function DashboardPage() {
             <div>
               <h1>Overview</h1>
               <p className="sub">
-                Welcome back, {firstName} — here&apos;s what&apos;s happening across your campaigns.
+                Platform control center — everything happening across PulseFy.
               </p>
             </div>
           </div>
           <div className="topbar-actions">
             <TopbarSearch />
-            <Link href="/dashboard/profile" className="btn btn-primary">My Profile</Link>
+            <Link href="/dashboard/campaigns" className="btn btn-primary">Manage campaigns</Link>
           </div>
         </div>
 
-        {/* KPIs — real counts from the database */}
+        {/* Platform KPIs — real counts from the database */}
         <section className="kpis">
-          <div className="kpi">
-            <div className="k-top"><div className="k-ic">🎯</div></div>
-            <div className="k-val">{stats.activeCampaigns.toLocaleString()}</div>
-            <div className="k-lbl">Active campaigns</div>
-          </div>
-          <div className="kpi">
-            <div className="k-top"><div className="k-ic">👥</div></div>
-            <div className="k-val">{stats.creators.toLocaleString()}</div>
-            <div className="k-lbl">Creators</div>
-          </div>
-          <div className="kpi">
-            <div className="k-top"><div className="k-ic">✅</div></div>
-            <div className="k-val">{stats.submissions.toLocaleString()}</div>
-            <div className="k-lbl">Submissions</div>
-          </div>
-          <div className="kpi">
-            <div className="k-top"><div className="k-ic">💸</div></div>
-            <div className="k-val">${stats.rewardsPaid.toLocaleString()}</div>
-            <div className="k-lbl">Rewards paid</div>
-          </div>
+          {kpis.map((k) => (
+            <div className="kpi" key={k.lbl}>
+              <div className="k-top"><div className="k-ic">{k.ic}</div></div>
+              <div className="k-val">{k.val}</div>
+              <div className="k-lbl">{k.lbl}</div>
+            </div>
+          ))}
         </section>
 
-        {/* ALL CAMPAIGNS */}
-        <section className="panel">
+        {/* Campaign activity + pending actions */}
+        <div className="panels" style={{ marginTop: 18 }}>
+          <section className="panel">
+            <div className="panel-head">
+              <h3>Campaign activity</h3>
+              <Link href="/dashboard/campaigns" style={{ color: "var(--accent)" }}>Manage →</Link>
+            </div>
+            <div className="perf-tiles">
+              <div className="perf-tile">
+                <div className="pt-val">{activity.active.toLocaleString()}</div>
+                <div className="pt-lbl">Active</div>
+              </div>
+              <div className="perf-tile">
+                <div className="pt-val">{activity.paused.toLocaleString()}</div>
+                <div className="pt-lbl">Paused</div>
+              </div>
+              <div className="perf-tile">
+                <div className="pt-val">{activity.ended.toLocaleString()}</div>
+                <div className="pt-lbl">Ended</div>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <h3>Pending actions</h3>
+            </div>
+            <div className="table-wrap" style={{ marginTop: 4 }}>
+              <table>
+                <tbody>
+                  <tr>
+                    <td><b>{pending.submissions.toLocaleString()}</b> submissions awaiting review</td>
+                    <td style={{ textAlign: "right" }}>
+                      <Link href="/dashboard/submissions" style={{ color: "var(--accent)" }}>Review →</Link>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>{pending.payouts.toLocaleString()}</b> payouts awaiting approval</td>
+                    <td style={{ textAlign: "right" }}>
+                      <Link href="/dashboard/payouts" style={{ color: "var(--accent)" }}>Review →</Link>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        {/* Platform performance */}
+        <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
-            <h3>All campaigns</h3>
-            <Link href="/dashboard/campaigns" style={{ color: "var(--accent)" }}>See all</Link>
+            <h3>Platform performance</h3>
+            <Link href="/dashboard/analytics" style={{ color: "var(--accent)" }}>Full analytics →</Link>
           </div>
 
-          {allCampaigns.length === 0 ? (
-            <p className="brief" style={{ marginTop: 10 }}>
-              No active campaigns yet. Brands can launch one from the Campaigns page.
-            </p>
-          ) : (
-            <CampaignGrid campaigns={allCampaigns} now={Date.now()} style={{ marginTop: 14 }} />
-          )}
+          <div className="perf-tiles">
+            <div className="perf-tile">
+              <div className="pt-val">{perf.views.toLocaleString()}</div>
+              <div className="pt-lbl">Total views</div>
+            </div>
+            <div className="perf-tile">
+              <div className="pt-val">{perf.engagement.toLocaleString()}</div>
+              <div className="pt-lbl">Engagement</div>
+            </div>
+            <div className="perf-tile">
+              <div className="pt-val">{perf.submissions.toLocaleString()}</div>
+              <div className="pt-lbl">Submissions</div>
+            </div>
+            <div className="perf-tile">
+              <div className="pt-val">{perf.approved.toLocaleString()}</div>
+              <div className="pt-lbl">Approved</div>
+            </div>
+            <div className="perf-tile">
+              <div className="pt-val">${perf.spend.toLocaleString()}</div>
+              <div className="pt-lbl">Total spend</div>
+            </div>
+          </div>
+
+          <PerfChart
+            data={perfChart}
+            primaryLabel="Views"
+            secondaryLabel="Spend"
+            primaryFormat="compact"
+            secondaryFormat="money"
+          />
         </section>
       </main>
     </div>

@@ -49,7 +49,9 @@ export default async function ApplicationsPage() {
           <div>
             <h1>Applications</h1>
             <p className="sub">
-              Creators who submitted to your campaigns. Approve the ones that fit, reject the rest, or message a creator.
+              {admin
+                ? "Every creator submission across the platform. Approve the ones that fit, reject the rest, or message a creator."
+                : "Creators who submitted to your campaigns. Approve the ones that fit, reject the rest, or message a creator."}
             </p>
           </div>
         </div>

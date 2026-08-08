@@ -20,6 +20,22 @@ const NAV = [
   { href: "/dashboard/analytics", icon: "📈", label: "Analytics" },
 ];
 
+// Admin gets a platform-management control center — a distinct nav (not the
+// creator/brand one) so the experience reads as a SaaS admin console. Kept as a
+// separate array so the creator/brand NAV above stays exactly as-is.
+const ADMIN_NAV = [
+  { href: "/dashboard", icon: "▦", label: "Overview" },
+  { href: "/dashboard/campaigns", icon: "🎯", label: "Campaigns" },
+  { href: "/dashboard/brands", icon: "🏢", label: "Brands" },
+  { href: "/dashboard/creators", icon: "👥", label: "Creators" },
+  { href: "/dashboard/applications", icon: "📥", label: "Applications" },
+  { href: "/dashboard/submissions", icon: "✅", label: "Submissions" },
+  { href: "/dashboard/payouts", icon: "💸", label: "Payments" },
+  { href: "/dashboard/reports", icon: "🛡️", label: "Reports & Disputes" },
+  { href: "/dashboard/analytics", icon: "📈", label: "Analytics" },
+  { href: "/dashboard/settings", icon: "⚙️", label: "Settings" },
+];
+
 /**
  * Dashboard sidebar. Ports the legacy .sidebar markup and adds
  * pathname-based active highlighting plus a real Sign out button.
@@ -30,12 +46,14 @@ export default function Sidebar({ user, isAdmin = false }) {
   const [open, setOpen] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const isBrand = user?.role === "brand";
-  const nav = NAV.filter((item) => {
-    if (item.adminOnly) return isAdmin;
-    if (item.brandOnly) return isBrand;
-    if (item.creatorOnly) return !isBrand;
-    return true;
-  });
+  const nav = isAdmin
+    ? ADMIN_NAV
+    : NAV.filter((item) => {
+        if (item.adminOnly) return isAdmin;
+        if (item.brandOnly) return isBrand;
+        if (item.creatorOnly) return !isBrand;
+        return true;
+      });
 
   // Poll the unread-message count for the Inbox badge.
   useEffect(() => {
