@@ -87,6 +87,7 @@ export default function Sidebar({ user, isAdmin = false }) {
         <div className="side-notif">
           <NotificationBell />
         </div>
+        {user?.moderationBlocked && <div className="alert err" style={{ margin: "0 12px 12px" }}>{user.moderationMessage || "Your account access is restricted."}</div>}
         <nav className="side-nav">
           {nav.map((item, i) => {
             const active =

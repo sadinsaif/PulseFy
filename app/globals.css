@@ -2215,6 +2215,8 @@ tbody tr:last-child td { border-bottom: none; }
 .report-detail { max-width: 720px; }
 .report-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; align-items: center; }
 .report-actions select { max-width: 180px; }
+.btn-danger { background: #ef4444; color: #fff; border-color: #ef4444; }
+.btn-danger:hover { filter: brightness(1.08); }
 .perf-key i.dot-primary { background: var(--accent); box-shadow: 0 0 10px var(--accent-line); }
 .perf-key i.dot-secondary { background: var(--accent-2); box-shadow: 0 0 10px rgba(168,85,247,.4); }
 .perf-bars {

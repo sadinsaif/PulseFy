@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ModerationControls from "@/components/ModerationControls";
 
 // Derived activity label — a brand with ≥1 active campaign is "Active",
 // otherwise "Idle". This is a read-only label, NOT a moderation status: there
@@ -36,15 +37,12 @@ export default function AdminBrands({ rows = [] }) {
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
 
-  const withStatus = rows.map((r) => ({
-    ...r,
-    status: r.active > 0 ? "Active" : "Idle",
-  }));
+  const withStatus = rows.map((r) => ({ ...r, status: r.moderationStatus || "active" }));
 
   const counts = {
     all: withStatus.length,
-    active: withStatus.filter((r) => r.status === "Active").length,
-    idle: withStatus.filter((r) => r.status === "Idle").length,
+    active: withStatus.filter((r) => r.status === "active").length,
+    idle: withStatus.filter((r) => r.status !== "active").length,
   };
 
   const needle = q.trim().toLowerCase();
@@ -52,9 +50,7 @@ export default function AdminBrands({ rows = [] }) {
     .filter((r) =>
       filter === "all"
         ? true
-        : filter === "active"
-        ? r.status === "Active"
-        : r.status === "Idle"
+        : filter === "active" ? r.status === "active" : r.status !== "active"
     )
     .filter((r) =>
       !needle
@@ -109,7 +105,9 @@ export default function AdminBrands({ rows = [] }) {
                 <th>Active</th>
                 <th>Total spend</th>
                 <th>Status</th>
+                <th>Warnings</th>
                 <th>Joined</th>
+                <th>Moderation</th>
               </tr>
             </thead>
             <tbody>
@@ -123,11 +121,13 @@ export default function AdminBrands({ rows = [] }) {
                     ${r.spend.toLocaleString()}
                   </td>
                   <td>
-                    <span className={`status ${STATUS_CLASS[r.status] || "review"}`}>
+                    <span className={`status ${r.status === "banned" ? "ended" : r.status === "suspended" ? "review" : "live"}`}>
                       {r.status}
                     </span>
                   </td>
+                  <td>{r.warnings || 0}</td>
                   <td>{fmtDate(r.createdAt)}</td>
+                  <td><ModerationControls user={r} compact /></td>
                 </tr>
               ))}
             </tbody>

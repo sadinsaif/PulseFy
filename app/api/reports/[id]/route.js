@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { reports, reportEvents, users } from "@/db/schema";
+import { moderationEvents, reports, reportEvents, users } from "@/db/schema";
 import { desc, eq, inArray } from "drizzle-orm";
 import { reportResponseSchema, reportUpdateSchema } from "@/lib/validation";
 import { getAdminEmails, isAdminEmail } from "@/lib/admin";
@@ -16,7 +16,7 @@ export async function GET(_req, { params }) {
   if (!report) return NextResponse.json({ error: "Report not found" }, { status: 404 });
   const isAdmin = await admin(session);
   if (!isAdmin && report.reporterId !== session.user.id) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
-  const people = await db.select({ id: users.id, name: users.name, email: users.email, role: users.role }).from(users).where(inArray(users.id, [report.reporterId, report.reportedUserId, report.assignedAdminId, report.resolvedBy].filter(Boolean)));
+  const people = await db.select({ id: users.id, name: users.name, email: users.email, role: users.role, moderationStatus: users.moderationStatus, suspendedUntil: users.suspendedUntil }).from(users).where(inArray(users.id, [report.reporterId, report.reportedUserId, report.assignedAdminId, report.resolvedBy].filter(Boolean)));
   const byId = new Map(people.map((p) => [p.id, p]));
   const events = await db.select().from(reportEvents).where(eq(reportEvents.reportId, report.id)).orderBy(desc(reportEvents.createdAt));
   const prior = await db.select({ id: reports.id, reason: reports.reason, status: reports.status, createdAt: reports.createdAt }).from(reports).where(eq(reports.reportedUserId, report.reportedUserId)).orderBy(desc(reports.createdAt)).limit(10);
@@ -66,6 +66,7 @@ export async function PATCH(req, { params }) {
   await db.transaction(async (tx) => {
     await tx.update(reports).set(patch).where(eq(reports.id, report.id));
     await tx.insert(reportEvents).values({ reportId: report.id, actorId: session.user.id, action: event, note: d.resolutionNote || d.status || d.priority || null });
+    await tx.insert(moderationEvents).values({ targetUserId: report.reportedUserId, adminId: session.user.id, action: `report_${event}`, note: d.resolutionNote || d.status || d.priority || null, relatedReportId: report.id });
   });
   if (["resolve", "dismiss", "request_info"].includes(d.action)) await notifyUser(report.reporterId, { type: "report", message: d.action === "request_info" ? "An admin requested more information about your report." : `Your report has been ${d.action === "resolve" ? "resolved" : "dismissed"}.`, link: "/dashboard/reports" });
   return NextResponse.json({ ok: true });

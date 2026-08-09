@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { moderationEvents, users } from "@/db/schema";
 import { desc, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import Leaderboard from "@/components/Leaderboard";
@@ -32,6 +32,7 @@ export default async function LeaderboardPage({ searchParams }) {
         (select coalesce(sum(reward),0) from submissions where submissions.user_id = ${users.id} and submissions.status = 'approved')
         + (select coalesce(sum(spotlight_bonus),0) from submissions where submissions.user_id = ${users.id} and submissions.spotlighted = true)
       )`;
+      const warnings = sql`(select count(*) from moderation_events where moderation_events.target_user_id = ${users.id} and moderation_events.action = 'warning')`;
 
       const raw = await db
         .select({
@@ -39,10 +40,13 @@ export default async function LeaderboardPage({ searchParams }) {
           name: users.name,
           username: users.username,
           email: users.email,
+          moderationStatus: users.moderationStatus,
+          suspendedUntil: users.suspendedUntil,
           createdAt: users.createdAt,
           submissions: submissionCount,
           approved,
           earnings,
+          warnings,
         })
         .from(users)
         .where(sql`${users.role} is distinct from 'brand'`)
@@ -54,10 +58,13 @@ export default async function LeaderboardPage({ searchParams }) {
         name: r.name,
         username: r.username,
         email: r.email,
+        moderationStatus: r.moderationStatus,
+        suspendedUntil: r.suspendedUntil ? new Date(r.suspendedUntil).toISOString() : null,
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null,
         submissions: Number(r.submissions || 0),
         approved: Number(r.approved || 0),
         earnings: Number(r.earnings || 0),
+        warnings: Number(r.warnings || 0),
       }));
     } catch {
       adminRows = [];

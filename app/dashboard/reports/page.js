@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { auth } from "@/auth";
 import Sidebar from "@/components/Sidebar";
 import AdminReports from "@/components/AdminReports";
+import AdminAuditLog from "@/components/AdminAuditLog";
 import ReporterReports from "@/components/ReporterReports";
 import { isAdminEmail } from "@/lib/admin";
 
@@ -47,6 +48,7 @@ export default async function ReportsPage() {
         </div>
 
         <section className="panel"><AdminReports /></section>
+        <AdminAuditLog />
       </main>
     </div>
   );

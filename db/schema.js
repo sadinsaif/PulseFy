@@ -34,6 +34,13 @@ export const users = pgTable("users", {
   // from a ?ref=<username> link; the referrer earns 5% of this user's payouts
   // for the first 90 days. Null for organic signups.
   referredBy: text("referred_by"),
+  // Moderation access state. Warnings preserve access; suspended/banned block it.
+  moderationStatus: text("moderation_status").notNull().default("active"),
+  suspendedUntil: timestamp("suspended_until", { mode: "date" }),
+  suspensionReason: text("suspension_reason"),
+  banReason: text("ban_reason"),
+  bannedAt: timestamp("banned_at", { mode: "date" }),
+  bannedBy: text("banned_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -294,5 +301,21 @@ export const reportEvents = pgTable("report_events", {
   actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
   action: text("action").notNull(),
   note: text("note"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/** Append-only admin moderation and security audit trail. */
+export const moderationEvents = pgTable("moderation_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  targetUserId: text("target_user_id").references(() => users.id, { onDelete: "set null" }),
+  adminId: text("admin_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  reason: text("reason"),
+  note: text("note"),
+  previousStatus: text("previous_status"),
+  newStatus: text("new_status"),
+  expiresAt: timestamp("expires_at", { mode: "date" }),
+  relatedReportId: text("related_report_id").references(() => reports.id, { onDelete: "set null" }),
+  relatedCampaignId: text("related_campaign_id").references(() => campaigns.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });

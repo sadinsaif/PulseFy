@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import ModerationControls from "@/components/ModerationControls";
 
 // Derived activity label — a creator with ≥1 approved post is "Active",
 // otherwise "New". Read-only label, NOT a moderation status (view-only scope:
@@ -36,15 +37,12 @@ export default function AdminCreators({ rows = [] }) {
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
 
-  const withStatus = rows.map((r) => ({
-    ...r,
-    status: r.approved > 0 ? "Active" : "New",
-  }));
+  const withStatus = rows.map((r) => ({ ...r, status: r.moderationStatus || "active" }));
 
   const counts = {
     all: withStatus.length,
-    active: withStatus.filter((r) => r.status === "Active").length,
-    new: withStatus.filter((r) => r.status === "New").length,
+    active: withStatus.filter((r) => r.status === "active").length,
+    new: withStatus.filter((r) => r.status !== "active").length,
   };
 
   const needle = q.trim().toLowerCase();
@@ -52,9 +50,7 @@ export default function AdminCreators({ rows = [] }) {
     .filter((r) =>
       filter === "all"
         ? true
-        : filter === "active"
-        ? r.status === "Active"
-        : r.status === "New"
+        : filter === "active" ? r.status === "active" : r.status !== "active"
     )
     .filter((r) =>
       !needle
@@ -110,7 +106,9 @@ export default function AdminCreators({ rows = [] }) {
                 <th>Approved</th>
                 <th>Earnings</th>
                 <th>Status</th>
+                <th>Warnings</th>
                 <th>Joined</th>
+                <th>Moderation</th>
                 <th>View</th>
               </tr>
             </thead>
@@ -126,11 +124,13 @@ export default function AdminCreators({ rows = [] }) {
                     ${r.earnings.toLocaleString()}
                   </td>
                   <td>
-                    <span className={`status ${STATUS_CLASS[r.status] || "review"}`}>
+                    <span className={`status ${r.status === "banned" ? "ended" : r.status === "suspended" ? "review" : "live"}`}>
                       {r.status}
                     </span>
                   </td>
+                  <td>{r.warnings || 0}</td>
                   <td>{fmtDate(r.createdAt)}</td>
+                  <td><ModerationControls user={r} compact /></td>
                   <td>
                     <Link href={`/creator/${r.id}`} style={{ color: "var(--accent)" }}>
                       View ↗

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { users, campaigns, submissions } from "@/db/schema";
+import { moderationEvents, users, campaigns, submissions } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import AdminBrands from "@/components/AdminBrands";
@@ -52,6 +52,7 @@ export default async function BrandsPage() {
        join ${campaigns} on ${submissions.campaignId} = ${campaigns.id}
        where ${campaigns.brandId} = ${users.id} and ${submissions.spotlighted} = true)
   )`;
+  const warnings = sql`(select count(*) from moderation_events where moderation_events.target_user_id = ${users.id} and moderation_events.action = 'warning')`;
 
   let rows = [];
   try {
@@ -61,10 +62,13 @@ export default async function BrandsPage() {
         name: users.name,
         email: users.email,
         company: users.company,
+        moderationStatus: users.moderationStatus,
+        suspendedUntil: users.suspendedUntil,
         createdAt: users.createdAt,
         campaigns: campaignCount,
         active: activeCount,
         spend,
+        warnings,
       })
       .from(users)
       .where(eq(users.role, "brand"))
@@ -75,10 +79,13 @@ export default async function BrandsPage() {
       name: r.name,
       email: r.email,
       company: r.company,
+      moderationStatus: r.moderationStatus,
+      suspendedUntil: r.suspendedUntil ? new Date(r.suspendedUntil).toISOString() : null,
       createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null,
       campaigns: Number(r.campaigns || 0),
       active: Number(r.active || 0),
       spend: Number(r.spend || 0),
+      warnings: Number(r.warnings || 0),
     }));
   } catch {
     rows = [];
