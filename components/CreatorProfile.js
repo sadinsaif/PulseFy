@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import ReportModal from "@/components/ReportModal";
 
 const PLATFORM_LABEL = {
   tiktok: "🎵 TikTok",
@@ -146,6 +147,7 @@ export default function CreatorProfile({ id, meId = "" }) {
               >
                 {following ? "Following ✓" : "＋ Follow"}
               </button>
+              <ReportModal reportedUserId={profile.id} reportedUserName={profile.name} reportedUserType="creator" label="Report creator" />
               <Link href={`/dashboard/inbox?to=${profile.id}`} className="btn btn-ghost">
                 ✉️ Message
               </Link>

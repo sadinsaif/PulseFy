@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Spotlighted from "@/components/Spotlighted";
 import CampaignSubmissions from "@/components/CampaignSubmissions";
+import ReportModal from "@/components/ReportModal";
 import { isLive, statusLabel, countdown, budgetLeft } from "@/lib/campaign";
 
   const PLABEL = {
@@ -161,6 +162,7 @@ export default function CampaignDetail({ id }) {
           </div>
 
           {camp.brief && <p className="brief" style={{ marginTop: 10 }}>{camp.brief}</p>}
+          <div style={{ marginTop: 12 }}><ReportModal reportedUserId={camp.brandId} reportedUserName={camp.brandName} reportedUserType="brand" label="Report brand" /></div>
         </div>
       </div>
 

@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@/auth";
 import Sidebar from "@/components/Sidebar";
+import AdminReports from "@/components/AdminReports";
+import ReporterReports from "@/components/ReporterReports";
 import { isAdminEmail } from "@/lib/admin";
 
 /**
@@ -22,14 +24,10 @@ export default async function ReportsPage() {
           <div className="topbar">
             <div>
               <h1>Reports &amp; Disputes</h1>
-              <p className="sub">This area is for admins.</p>
+              <p className="sub">Your private report history.</p>
             </div>
           </div>
-          <section className="panel">
-            <p className="brief">
-              You don&apos;t have access to this page.
-            </p>
-          </section>
+          <section className="panel"><ReporterReports /></section>
         </main>
       </div>
     );
@@ -48,16 +46,7 @@ export default async function ReportsPage() {
           </div>
         </div>
 
-        <section className="panel">
-          <div className="panel-head">
-            <h3>Nothing to review</h3>
-          </div>
-          <p className="brief" style={{ marginTop: 10 }}>
-            There are no open reports or disputes right now. When users can flag
-            content or raise a dispute, those cases will land here for you to
-            review and resolve. This section is ready for that tooling.
-          </p>
-        </section>
+        <section className="panel"><AdminReports /></section>
       </main>
     </div>
   );

@@ -265,3 +265,34 @@ export const referralEarnings = pgTable("referral_earnings", {
   amount: integer("amount").notNull().default(0), // 5% commission, in cents
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+/** Moderation allegations. Reports remain private to the reporter and admins. */
+export const reports = pgTable("reports", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  reporterId: text("reporter_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reporterType: text("reporter_type").notNull(),
+  reportedUserId: text("reported_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reportedUserType: text("reported_user_type").notNull(),
+  reason: text("reason").notNull(),
+  description: text("description").notNull(),
+  evidence: text("evidence"),
+  status: text("status").notNull().default("open"),
+  priority: text("priority").notNull().default("normal"),
+  assignedAdminId: text("assigned_admin_id").references(() => users.id, { onDelete: "set null" }),
+  resolution: text("resolution"),
+  resolutionNote: text("resolution_note"),
+  resolvedBy: text("resolved_by").references(() => users.id, { onDelete: "set null" }),
+  resolvedAt: timestamp("resolved_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/** Immutable admin/report activity history for the report detail timeline. */
+export const reportEvents = pgTable("report_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  reportId: text("report_id").notNull().references(() => reports.id, { onDelete: "cascade" }),
+  actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
