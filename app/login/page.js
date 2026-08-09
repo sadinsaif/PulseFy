@@ -53,7 +53,7 @@ function LoginInner() {
         <span className="logo-mark" aria-hidden="true" /><span className="wordmark">Pulse<span className="wm-fy">Fy</span></span>
       </Link>
       <h1>Welcome back</h1>
-      <p className="lead">Sign in to your Pulsefy workspace.</p>
+      <p className="lead">Sign in to your PulseFy workspace.</p>
 
       {notice && <div className={`alert ${notice.type}`}>{notice.msg}</div>}
       {err && <div className="alert err">{err}</div>}
@@ -93,7 +93,7 @@ function LoginInner() {
       </form>
 
       <p className="auth-foot">
-        New to Pulsefy? <Link href="/signup">Create an account</Link>
+        New to PulseFy? <Link href="/signup">Create an account</Link>
       </p>
     </div>
   );

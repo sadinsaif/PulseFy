@@ -3,7 +3,7 @@ import Providers from "@/components/Providers";
 import WaveBackground from "@/components/WaveBackground";
 
 export const metadata = {
-  title: "Pulsefy — Infrastructure for the AI Creator Economy",
+  title: "PulseFy — Infrastructure for the AI Creator Economy",
   description: "Run content challenges at scale. From brief to payout — automated.",
 };
 

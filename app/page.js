@@ -127,7 +127,7 @@ export default async function Home() {
         <div className="container">
           <Reveal className="stats-band">
             <div className="stat"><div className="big">36x</div><div className="lbl">More engagement per dollar</div></div>
-            <div className="stat"><div className="big">100+</div><div className="lbl">Brands trust Pulsefy</div></div>
+            <div className="stat"><div className="big">100+</div><div className="lbl">Brands trust PulseFy</div></div>
             <div className="stat"><div className="big">50k+</div><div className="lbl">Creators paid out</div></div>
             <div className="stat"><div className="big">7</div><div className="lbl">Platforms tracked</div></div>
           </Reveal>
@@ -230,7 +230,7 @@ export default async function Home() {
             </div>
           </div>
           <div className="footer-bottom">
-            <span>© 2026 Pulsefy. All rights reserved.</span>
+            <span>© 2026 PulseFy. All rights reserved.</span>
             <span>Made for creators &amp; brands.</span>
           </div>
         </div>

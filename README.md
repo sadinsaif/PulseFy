@@ -1,4 +1,4 @@
-# Pulsefy
+# PulseFy
 
 **Infrastructure for the AI Creator Economy.** Brands launch content challenges, creators submit, AI filters what's on-brand, and rewards pay out automatically — from brief to payout.
 
@@ -33,10 +33,10 @@ The original static HTML/CSS/JS prototype is preserved under `legacy/` for refer
 ## Deploy to Vercel (step by step)
 
 ### 1. Push to GitHub
-The repo is already at **github.com/sadinsaif/Srijon-Clips**. Make sure your latest commit is pushed.
+The repo is already at **github.com/sadinsaif/PulseFy**. Make sure your latest commit is pushed.
 
 ### 2. Import into Vercel
-1. Go to [vercel.com/new](https://vercel.com/new) and import the `Srijon-Clips` repo.
+1. Go to [vercel.com/new](https://vercel.com/new) and import the `PulseFy` repo.
 2. Vercel auto-detects Next.js — leave build settings as default.
 3. **Don't deploy yet** — add the database and env vars first (below), otherwise the first build's runtime calls will fail.
 
@@ -55,10 +55,10 @@ In Vercel → project → **Settings → Environment Variables**, add:
 | Variable | Value |
 |---|---|
 | `AUTH_SECRET` | A random secret — generate with `openssl rand -base64 32` |
-| `AUTH_URL` | Your deployment URL, e.g. `https://srijon-clips.vercel.app` |
+| `AUTH_URL` | Your deployment URL, e.g. `https://pulsefycorp.vercel.app/` |
 | `NEXTAUTH_URL` | Same as `AUTH_URL` |
 | `RESEND_API_KEY` | Your Resend API key |
-| `EMAIL_FROM` | `Pulsefy <onboarding@resend.dev>` (or your verified sender) |
+| `EMAIL_FROM` | `PulseFy <onboarding@resend.dev>` (or your verified sender) |
 
 `POSTGRES_URL` / `POSTGRES_URL_NON_POOLING` are set automatically by step 3 — you don't add them by hand.
 
