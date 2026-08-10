@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import PortfolioManager from "@/components/PortfolioManager";
+import TrustBadge from "@/components/TrustBadge";
 
 const PLATFORM_LABEL = {
   tiktok: "🎵 TikTok",
@@ -325,7 +326,7 @@ export default function ProfileView() {
           </div>
         )}
         <div className="hc-body">
-          <h1>{profile.name || "Your name"}</h1>
+          <h1>{profile.name || "Your name"} <TrustBadge verified={profile.isVerified} /></h1>
           <div className="meta">
             {profile.username && <span>🔗 @{profile.username}</span>}
             {profile.creatorId && <span>Creator ID: {profile.creatorId}</span>}

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { and, desc, ilike, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, sql } from "drizzle-orm";
 import { isAdminEmail } from "@/lib/admin";
 
 /**
@@ -73,6 +73,7 @@ export async function GET(req) {
       .select({
         id: users.id,
         creatorId: users.id,
+        isVerified: users.isVerified,
         name: users.name,
         username: users.username,
         image: users.image,
@@ -135,6 +136,7 @@ export async function GET(req) {
     .select({
       id: users.id,
       creatorId: users.id,
+      isVerified: users.isVerified,
       name: users.name,
       username: users.username,
       image: users.image,

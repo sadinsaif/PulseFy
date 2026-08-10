@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import ModerationControls from "@/components/ModerationControls";
 import TrustAdminControls from "@/components/TrustAdminControls";
+import TrustBadge from "@/components/TrustBadge";
 
 // Derived activity label — a creator with ≥1 approved post is "Active",
 // otherwise "New". Read-only label, NOT a moderation status (view-only scope:
@@ -118,7 +119,7 @@ export default function AdminCreators({ rows = [] }) {
             <tbody>
               {shown.map((r) => (
                 <tr key={r.id}>
-                  <td><b>{r.name || "Creator"}</b></td>
+                  <td><b>{r.name || "Creator"}</b> <TrustBadge verified={r.isVerified} /></td>
                   <td>{r.id}</td>
                   <td>{r.username ? `@${r.username}` : "—"}</td>
                   <td>{r.email || "—"}</td>

@@ -22,6 +22,7 @@ export async function GET(_req, { params }) {
     .select({
       creatorId: users.id,
       id: users.id,
+      isVerified: users.isVerified,
       name: users.name,
       username: users.username,
       image: users.image,

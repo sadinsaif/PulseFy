@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import ReportModal from "@/components/ReportModal";
 import TrustPanel from "@/components/TrustPanel";
+import TrustBadge from "@/components/TrustBadge";
 
 const PLATFORM_LABEL = {
   tiktok: "🎵 TikTok",
@@ -121,7 +122,7 @@ export default function CreatorProfile({ id, meId = "" }) {
           </div>
         )}
         <div className="hc-body">
-          <h1>{profile.name || "Creator"}</h1>
+          <h1>{profile.name || "Creator"} <TrustBadge verified={profile.isVerified} /></h1>
           <div className="meta">
             {profile.username && <span>🔗 @{profile.username}</span>}
             <span>Creator ID: {profile.creatorId}</span>

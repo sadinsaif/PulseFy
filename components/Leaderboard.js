@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import TrustBadge from "@/components/TrustBadge";
 
 /**
  * Leaderboard — every creator ranked by total dollars earned, highest first.
@@ -71,7 +72,7 @@ export default function Leaderboard({ initialQ = "" }) {
                   </div>
                 )}
                 <div className="lb-who">
-                  <b>{c.name || "Creator"}</b>
+                  <b>{c.name || "Creator"}</b> <TrustBadge verified={c.isVerified} />
                   {c.username && <span className="lb-user">@{c.username}</span>}
                   <span className="lb-user">Creator ID: {c.creatorId}</span>
                 </div>
