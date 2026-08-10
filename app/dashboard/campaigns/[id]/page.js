@@ -21,7 +21,7 @@ export default async function CampaignDetailPage({ params }) {
           </div>
         </div>
 
-        <CampaignDetail id={params.id} />
+        <CampaignDetail id={params.id} user={user} isAdmin={isAdminEmail(user?.email)} />
       </main>
     </div>
   );

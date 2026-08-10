@@ -33,20 +33,32 @@ export async function GET(req) {
   // creator could pull the brand-only stats straight from the API. The lean
   // default path stays open to every signed-in user (it powers the creator
   // Leaderboard) and is left exactly as before.
-  if (
-    rich &&
-    session.user.role !== "brand" &&
-    !isAdminEmail(session.user.email)
-  ) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (rich) {
+    const [currentUser] = await db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, session.user.id));
+    if (currentUser?.role !== "brand" && !isAdminEmail(session.user.email)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
-  const approved = sql`(select count(*) from submissions where submissions.user_id = ${users.id} and submissions.status = 'approved')`;
+  // Public discovery must not reveal activity, earnings, or platforms from a
+  // private campaign or a campaign that hides contributions.
+  const publicContribution = sql`(
+    submissions.campaign_id is null or exists (
+      select 1 from campaigns c
+      where c.id = submissions.campaign_id
+        and c.visibility is distinct from 'private'
+        and c.show_contributions is distinct from 'no'
+    )
+  )`;
+  const approved = sql`(select count(*) from submissions where submissions.user_id = ${users.id} and submissions.status = 'approved' and ${publicContribution})`;
   // Total dollars earned = approved campaign rewards + spotlight bonuses
   // (mirrors the creator profile's "earnings"). Drives the leaderboard rank.
   const earnings = sql`(
-    (select coalesce(sum(reward),0) from submissions where submissions.user_id = ${users.id} and submissions.status = 'approved')
-    + (select coalesce(sum(spotlight_bonus),0) from submissions where submissions.user_id = ${users.id} and submissions.spotlighted = true)
+    (select coalesce(sum(reward),0) from submissions where submissions.user_id = ${users.id} and submissions.status = 'approved' and ${publicContribution})
+    + (select coalesce(sum(spotlight_bonus),0) from submissions where submissions.user_id = ${users.id} and submissions.spotlighted = true and ${publicContribution})
   )`;
 
   const notBrand = sql`${users.role} is distinct from 'brand'`;
@@ -78,14 +90,14 @@ export async function GET(req) {
   // ---- Rich path (brand Discover Creators) ---------------------------------
   // Per-creator aggregates derived from their submissions + followers.
   const followers = sql`(select count(*) from follows where follows.following_id = ${users.id})`;
-  const avgViews = sql`(select coalesce(round(avg(views)),0) from submissions where submissions.user_id = ${users.id})`;
+  const avgViews = sql`(select coalesce(round(avg(views)),0) from submissions where submissions.user_id = ${users.id} and ${publicContribution})`;
   const engagementRate = sql`(
     select case when coalesce(sum(views),0) > 0
       then round(sum(engagement)::numeric / sum(views)::numeric * 100, 1)
       else 0 end
-    from submissions where submissions.user_id = ${users.id}
+    from submissions where submissions.user_id = ${users.id} and ${publicContribution}
   )`;
-  const platforms = sql`(select string_agg(distinct platform, ',') from submissions where submissions.user_id = ${users.id})`;
+  const platforms = sql`(select string_agg(distinct platform, ',') from submissions where submissions.user_id = ${users.id} and ${publicContribution})`;
 
   // Filters (all optional). Numeric params coerced; NaN → no filter.
   const platform = (params.get("platform") || "").trim();
@@ -102,7 +114,7 @@ export async function GET(req) {
   }
   if (platform && platform !== "any") {
     conds.push(
-      sql`exists (select 1 from submissions where submissions.user_id = ${users.id} and submissions.platform = ${platform})`
+      sql`exists (select 1 from submissions where submissions.user_id = ${users.id} and submissions.platform = ${platform} and ${publicContribution})`
     );
   }
   if (minFollowers > 0) conds.push(sql`${followers} >= ${minFollowers}`);

@@ -5,6 +5,10 @@ import { useEffect, useState } from "react";
 import Spotlighted from "@/components/Spotlighted";
 import CampaignSubmissions from "@/components/CampaignSubmissions";
 import ReportModal from "@/components/ReportModal";
+import TrustBadge from "@/components/TrustBadge";
+import TrustPanel from "@/components/TrustPanel";
+import TrustReviewForm from "@/components/TrustReviewForm";
+import PrivateCampaignParticipants from "@/components/PrivateCampaignParticipants";
 import { isLive, statusLabel, countdown, budgetLeft } from "@/lib/campaign";
 
   const PLABEL = {
@@ -32,7 +36,7 @@ const POST_PLATFORMS = ["tiktok", "instagram", "youtube", "x"];
  * Campaign detail + submit form. Loads the campaign and the creator's own
  * existing submission (if any); lets them submit or update their clip link.
  */
-export default function CampaignDetail({ id }) {
+export default function CampaignDetail({ id, user, isAdmin = false }) {
   const [camp, setCamp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mine, setMine] = useState(null); // creator's existing submission
@@ -140,7 +144,7 @@ export default function CampaignDetail({ id }) {
         <div className="hc-body">
           <h1>{camp.title}</h1>
           <div className="meta">
-            <span>🏢 {camp.brandName || "A brand"}</span>
+            <span>🏢 {camp.brandName || "A brand"} <TrustBadge verified={camp.brandVerified} /></span>
             {camp.budget > 0 && (
               <span>💰 Budget ${Number(budgetLeft(camp)).toLocaleString()}</span>
             )}
@@ -165,6 +169,10 @@ export default function CampaignDetail({ id }) {
           <div style={{ marginTop: 12 }}><ReportModal reportedUserId={camp.brandId} reportedUserName={camp.brandName} reportedUserType="brand" label="Report brand" /></div>
         </div>
       </div>
+
+      {camp.visibility === "private" && (camp.brandId === user?.id || isAdmin) && <PrivateCampaignParticipants campaignId={id} />}
+      {!open && user?.role === "creator" && mine && <TrustReviewForm campaignId={id} revieweeId={camp.brandId} label="Review this brand" />}
+      <TrustPanel userId={camp.brandId} />
 
       {/* Campaign details panel */}
       {(camp.contentType || camp.requirements || camp.assetsUrl) && (
@@ -279,7 +287,7 @@ export default function CampaignDetail({ id }) {
       {/* Every submission to this campaign, with per-creator earnings. Only the
           owning brand + admins can load it (the API 403s everyone else), so
           regular creators see nothing here — just the Spotlighted section above. */}
-      <CampaignSubmissions campaignId={id} />
+      <CampaignSubmissions campaignId={id} completed={!open} />
 
       <p style={{ marginTop: 16 }}>
         <Link href="/dashboard/campaigns" style={{ color: "var(--accent)" }}>← Back to campaigns</Link>

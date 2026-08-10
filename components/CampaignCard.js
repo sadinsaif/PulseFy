@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { isLive, statusLabel, countdown, budgetLeft } from "@/lib/campaign";
+import TrustBadge from "@/components/TrustBadge";
 
 const PLABEL = {
   any: "Any platform",
@@ -88,7 +89,7 @@ export default function CampaignCard({ c, now }) {
           <span className="tag-pill">{PLABEL[c.platform] || c.platform}</span>
         </div>
         <h3>{c.title}</h3>
-        <p className="camp-brand">by {c.brandName || "A brand"}</p>
+        <p className="camp-brand">by {c.brandName || "A brand"} <TrustBadge verified={c.brandVerified} /></p>
 
         {/* Reward pills — Approval / Performance / Spotlight */}
         <div className="camp-pills">

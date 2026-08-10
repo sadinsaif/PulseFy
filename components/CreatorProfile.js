@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import ReportModal from "@/components/ReportModal";
+import TrustPanel from "@/components/TrustPanel";
 
 const PLATFORM_LABEL = {
   tiktok: "🎵 TikTok",
@@ -155,6 +156,8 @@ export default function CreatorProfile({ id, meId = "" }) {
           )}
         </div>
       </div>
+
+      <TrustPanel userId={id} />
 
       {/* Stat boxes */}
       <div className="stat-row" style={{ marginBottom: 18 }}>

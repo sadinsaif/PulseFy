@@ -3,11 +3,13 @@ import {
   text,
   timestamp,
   primaryKey,
+  uniqueIndex,
   serial,
   integer,
   bigint,
   boolean,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /**
  * Users — our own table (email + password auth).
@@ -41,6 +43,11 @@ export const users = pgTable("users", {
   banReason: text("ban_reason"),
   bannedAt: timestamp("banned_at", { mode: "date" }),
   bannedBy: text("banned_by").references(() => users.id, { onDelete: "set null" }),
+  // Admin-controlled public verification. This is deliberately separate from
+  // moderation status: verification never grants access or overrides a block.
+  isVerified: boolean("is_verified").notNull().default(false),
+  verifiedAt: timestamp("verified_at", { mode: "date" }),
+  verifiedBy: text("verified_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -99,7 +106,8 @@ export const campaigns = pgTable("campaigns", {
   platform: text("platform").notNull().default("any"), // any|tiktok|instagram|youtube|x
   reward: integer("reward").notNull().default(0), // dollars per approved post ("Approval $")
   // Campaign economics (GIMI-style), all set by the brand at launch.
-  budget: integer("budget").notNull().default(0), // total pool the brand funds ($) — shown as "Budget"
+  budget: integer("budget").notNull().default(0), // total pool the brand funds ($)
+  budgetSpent: integer("budget_spent").notNull().default(0), // committed approved rewards + spotlight bonuses
   spotlightReward: integer("spotlight_reward").notNull().default(0), // bonus ($) for a spotlighted post
   performanceMult: integer("performance_mult").notNull().default(1), // performance multiplier ("x1", "x2"…)
   // When the campaign closes. Null = open-ended (no countdown). A past value
@@ -128,7 +136,7 @@ export const submissions = pgTable("submissions", {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   challengeId: text("challenge_id").notNull(), // human label (campaign title or legacy id)
-  campaignId: text("campaign_id"), // set when the submission targets a real campaign
+  campaignId: text("campaign_id").references(() => campaigns.id, { onDelete: "set null" }), // set when the submission targets a real campaign
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -147,6 +155,29 @@ export const submissions = pgTable("submissions", {
   // "Spotlighted" showcase. Bonus counts toward earnings + withdrawable balance.
   spotlighted: boolean("spotlighted").notNull().default(false),
   spotlightBonus: integer("spotlight_bonus").notNull().default(0), // dollars
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  uniqueCreatorCampaign: uniqueIndex("submissions_unique_creator_campaign_idx")
+    .on(table.userId, table.campaignId)
+    .where(sql`${table.campaignId} is not null`),
+  uniqueCreatorLegacyChallenge: uniqueIndex("submissions_unique_creator_legacy_challenge_idx")
+    .on(table.userId, table.challengeId)
+    .where(sql`${table.campaignId} is null`),
+}));
+
+/**
+ * Append-only verified funding and campaign commitment records. The declared
+ * campaign budget is intentionally separate from money recorded here.
+ */
+export const campaignFundingLedger = pgTable("campaign_funding_ledger", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  campaignId: text("campaign_id").notNull().references(() => campaigns.id, { onDelete: "restrict" }),
+  submissionId: text("submission_id").references(() => submissions.id, { onDelete: "restrict" }),
+  actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(), // funding | reserve | release | spend | reversal
+  amount: integer("amount").notNull(), // whole dollars; always positive
+  reference: text("reference"), // verified payment/reference for funding only
+  note: text("note"), // internal admin evidence/note; never public
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -318,4 +349,58 @@ export const moderationEvents = pgTable("moderation_events", {
   relatedReportId: text("related_report_id").references(() => reports.id, { onDelete: "set null" }),
   relatedCampaignId: text("related_campaign_id").references(() => campaigns.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/** Explicit, owner-managed access to a private campaign. */
+export const campaignParticipants = pgTable("campaign_participants", {
+  campaignId: text("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
+  creatorId: text("creator_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("authorized"),
+  authorizedBy: text("authorized_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.campaignId, table.creatorId] }),
+}));
+
+/** A completed-campaign review. Visibility is moderated without changing it. */
+export const reviews = pgTable("reviews", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  campaignId: text("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
+  reviewerId: text("reviewer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  revieweeId: text("reviewee_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reviewerType: text("reviewer_type").notNull(),
+  revieweeType: text("reviewee_type").notNull(),
+  rating: integer("rating").notNull(),
+  comment: text("comment").notNull(),
+  status: text("status").notNull().default("visible"),
+  moderatedBy: text("moderated_by").references(() => users.id, { onDelete: "set null" }),
+  moderationNote: text("moderation_note"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/** Creator-owned work samples. Text and URLs are validated at the API boundary. */
+export const creatorPortfolio = pgTable("creator_portfolio", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  creatorId: text("creator_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category"),
+  thumbnailUrl: text("thumbnail_url"),
+  workUrl: text("work_url").notNull(),
+  platform: text("platform"),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+/** Normalized external links supplied by a creator; no third-party scraping. */
+export const creatorSocialLinks = pgTable("creator_social_links", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  creatorId: text("creator_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  platform: text("platform").notNull(),
+  url: text("url").notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });

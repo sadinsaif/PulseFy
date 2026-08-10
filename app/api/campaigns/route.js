@@ -27,12 +27,7 @@ export async function GET(req) {
   // Dollars already paid out of a campaign's pool: approved-post rewards plus
   // spotlight bonuses. The card shows budget MINUS this, so the pool ticks down
   // as the brand approves posts (see budgetLeft in lib/campaign.js).
-  const budgetSpent = sql`(
-    (select coalesce(sum(${submissions.reward}), 0) from ${submissions}
-       where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'approved')
-    + (select coalesce(sum(${submissions.spotlightBonus}), 0) from ${submissions}
-       where ${submissions.campaignId} = ${campaigns.id} and ${submissions.spotlighted} = true)
-  )`;
+  const budgetSpent = campaigns.budgetSpent;
 
   // Columns returned for every card. endsAt drives the live countdown and, when
   // in the past, marks a campaign as effectively ended (End vs Live badge).
@@ -53,6 +48,7 @@ export async function GET(req) {
     visibility: campaigns.visibility,
     thumbnailUrl: campaigns.thumbnailUrl,
     brandName: users.name,
+    brandVerified: users.isVerified,
     submissionCount: subCount,
   };
 
@@ -106,7 +102,11 @@ export async function POST(req) {
     return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
   }
 
-  const isBrand = session.user.role === "brand";
+  const [currentUser] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, session.user.id));
+  const isBrand = currentUser?.role === "brand";
   if (!isBrand && !isAdminEmail(session.user.email)) {
     return NextResponse.json(
       { error: "Only brand accounts can create campaigns." },

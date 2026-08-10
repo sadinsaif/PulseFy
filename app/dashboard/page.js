@@ -10,6 +10,8 @@ import TopbarSearch from "@/components/TopbarSearch";
 import CampaignGrid from "@/components/CampaignGrid";
 import PerfChart from "@/components/PerfChart";
 import { isAdminEmail } from "@/lib/admin";
+import { canViewPrivateCampaignData, participantCampaignIds } from "@/lib/campaign-access";
+import { getCreatorBalanceCents } from "@/lib/creator-balance";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -222,51 +224,40 @@ export default async function DashboardPage() {
     const me = user.id;
     let cstats = { active: 0, submissions: 0, approved: 0, earnings: 0 };
     try {
-      // Distinct live campaigns this creator has submitted to.
-      const [ac] = await db
-        .select({ n: sql`count(distinct ${campaigns.id})` })
-        .from(submissions)
-        .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
-        .where(
-          sql`${submissions.userId} = ${me} and ${campaigns.status} = 'active' and (${campaigns.endsAt} is null or ${campaigns.endsAt} > now())`
-        );
-
-      const [sb] = await db
-        .select({ n: sql`count(*)` })
-        .from(submissions)
+      const activity = await db.select({
+        id: submissions.id,
+        campaignId: submissions.campaignId,
+        status: submissions.status,
+        campaignRecordId: campaigns.id,
+        campaignBrandId: campaigns.brandId,
+        campaignVisibility: campaigns.visibility,
+        campaignStatus: campaigns.status,
+        campaignEndsAt: campaigns.endsAt,
+      }).from(submissions)
+        .leftJoin(campaigns, eq(submissions.campaignId, campaigns.id))
         .where(eq(submissions.userId, me));
-
-      const [ap] = await db
-        .select({ n: sql`count(*)` })
-        .from(submissions)
-        .where(
-          sql`${submissions.userId} = ${me} and ${submissions.status} = 'approved'`
-        );
-
-      // Total earnings = approved rewards + spotlight bonuses (whole dollars)
-      // + referral commissions (stored in cents). Mirrors getBalanceCents.
-      const [er] = await db
-        .select({ n: sql`coalesce(sum(${submissions.reward}), 0)` })
-        .from(submissions)
-        .where(
-          sql`${submissions.userId} = ${me} and ${submissions.status} = 'approved'`
-        );
-      const [sr] = await db
-        .select({ n: sql`coalesce(sum(${submissions.spotlightBonus}), 0)` })
-        .from(submissions)
-        .where(
-          sql`${submissions.userId} = ${me} and ${submissions.spotlighted} = true`
-        );
-      const [rr] = await db
-        .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
-        .from(referralEarnings)
-        .where(eq(referralEarnings.referrerId, me));
+      const participantIds = await participantCampaignIds(me, [...new Set(activity.map((submission) => submission.campaignId).filter(Boolean))]);
+      const visibleActivity = activity.filter((submission) =>
+        !submission.campaignId || (
+          submission.campaignRecordId &&
+          canViewPrivateCampaignData({
+            campaignId: submission.campaignId,
+            brandId: submission.campaignBrandId,
+            visibility: submission.campaignVisibility,
+          }, session, participantIds)
+        )
+      );
+      const activeCampaigns = new Set(visibleActivity.filter((submission) =>
+        submission.campaignId && submission.campaignStatus === "active" &&
+        (!submission.campaignEndsAt || new Date(submission.campaignEndsAt) > new Date())
+      ).map((submission) => submission.campaignId));
+      const { earnedCents } = await getCreatorBalanceCents(db, me);
 
       cstats = {
-        active: Number(ac?.n || 0),
-        submissions: Number(sb?.n || 0),
-        approved: Number(ap?.n || 0),
-        earnings: Number(er?.n || 0) + Number(sr?.n || 0) + Number(rr?.n || 0) / 100,
+        active: activeCampaigns.size,
+        submissions: visibleActivity.length,
+        approved: visibleActivity.filter((submission) => submission.status === "approved").length,
+        earnings: earnedCents / 100,
       };
     } catch {
       // leave zeros if the DB is unreachable
@@ -312,7 +303,7 @@ export default async function DashboardPage() {
             <div className="kpi">
               <div className="k-top"><div className="k-ic">💰</div></div>
               <div className="k-val">${cstats.earnings.toLocaleString()}</div>
-              <div className="k-lbl">Total earnings</div>
+              <div className="k-lbl">Verified earnings</div>
             </div>
           </section>
 

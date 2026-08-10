@@ -3,9 +3,11 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { users, submissions, referralEarnings } from "@/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { campaigns, users, submissions } from "@/db/schema";
+import { desc, eq, inArray } from "drizzle-orm";
 import { profileSchema } from "@/lib/validation";
+import { canViewPrivateCampaignData, participantCampaignIds } from "@/lib/campaign-access";
+import { getCreatorBalanceCents } from "@/lib/creator-balance";
 
 /**
  * GET /api/profile
@@ -28,28 +30,31 @@ export async function GET() {
     .where(eq(submissions.userId, session.user.id))
     .orderBy(desc(submissions.createdAt));
 
-  const approved = subs.filter((s) => s.status === "approved");
-  const rejected = subs.filter((s) => s.status === "rejected");
-  const reviewed = approved.length + rejected.length;
-  // Earnings = approved campaign rewards + spotlight bonuses (a standout post the
-  // admin highlighted counts on its own, regardless of approval status).
-  const rewardEarnings = approved.reduce((sum, s) => sum + (s.reward || 0), 0);
-  const spotlightEarnings = subs.reduce(
-    (sum, s) => sum + (s.spotlighted ? s.spotlightBonus || 0 : 0),
-    0
+  const campaignIds = [...new Set(subs.map((submission) => submission.campaignId).filter(Boolean))];
+  const campaignRows = campaignIds.length
+    ? await db.select({ id: campaigns.id, brandId: campaigns.brandId, visibility: campaigns.visibility })
+      .from(campaigns).where(inArray(campaigns.id, campaignIds))
+    : [];
+  const campaignById = new Map(campaignRows.map((campaign) => [campaign.id, campaign]));
+  const participantIds = await participantCampaignIds(session.user.id, campaignIds);
+  // A revoked creator may retain ledger-backed account totals, but must not
+  // receive private campaign-derived submission content through this endpoint.
+  const visibleSubs = subs.filter((submission) =>
+    !submission.campaignId || (
+      campaignById.has(submission.campaignId) &&
+      canViewPrivateCampaignData(campaignById.get(submission.campaignId), session, participantIds)
+    )
   );
-  // Referral earnings — 5% commission from referred users' paid withdrawals (in cents).
-  const [re] = await db
-    .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
-    .from(referralEarnings)
-    .where(eq(referralEarnings.referrerId, session.user.id));
-  const referralEarningsCents = Number(re?.n || 0);
 
-  const earnings = rewardEarnings + spotlightEarnings + referralEarningsCents / 100;
-  const totalViews = subs.reduce((sum, s) => sum + (s.views || 0), 0);
-  const totalEngagement = subs.reduce((sum, s) => sum + (s.engagement || 0), 0);
+  const approved = visibleSubs.filter((s) => s.status === "approved");
+  const rejected = visibleSubs.filter((s) => s.status === "rejected");
+  const reviewed = approved.length + rejected.length;
+  const totalViews = visibleSubs.reduce((sum, s) => sum + (s.views || 0), 0);
+  const totalEngagement = visibleSubs.reduce((sum, s) => sum + (s.engagement || 0), 0);
+  const { earnedCents } = await getCreatorBalanceCents(db, session.user.id);
 
   const profile = {
+    role: u.role,
     name: u.name || "",
     email: u.email,
     username: u.username || "",
@@ -61,19 +66,20 @@ export async function GET() {
   };
 
   const stats = {
-    submitted: subs.length,
+    submitted: visibleSubs.length,
     approved: approved.length,
     rejected: rejected.length,
-    pending: subs.length - reviewed,
+    pending: visibleSubs.length - reviewed,
     approvalRate: reviewed ? Math.round((approved.length / reviewed) * 100) : 0,
-    earnings,
+    // Ledger-backed earned funds; availability remains exposed by /api/withdrawals.
+    earnings: earnedCents / 100,
     views: totalViews,
     engagement: totalEngagement,
     // Overall engagement rate across all posts (GIMI-style), one decimal.
     rate: totalViews > 0 ? ((totalEngagement / totalViews) * 100).toFixed(1) : "0.0",
   };
 
-  return NextResponse.json({ profile, stats, submissions: subs });
+  return NextResponse.json({ profile, stats, submissions: visibleSubs });
 }
 
 /** POST /api/profile — update the signed-in user's profile fields. */

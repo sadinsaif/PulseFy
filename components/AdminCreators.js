@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import ModerationControls from "@/components/ModerationControls";
+import TrustAdminControls from "@/components/TrustAdminControls";
 
 // Derived activity label — a creator with ≥1 approved post is "Active",
 // otherwise "New". Read-only label, NOT a moderation status (view-only scope:
@@ -108,7 +109,7 @@ export default function AdminCreators({ rows = [] }) {
                 <th>Status</th>
                 <th>Warnings</th>
                 <th>Joined</th>
-                <th>Moderation</th>
+                <th>Verification</th><th>Moderation</th>
                 <th>View</th>
               </tr>
             </thead>
@@ -130,7 +131,7 @@ export default function AdminCreators({ rows = [] }) {
                   </td>
                   <td>{r.warnings || 0}</td>
                   <td>{fmtDate(r.createdAt)}</td>
-                  <td><ModerationControls user={r} compact /></td>
+                  <td><TrustAdminControls user={r} /></td><td><ModerationControls user={r} compact /></td>
                   <td>
                     <Link href={`/creator/${r.id}`} style={{ color: "var(--accent)" }}>
                       View ↗
