@@ -30,6 +30,12 @@ export default async function CampaignsPage() {
         + (select coalesce(sum(${submissions.spotlightBonus}), 0) from ${submissions}
            where ${submissions.campaignId} = ${campaigns.id} and ${submissions.spotlighted} = true)
       )`;
+      // Internal-only funding totals: these are deliberately selected only for
+      // the admin campaign table, never public campaign responses.
+      const funded = sql`(select coalesce(sum(amount), 0) from campaign_funding_ledger where campaign_funding_ledger.campaign_id = ${campaigns.id} and campaign_funding_ledger.action = 'funding')`;
+      const reserved = sql`(select coalesce(sum(case when action = 'reserve' then amount when action = 'release' then -amount else 0 end), 0) from campaign_funding_ledger where campaign_funding_ledger.campaign_id = ${campaigns.id})`;
+      const ledgerSpent = sql`(select coalesce(sum(case when action = 'spend' then amount when action = 'reversal' then -amount else 0 end), 0) from campaign_funding_ledger where campaign_funding_ledger.campaign_id = ${campaigns.id})`;
+      const available = sql`${funded} - ${reserved} - ${ledgerSpent}`;
       const submissionCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id})`;
       const pendingCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'pending')`;
       const approvedCount = sql`(select count(*) from ${submissions} where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'approved')`;
@@ -43,6 +49,10 @@ export default async function CampaignsPage() {
           status: campaigns.status,
           budget: campaigns.budget,
           budgetSpent,
+          funded,
+          reserved,
+          ledgerSpent,
+          available,
           submissionCount,
           pendingCount,
           approvedCount,

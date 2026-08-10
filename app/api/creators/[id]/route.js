@@ -3,8 +3,9 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { users, submissions, follows } from "@/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { campaigns, users, submissions, follows } from "@/db/schema";
+import { canViewCampaignContributions, participantCampaignIds } from "@/lib/campaign-access";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 /**
  * GET /api/creators/[id]
@@ -29,7 +30,7 @@ export async function GET(_req, { params }) {
       interests: users.interests,
     })
     .from(users)
-    .where(eq(users.id, params.id));
+    .where(and(eq(users.id, params.id), eq(users.role, "creator")));
 
   const profile = rows[0];
   if (!profile) {
@@ -49,17 +50,24 @@ export async function GET(_req, { params }) {
       spotlighted: submissions.spotlighted,
       spotlightBonus: submissions.spotlightBonus,
       createdAt: submissions.createdAt,
+      campaignId: campaigns.id,
+      brandId: campaigns.brandId,
+      visibility: campaigns.visibility,
+      showContributions: campaigns.showContributions,
     })
     .from(submissions)
+    .leftJoin(campaigns, eq(submissions.campaignId, campaigns.id))
     .where(eq(submissions.userId, params.id))
     .orderBy(desc(submissions.createdAt));
 
-  const approvedRows = all.filter((s) => s.status === "approved");
-  const rejected = all.filter((s) => s.status === "rejected").length;
+  const participantIds = await participantCampaignIds(session.user.id, [...new Set(all.map((row) => row.campaignId).filter(Boolean))]);
+  const visible = all.filter((row) => canViewCampaignContributions(row, session, participantIds));
+  const approvedRows = visible.filter((s) => s.status === "approved");
+  const rejected = visible.filter((s) => s.status === "rejected").length;
   const reviewed = approvedRows.length + rejected;
   // Earnings = approved campaign rewards + spotlight bonuses (mirrors profile).
   const rewardEarnings = approvedRows.reduce((sum, s) => sum + (s.reward || 0), 0);
-  const spotlightEarnings = all.reduce(
+  const spotlightEarnings = visible.reduce(
     (sum, s) => sum + (s.spotlighted ? s.spotlightBonus || 0 : 0),
     0
   );
@@ -84,7 +92,7 @@ export async function GET(_req, { params }) {
   }
 
   const stats = {
-    submitted: all.length,
+    submitted: visible.length,
     approved: approvedRows.length,
     rejected,
     approvalRate: reviewed ? Math.round((approvedRows.length / reviewed) * 100) : 0,
@@ -94,5 +102,5 @@ export async function GET(_req, { params }) {
   };
 
   // Public portfolio = approved clips only.
-  return NextResponse.json({ profile, stats, clips: approvedRows });
+  return NextResponse.json({ profile, stats, clips: approvedRows.map(({ campaignId: _campaignId, brandId: _brandId, visibility: _visibility, showContributions: _showContributions, ...submission }) => submission) });
 }

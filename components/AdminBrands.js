@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ModerationControls from "@/components/ModerationControls";
+import TrustAdminControls from "@/components/TrustAdminControls";
 
 // Derived activity label — a brand with ≥1 active campaign is "Active",
 // otherwise "Idle". This is a read-only label, NOT a moderation status: there
@@ -107,7 +108,7 @@ export default function AdminBrands({ rows = [] }) {
                 <th>Status</th>
                 <th>Warnings</th>
                 <th>Joined</th>
-                <th>Moderation</th>
+                <th>Verification</th><th>Moderation</th>
               </tr>
             </thead>
             <tbody>
@@ -127,7 +128,7 @@ export default function AdminBrands({ rows = [] }) {
                   </td>
                   <td>{r.warnings || 0}</td>
                   <td>{fmtDate(r.createdAt)}</td>
-                  <td><ModerationControls user={r} compact /></td>
+                  <td><TrustAdminControls user={r} /></td><td><ModerationControls user={r} compact /></td>
                 </tr>
               ))}
             </tbody>

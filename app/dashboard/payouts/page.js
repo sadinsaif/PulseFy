@@ -3,12 +3,14 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { submissions, users, campaigns, withdrawals, referralEarnings } from "@/db/schema";
+import { submissions, users, campaigns, withdrawals } from "@/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import CreatorWallet from "@/components/CreatorWallet";
 import AdminWithdrawals from "@/components/AdminWithdrawals";
 import { isAdminEmail } from "@/lib/admin";
+import { canViewPrivateCampaignData, participantCampaignIds } from "@/lib/campaign-access";
+import { getCreatorBalanceCents } from "@/lib/creator-balance";
 
 const PLABEL = {
   any: "Any",
@@ -260,42 +262,42 @@ export default async function PayoutsPage() {
   let totalWithdrawn = 0; // money actually paid out (paid withdrawals)
   let pendingEst = 0; // estimated value of submissions still in review
   try {
-    rows = await db
+    const submissionRows = await db
       .select({
         id: submissions.id,
+        campaignId: submissions.campaignId,
+        campaignRecordId: campaigns.id,
         challengeId: submissions.challengeId,
         platform: submissions.platform,
         postUrl: submissions.postUrl,
         reward: submissions.reward,
         status: submissions.status,
         createdAt: submissions.createdAt,
+        campaignBrandId: campaigns.brandId,
+        campaignVisibility: campaigns.visibility,
+        campaignReward: campaigns.reward,
       })
       .from(submissions)
-      .where(
-        and(eq(submissions.userId, user.id), eq(submissions.status, "approved"))
-      )
+      .leftJoin(campaigns, eq(submissions.campaignId, campaigns.id))
+      .where(eq(submissions.userId, user.id))
       .orderBy(desc(submissions.createdAt));
+    const participantIds = await participantCampaignIds(user.id, [...new Set(submissionRows.map((submission) => submission.campaignId).filter(Boolean))]);
+    const visibleSubmissions = submissionRows.filter((submission) =>
+      !submission.campaignId || (
+        submission.campaignRecordId &&
+        canViewPrivateCampaignData({
+          campaignId: submission.campaignId,
+          brandId: submission.campaignBrandId,
+          visibility: submission.campaignVisibility,
+        }, session, participantIds)
+      )
+    );
+    rows = visibleSubmissions.filter((submission) => submission.status === "approved");
 
-    // Total earned — the authoritative earnings number (matches getBalanceCents):
-    // approved rewards + spotlight bonuses (whole dollars) + referral (cents).
-    const [er] = await db
-      .select({ n: sql`coalesce(sum(${submissions.reward}), 0)` })
-      .from(submissions)
-      .where(
-        and(eq(submissions.userId, user.id), eq(submissions.status, "approved"))
-      );
-    const [sr] = await db
-      .select({ n: sql`coalesce(sum(${submissions.spotlightBonus}), 0)` })
-      .from(submissions)
-      .where(
-        and(eq(submissions.userId, user.id), eq(submissions.spotlighted, true))
-      );
-    const [rr] = await db
-      .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
-      .from(referralEarnings)
-      .where(eq(referralEarnings.referrerId, user.id));
-    totalEarned =
-      Number(er?.n || 0) + Number(sr?.n || 0) + Number(rr?.n || 0) / 100;
+    // The wallet is the financial source of truth: only ledger-backed campaign
+    // commitments and earned referral commissions count as verified earnings.
+    const { earnedCents } = await getCreatorBalanceCents(db, user.id);
+    totalEarned = earnedCents / 100;
 
     // Total withdrawn = withdrawals actually marked paid (stored in cents).
     const [wd] = await db
@@ -309,14 +311,9 @@ export default async function PayoutsPage() {
     // Pending (est.) — what the in-review queue is worth if every clip gets
     // approved: Σ campaign reward across the creator's pending submissions.
     // Mirrors the brand "Pending payments (est.)" convention.
-    const [pe] = await db
-      .select({ n: sql`coalesce(sum(${campaigns.reward}), 0)` })
-      .from(submissions)
-      .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
-      .where(
-        and(eq(submissions.userId, user.id), eq(submissions.status, "pending"))
-      );
-    pendingEst = Number(pe?.n || 0);
+    pendingEst = visibleSubmissions
+      .filter((submission) => submission.status === "pending")
+      .reduce((sum, submission) => sum + Number(submission.campaignReward || 0), 0);
   } catch {
     rows = [];
   }
@@ -343,7 +340,7 @@ export default async function PayoutsPage() {
           <div className="kpi">
             <div className="k-top"><div className="k-ic">💰</div></div>
             <div className="k-val">${totalEarned.toLocaleString()}</div>
-            <div className="k-lbl">Total earned</div>
+            <div className="k-lbl">Verified earnings</div>
           </div>
           <div className="kpi">
             <div className="k-top"><div className="k-ic">🏦</div></div>

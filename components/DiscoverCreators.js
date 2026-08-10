@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import TrustBadge from "@/components/TrustBadge";
 
 const PLATFORMS = [
   { key: "", label: "All platforms" },
@@ -198,7 +199,7 @@ export default function DiscoverCreators() {
                     <div className="cc-avatar cc-avatar-fallback">{initial}</div>
                   )}
                   <div className="cc-id">
-                    <b>{c.name || "Creator"}</b>
+                    <b>{c.name || "Creator"}</b> <TrustBadge verified={c.isVerified} />
                     {c.username && <span className="cc-user">@{c.username}</span>}
                     {plats.length > 0 && (
                       <div className="cc-plats">

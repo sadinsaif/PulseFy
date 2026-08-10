@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import CampaignFundingControl from "@/components/CampaignFundingControl";
 
 const STATUS_CLASS = { active: "live", paused: "review", ended: "ended" };
 
@@ -118,6 +119,7 @@ export default function AdminCampaigns({ rows = [] }) {
                 <th>Brand</th>
                 <th>Status</th>
                 <th>Budget</th>
+                <th>Verified funding</th>
                 <th>Amount spent</th>
                 <th>Applications</th>
                 <th>Creators selected</th>
@@ -143,6 +145,7 @@ export default function AdminCampaigns({ rows = [] }) {
                   <td>
                     {c.budget > 0 ? `$${Number(c.budget).toLocaleString()}` : "—"}
                   </td>
+                  <td><CampaignFundingControl campaign={c} /></td>
                   <td>${Number(c.budgetSpent || 0).toLocaleString()}</td>
                   <td>{Number(c.pendingCount ?? 0).toLocaleString()}</td>
                   <td>{Number(c.creatorsSelected ?? 0).toLocaleString()}</td>

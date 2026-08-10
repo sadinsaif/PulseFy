@@ -5,22 +5,39 @@ export const maxDuration = 20;
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { submissions, campaigns } from "@/db/schema";
+import { campaignParticipants, campaigns, submissions, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { submissionSchema } from "@/lib/validation";
+import { isAdminEmail } from "@/lib/admin";
 import { notifyAdmins, notifyUser } from "@/lib/notify";
 import { fetchMetrics } from "@/lib/metrics";
+
+function duplicateError(error) {
+  return error?.code === "23505" || error?.cause?.code === "23505";
+}
+
+function requestError(message, status) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
 
 /**
  * POST /api/submit
  * Creators submit their published clip to a campaign (or legacy challenge).
- * If a campaignId is given, the submission is tied to that campaign and the
- * owning brand is notified. Auth required.
+ * A creator may update pending or rejected work, but an approved submission is
+ * financially committed and cannot be reset to pending through this endpoint.
  */
 export async function POST(req) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "You must be signed in to submit." }, { status: 401 });
+  }
+
+  const [currentUser] = await db.select({ role: users.role })
+    .from(users).where(eq(users.id, session.user.id));
+  if (currentUser?.role !== "creator") {
+    return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   }
 
   let body;
@@ -40,87 +57,121 @@ export async function POST(req) {
 
   let { challengeId, campaignId, platform, postUrl, caption } = parsed.data;
   campaignId = campaignId || null;
-
-  // If this targets a real campaign, validate it and use its title as the label.
-  let brandId = null;
-  if (campaignId) {
-    const camp = await db.select().from(campaigns).where(eq(campaigns.id, campaignId));
-    if (!camp[0]) {
-      return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
-    }
-    if (camp[0].status !== "active") {
-      return NextResponse.json(
-        { error: "This campaign is not accepting submissions right now." },
-        { status: 400 }
-      );
-    }
-    // An active campaign past its end date is effectively ended — reject it so
-    // the server agrees with the client's Live/End gate (see lib/campaign.js).
-    if (camp[0].endsAt && new Date(camp[0].endsAt).getTime() <= Date.now()) {
-      return NextResponse.json(
-        { error: "This campaign has ended and is no longer accepting submissions." },
-        { status: 400 }
-      );
-    }
-    challengeId = camp[0].title;
-    brandId = camp[0].brandId;
-  }
-
   const creatorName = session.user.name || "A creator";
-
-  // One submission per creator per campaign (or per legacy challenge) — resubmit
-  // updates the existing row and puts it back in review.
-  const dupeWhere = campaignId
+  const duplicateWhere = campaignId
     ? and(eq(submissions.userId, session.user.id), eq(submissions.campaignId, campaignId))
     : and(eq(submissions.userId, session.user.id), eq(submissions.challengeId, challengeId));
 
-  const existing = await db.select().from(submissions).where(dupeWhere);
+  const campaignAccess = async (tx) => {
+    if (!campaignId) return { challengeId, brandId: null };
 
-  // Write the submission DURABLY first — the metric fetch (network call) must
-  // never gate or lose the write. We patch real metrics in afterwards.
-  let submissionId;
-  let updated = false;
-  if (existing[0]) {
-    submissionId = existing[0].id;
-    updated = true;
-    await db
-      .update(submissions)
-      .set({ platform, postUrl, caption: caption || null, status: "pending" })
-      .where(eq(submissions.id, submissionId));
-  } else {
-    const inserted = await db
-      .insert(submissions)
-      .values({
-        challengeId,
-        campaignId,
-        userId: session.user.id,
-        platform,
-        postUrl,
-        caption: caption || null,
-      })
-      .returning({ id: submissions.id });
-    submissionId = inserted[0]?.id;
+    // The campaign lock serializes submission acceptance with campaign financial
+    // operations and makes the access/status decision authoritative at write time.
+    const [campaign] = await tx.select().from(campaigns)
+      .where(eq(campaigns.id, campaignId)).for("update");
+    if (!campaign) throw requestError("Campaign not found.", 404);
+    if (campaign.status !== "active") {
+      throw requestError("This campaign is not accepting submissions right now.", 400);
+    }
+    if (campaign.endsAt && new Date(campaign.endsAt).getTime() <= Date.now()) {
+      throw requestError("This campaign has ended and is no longer accepting submissions.", 400);
+    }
+
+    if (campaign.visibility === "private") {
+      // Re-read the DB role and authorization after the campaign lock. A client
+      // cannot retain access after its participant record is revoked.
+      const [creator] = await tx.select({ role: users.role })
+        .from(users).where(eq(users.id, session.user.id));
+      const [participant] = await tx.select({ campaignId: campaignParticipants.campaignId })
+        .from(campaignParticipants)
+        .where(and(
+          eq(campaignParticipants.campaignId, campaign.id),
+          eq(campaignParticipants.creatorId, session.user.id),
+          eq(campaignParticipants.status, "authorized")
+        ))
+        .limit(1)
+        .for("update");
+      if (creator?.role !== "creator" || !participant) {
+        // Match the private campaign detail policy and avoid enumeration.
+        throw requestError("Campaign not found.", 404);
+      }
+    }
+
+    return { challengeId: campaign.title, brandId: campaign.brandId };
+  };
+
+  const writeSubmission = async (tx) => {
+    // Keep the same row-lock order as review (submission before campaign) for
+    // an existing row; campaign acceptance is always revalidated before writing.
+    const [existing] = await tx.select().from(submissions).where(duplicateWhere).for("update");
+    const campaign = await campaignAccess(tx);
+
+    if (existing) {
+      if (existing.status === "approved") {
+        throw requestError(
+          "Approved submissions cannot be resubmitted. Contact the campaign owner if a change is needed.",
+          409
+        );
+      }
+      await tx.update(submissions)
+        .set({ platform, postUrl, caption: caption || null, status: "pending" })
+        .where(eq(submissions.id, existing.id));
+      return { submissionId: existing.id, updated: true, ...campaign };
+    }
+
+    const [inserted] = await tx.insert(submissions).values({
+      challengeId: campaign.challengeId,
+      campaignId,
+      userId: session.user.id,
+      platform,
+      postUrl,
+      caption: caption || null,
+    }).returning({ id: submissions.id });
+    return { submissionId: inserted?.id, updated: false, ...campaign };
+  };
+
+  let result;
+  try {
+    result = await db.transaction(writeSubmission);
+  } catch (error) {
+    if (error.status) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    if (!duplicateError(error)) throw error;
+
+    // PostgreSQL aborts a transaction after a unique violation, so retry in a
+    // fresh transaction to lock the winning row and apply the same guards.
+    try {
+      result = await db.transaction(async (tx) => {
+        const updated = await writeSubmission(tx);
+        if (!updated.updated) throw error;
+        return updated;
+      });
+    } catch (retryError) {
+      if (retryError.status) {
+        return NextResponse.json({ error: retryError.message }, { status: retryError.status });
+      }
+      throw retryError;
+    }
   }
 
-  // Best-effort real metrics (YouTube only for now). Timed out / non-YouTube /
-  // failed all return null — we then leave views/engagement untouched (never
-  // fake them). This runs AFTER the durable write, so it can't lose a submission.
+  // Best-effort metrics are intentionally after the durable write; a failed
+  // external fetch can never lose or alter the financial submission state.
   const metrics = await fetchMetrics(platform, postUrl);
-  if (metrics && submissionId) {
-    await db
-      .update(submissions)
+  if (metrics && result.submissionId) {
+    await db.update(submissions)
       .set({ views: metrics.views, engagement: metrics.engagement })
-      .where(eq(submissions.id, submissionId));
+      .where(eq(submissions.id, result.submissionId));
   }
 
-  await notifyReviewers(brandId, {
+  await notifyReviewers(result.brandId, {
     type: "submission",
-    message: updated
-      ? `${creatorName} updated their submission for ${challengeId}.`
-      : `${creatorName} submitted a ${platform} post to ${challengeId}.`,
+    message: result.updated
+      ? `${creatorName} updated their submission for ${result.challengeId}.`
+      : `${creatorName} submitted a ${platform} post to ${result.challengeId}.`,
   });
 
-  return updated
+  return result.updated
     ? NextResponse.json({
         ok: true,
         updated: true,
@@ -132,7 +183,6 @@ export async function POST(req) {
       );
 }
 
-/** Notify the owning brand for campaign submissions; otherwise the admins. */
 async function notifyReviewers(brandId, { type, message }) {
   if (brandId) {
     await notifyUser(brandId, { type, message, link: "/dashboard/submissions" });
@@ -158,11 +208,34 @@ export async function GET(req) {
     return NextResponse.json({ error: "Missing campaignId or challengeId" }, { status: 400 });
   }
 
+  if (campaignId) {
+    const [campaign] = await db.select({ id: campaigns.id, brandId: campaigns.brandId, visibility: campaigns.visibility })
+      .from(campaigns).where(eq(campaigns.id, campaignId));
+    if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+
+    if (campaign.visibility === "private") {
+      const owns = campaign.brandId === session.user.id;
+      const admin = isAdminEmail(session.user.email);
+      const [participant] = owns || admin
+        ? [null]
+        : await db.select({ campaignId: campaignParticipants.campaignId })
+          .from(campaignParticipants)
+          .where(and(
+            eq(campaignParticipants.campaignId, campaign.id),
+            eq(campaignParticipants.creatorId, session.user.id),
+            eq(campaignParticipants.status, "authorized")
+          ))
+          .limit(1);
+      if (!owns && !admin && !participant) {
+        return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+      }
+    }
+  }
+
   const where = campaignId
     ? and(eq(submissions.userId, session.user.id), eq(submissions.campaignId, campaignId))
     : and(eq(submissions.userId, session.user.id), eq(submissions.challengeId, challengeId));
+  const [submission] = await db.select().from(submissions).where(where);
 
-  const rows = await db.select().from(submissions).where(where);
-
-  return NextResponse.json({ submission: rows[0] || null });
+  return NextResponse.json({ submission: submission || null });
 }

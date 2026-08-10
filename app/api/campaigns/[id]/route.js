@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { campaigns, users, submissions } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { campaignParticipants, campaigns, users, submissions } from "@/db/schema";
+import { and, eq, sql } from "drizzle-orm";
 import { campaignStatusSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
 
@@ -26,12 +26,7 @@ export async function GET(_req, { params }) {
       platform: campaigns.platform,
       reward: campaigns.reward,
       budget: campaigns.budget,
-      budgetSpent: sql`(
-        (select coalesce(sum(${submissions.reward}), 0) from ${submissions}
-           where ${submissions.campaignId} = ${campaigns.id} and ${submissions.status} = 'approved')
-        + (select coalesce(sum(${submissions.spotlightBonus}), 0) from ${submissions}
-           where ${submissions.campaignId} = ${campaigns.id} and ${submissions.spotlighted} = true)
-      )`,
+      budgetSpent: campaigns.budgetSpent,
       spotlightReward: campaigns.spotlightReward,
       performanceMult: campaigns.performanceMult,
       endsAt: campaigns.endsAt,
@@ -46,16 +41,32 @@ export async function GET(_req, { params }) {
       thumbnailUrl: campaigns.thumbnailUrl,
       bannerUrl: campaigns.bannerUrl,
       brandName: users.name,
+      brandVerified: users.isVerified,
     })
     .from(campaigns)
     .leftJoin(users, eq(campaigns.brandId, users.id))
     .where(eq(campaigns.id, params.id));
 
-  if (!rows[0]) {
+  const campaign = rows[0];
+  if (!campaign) {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ campaign: rows[0] });
+  if (campaign.visibility === "private") {
+    const owns = campaign.brandId === session.user.id;
+    const admin = isAdminEmail(session.user.email);
+    const [participation] = owns || admin
+      ? [null]
+      : await db.select({ campaignId: campaignParticipants.campaignId }).from(campaignParticipants)
+        .where(and(eq(campaignParticipants.campaignId, campaign.id), eq(campaignParticipants.creatorId, session.user.id), eq(campaignParticipants.status, "authorized")))
+        .limit(1);
+    if (!owns && !admin && !participation) {
+      // Do not reveal that a private campaign exists to an unauthorized user.
+      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    }
+  }
+
+  return NextResponse.json({ campaign });
 }
 
 /**

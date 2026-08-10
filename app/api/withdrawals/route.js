@@ -3,52 +3,25 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { submissions, withdrawals, users, referralEarnings } from "@/db/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { withdrawals, users, referralEarnings } from "@/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { withdrawalSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
 import { notifyAdmins, notifyUser } from "@/lib/notify";
+import { getCreatorBalanceCents } from "@/lib/creator-balance";
 
 const FEE_RATE = 0.05; // 5% processing fee, matching GIMI
 
 /**
  * Compute a creator's balance in CENTS:
- *   earned  = sum of approved submission rewards (whole dollars)
- *           + sum of spotlight bonuses on spotlighted posts (whole dollars)
+ *   earned  = sum of approved submission rewards with a matching net verified
+ *             campaign-ledger commitment (whole dollars)
+ *           + matching spotlight bonuses (whole dollars)
  *           + sum of referral commissions (in cents, already)
  *   drawn   = sum of all non-failed withdrawal amounts (stored in cents)
  *   available = earned - drawn
  */
-async function getBalanceCents(userId) {
-  const [er] = await db
-    .select({ n: sql`coalesce(sum(${submissions.reward}), 0)` })
-    .from(submissions)
-    .where(and(eq(submissions.userId, userId), eq(submissions.status, "approved")));
 
-  // Spotlight bonuses count on their own (a standout post the admin highlighted),
-  // independent of campaign approval.
-  const [sr] = await db
-    .select({ n: sql`coalesce(sum(${submissions.spotlightBonus}), 0)` })
-    .from(submissions)
-    .where(and(eq(submissions.userId, userId), eq(submissions.spotlighted, true)));
-
-  // Referral earnings — 5% commission from referred users' paid withdrawals. These
-  // are already in cents and always withdrawable (created only when funded).
-  const [rr] = await db
-    .select({ n: sql`coalesce(sum(${referralEarnings.amount}), 0)` })
-    .from(referralEarnings)
-    .where(eq(referralEarnings.referrerId, userId));
-
-  const earnedCents = (Number(er?.n || 0) + Number(sr?.n || 0)) * 100 + Number(rr?.n || 0);
-
-  const [wr] = await db
-    .select({ n: sql`coalesce(sum(${withdrawals.amount}), 0)` })
-    .from(withdrawals)
-    .where(and(eq(withdrawals.userId, userId), sql`${withdrawals.status} <> 'failed'`));
-  const drawnCents = Number(wr?.n || 0);
-
-  return { earnedCents, drawnCents, availableCents: earnedCents - drawnCents };
-}
 
 /**
  * GET /api/withdrawals
@@ -90,7 +63,7 @@ export async function GET(req) {
     return NextResponse.json({ withdrawals: rows });
   }
 
-  const { earnedCents, drawnCents, availableCents } = await getBalanceCents(session.user.id);
+  const { earnedCents, drawnCents, availableCents } = await getCreatorBalanceCents(db, session.user.id);
 
   const rows = await db
     .select()
@@ -119,6 +92,12 @@ export async function POST(req) {
     return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
   }
 
+  const [currentUser] = await db.select({ role: users.role })
+    .from(users).where(eq(users.id, session.user.id));
+  if (currentUser?.role !== "creator") {
+    return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+  }
+
   let body;
   try {
     body = await req.json();
@@ -137,35 +116,29 @@ export async function POST(req) {
   const { method, amount, coin, network, destination } = parsed.data;
   const amountCents = Math.round(amount * 100);
 
-  const { availableCents } = await getBalanceCents(session.user.id);
-  if (amountCents > availableCents) {
-    return NextResponse.json(
-      {
-        error: `Insufficient balance. You have $${(availableCents / 100).toFixed(
-          2
-        )} available.`,
-      },
-      { status: 400 }
-    );
-  }
-
   const feeCents = Math.round(amountCents * FEE_RATE);
   const netCents = amountCents - feeCents;
-
-  const inserted = await db
-    .insert(withdrawals)
-    .values({
-      userId: session.user.id,
-      amount: amountCents,
-      fee: feeCents,
-      net: netCents,
-      method,
-      coin: method === "stablecoin" ? coin : null,
-      network: method === "stablecoin" ? network : null,
-      destination: destination.trim(),
-      status: "pending",
-    })
-    .returning();
+  let inserted;
+  try {
+    inserted = await db.transaction(async (tx) => {
+      const [account] = await tx.select({ id: users.id }).from(users).where(eq(users.id, session.user.id)).for("update");
+      if (!account) { const error = new Error("User not found"); error.status = 404; throw error; }
+      const { availableCents } = await getCreatorBalanceCents(tx, session.user.id);
+      if (amountCents > availableCents) {
+        const error = new Error(`Insufficient balance. You have $${(availableCents / 100).toFixed(2)} available.`);
+        error.status = 409;
+        throw error;
+      }
+      return tx.insert(withdrawals).values({
+        userId: session.user.id, amount: amountCents, fee: feeCents, net: netCents, method,
+        coin: method === "stablecoin" ? coin : null, network: method === "stablecoin" ? network : null,
+        destination: destination.trim(), status: "pending",
+      }).returning();
+    });
+  } catch (error) {
+    if (error.status) return NextResponse.json({ error: error.message }, { status: error.status });
+    throw error;
+  }
 
   // Alert admins so they can send the payment.
   const who = session.user.name || session.user.email || "A creator";
@@ -211,64 +184,67 @@ export async function PATCH(req) {
   }
 
   const { id, status } = body || {};
-  if (!id || !["paid", "failed", "pending"].includes(status)) {
+  if (!id || typeof id !== "string" || !["paid", "failed"].includes(status)) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const existing = await db.select().from(withdrawals).where(eq(withdrawals.id, id));
-  if (!existing[0]) {
-    return NextResponse.json({ error: "Withdrawal not found" }, { status: 404 });
-  }
+  let result;
+  try {
+    result = await db.transaction(async (tx) => {
+      const [current] = await tx.select().from(withdrawals)
+        .where(eq(withdrawals.id, id)).for("update");
+      if (!current) { const error = new Error("Withdrawal not found"); error.status = 404; throw error; }
 
-  await db.update(withdrawals).set({ status }).where(eq(withdrawals.id, id));
+      // Lock the account whenever a payout's balance treatment is decided. This
+      // shares the lock order used by POST /api/withdrawals for serial safety.
+      const [creator] = await tx.select({ id: users.id, referredBy: users.referredBy, createdAt: users.createdAt })
+        .from(users).where(eq(users.id, current.userId)).for("update");
+      if (!creator) { const error = new Error("Creator not found"); error.status = 404; throw error; }
 
-  // Referral commission — when a withdrawal is marked PAID and the creator was
-  // referred (users.referred_by is set), check if they're still in the 90-day
-  // window. If yes, the referrer earns 5% of the net amount (in cents).
-  if (status === "paid") {
-    const [referee] = await db
-      .select({ referredBy: users.referredBy, createdAt: users.createdAt })
-      .from(users)
-      .where(eq(users.id, existing[0].userId));
+      if (current.status === status) return { current, changed: false };
+      if (current.status !== "pending") {
+        const error = new Error(`A ${current.status} withdrawal is final and cannot be changed.`);
+        error.status = 409;
+        throw error;
+      }
 
-    if (referee?.referredBy) {
-      const now = new Date();
-      const accountAge = now - new Date(referee.createdAt);
-      const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+      await tx.update(withdrawals).set({ status }).where(eq(withdrawals.id, current.id));
 
-      if (accountAge <= ninetyDays) {
-        // Check if this withdrawal already earned a commission (prevents double-
-        // counting if the admin toggles paid → pending → paid).
-        const [duplicate] = await db
-          .select()
-          .from(referralEarnings)
-          .where(eq(referralEarnings.withdrawalId, id));
-
-        if (!duplicate) {
-          const commissionCents = Math.round(existing[0].net * 0.05);
-          await db.insert(referralEarnings).values({
-            referrerId: referee.referredBy,
-            refereeId: existing[0].userId,
-            withdrawalId: id,
-            amount: commissionCents,
-          });
+      // A commission is created only for the one legal pending -> paid
+      // transition, from persisted withdrawal values, in this same transaction.
+      if (status === "paid" && creator.referredBy) {
+        const accountAge = new Date() - new Date(creator.createdAt);
+        const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+        if (accountAge <= ninetyDays) {
+          const [duplicate] = await tx.select({ id: referralEarnings.id })
+            .from(referralEarnings).where(eq(referralEarnings.withdrawalId, current.id));
+          if (!duplicate) {
+            await tx.insert(referralEarnings).values({
+              referrerId: creator.referredBy,
+              refereeId: current.userId,
+              withdrawalId: current.id,
+              amount: Math.round(current.net * 0.05),
+            });
+          }
         }
       }
+      return { current, changed: true };
+    });
+  } catch (error) {
+    if (error.status) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error?.code === "23505" || error?.cause?.code === "23505") {
+      return NextResponse.json({ error: "Referral commission was already recorded for this withdrawal." }, { status: 409 });
     }
+    throw error;
   }
 
-  // Tell the creator what happened.
-  if (status === "paid" || status === "failed") {
-    const amt = (existing[0].net / 100).toFixed(2);
-    const msg =
-      status === "paid"
-        ? `Your withdrawal of $${amt} has been paid ✅`
-        : `Your withdrawal of $${amt} could not be processed and was refunded to your balance.`;
-    await notifyUser(existing[0].userId, {
-      type: "review",
-      message: msg,
-      link: "/dashboard/payouts",
-    });
+  // Do not emit a payout notification for a harmless idempotent retry.
+  if (result.changed) {
+    const amt = (result.current.net / 100).toFixed(2);
+    const message = status === "paid"
+      ? `Your withdrawal of $${amt} has been paid ✅`
+      : `Your withdrawal of $${amt} could not be processed and was refunded to your balance.`;
+    await notifyUser(result.current.userId, { type: "review", message, link: "/dashboard/payouts" });
   }
 
   return NextResponse.json({ ok: true, status });

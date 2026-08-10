@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import TrustReviewForm from "@/components/TrustReviewForm";
 
 const PLATFORM_LABEL = {
   tiktok: "🎵 TikTok",
@@ -29,7 +30,7 @@ function fmtCompact(n) {
  * nothing and renders null — they only ever see the Spotlighted section.
  * Each card shows the creator's earnings = approval reward + spotlight bonus.
  */
-export default function CampaignSubmissions({ campaignId }) {
+export default function CampaignSubmissions({ campaignId, completed = false }) {
   const [rows, setRows] = useState(null);
 
   useEffect(() => {
@@ -47,6 +48,10 @@ export default function CampaignSubmissions({ campaignId }) {
       }
     })();
   }, [campaignId]);
+
+  function markCreatorReviewed(creatorId) {
+    setRows((current) => current?.map((submission) => submission.creatorId === creatorId ? { ...submission, canReview: false } : submission) || current);
+  }
 
   // Nothing to show (no posts yet, or the viewer isn't a brand/admin) → hide.
   if (!rows || rows.length === 0) return null;
@@ -117,9 +122,12 @@ export default function CampaignSubmissions({ campaignId }) {
                     <span className="spot-name">{s.creatorName || "Creator"}</span>
                   </span>
                 )}
-                <a href={s.postUrl} target="_blank" rel="noreferrer" className="spot-open">
-                  Watch ↗
-                </a>
+                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                  {completed && s.canReview && <TrustReviewForm campaignId={campaignId} revieweeId={s.creatorId} label="Rate creator" onSubmitted={() => markCreatorReviewed(s.creatorId)} />}
+                  <a href={s.postUrl} target="_blank" rel="noreferrer" className="spot-open">
+                    Watch ↗
+                  </a>
+                </div>
               </div>
             </div>
           );

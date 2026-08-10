@@ -59,22 +59,32 @@ In Vercel → project → **Settings → Environment Variables**, add:
 | `NEXTAUTH_URL` | Same as `AUTH_URL` |
 | `RESEND_API_KEY` | Your Resend API key |
 | `EMAIL_FROM` | `PulseFy <onboarding@resend.dev>` (or your verified sender) |
+| `PULSEFY_FINANCIAL_MIGRATIONS_APPLIED` | Set to `016` only after the controlled 014 → 015 → 016 migration sequence has completed and been verified in that production database. |
 
 `POSTGRES_URL` / `POSTGRES_URL_NON_POOLING` are set automatically by step 3 — you don't add them by hand.
 
 > `AUTH_URL` matters: verification and reset emails build their links from it. If it's wrong, the links in emails will point to the wrong host.
 
-### 6. Create the database tables
-The schema lives in `db/schema.js`. Push it to your Postgres database **once** with drizzle-kit. Run this locally with the production DB URL in your environment:
+### 6. Create and migrate the database
+`npm run db:push` creates the base Drizzle schema, but it does **not** guarantee the hand-authored indexes and CHECK constraints in the numbered SQL migrations. Do not use it as the production migration mechanism for reports, moderation, or Trust System changes.
+
+For a new or upgraded production database, use a controlled migration process with a backup and apply the numbered scripts **once, in order**, after the base schema is present:
 
 ```bash
-# Pull the Vercel env vars into a local file first:
-vercel env pull .env.local
-npm install
-npm run db:push        # runs: drizzle-kit push
+# Run from a controlled environment with POSTGRES_URL set. Review and apply
+# each script with your approved PostgreSQL migration tool; do not skip steps.
+psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f migrations/010_reports.sql
+psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f migrations/011_moderation.sql
+psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f migrations/012_trust_system.sql
+psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f migrations/013_private_campaign_access.sql
+psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f migrations/014_campaign_budget_spend.sql
+psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f migrations/015_submission_uniqueness.sql
+psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f migrations/016_campaign_funding_ledger.sql
 ```
 
-`npm run db:push` reads `POSTGRES_URL` and creates the `users`, `sessions`, `accounts`, `verificationTokens`, and `submissions` tables.
+`012_trust_system.sql` is required for Trust System database integrity. It creates the review relationship unique index, review CHECK constraints, creator social-link uniqueness, and Trust indexes that `db:push` alone does not guarantee. `014_campaign_budget_spend.sql` runs atomically and intentionally stops if historical rewards already exceed a campaign's declared budget; reconcile those campaigns before retrying. `015_submission_uniqueness.sql` intentionally stops if duplicate campaign submissions already exist; reconcile those campaigns before retrying. `016_campaign_funding_ledger.sql` deliberately does **not** treat declared campaign budgets as paid money and stops when historical rewards lack verifiable funding records; reconcile those records before retrying. Record each applied migration in your deployment change log and do not rerun migration scripts against an already-migrated database without first confirming their idempotency.
+
+**Production financial release gate:** `npm run build` fails on Vercel production builds unless `PULSEFY_FINANCIAL_MIGRATIONS_APPLIED=016` is configured. Set this value only after applying and verifying migrations 014 → 015 → 016 for that exact database. For a non-Vercel production pipeline, set `PULSEFY_ENFORCE_FINANCIAL_MIGRATIONS=true` as well. This is an explicit release attestation, not proof from the application; it prevents a `db:push`-only deployment from silently being treated as financially protected.
 
 ### 7. Deploy
 Trigger a deploy (push a commit, or click **Redeploy** in Vercel). Once live, test the full flow:
@@ -93,7 +103,9 @@ Requires **Node.js 18+**.
 ```bash
 cp .env.example .env.local     # then fill in the values
 npm install
-npm run db:push                # create tables (needs a Postgres URL)
+npm run db:push                # bootstrap the base Drizzle schema only
+# For reports, moderation, and Trust System schema, apply 010 → 011 → 012 → 013 → 014 → 015 → 016
+# with the controlled SQL migration process documented above.
 npm run dev                    # http://localhost:3000
 ```
 

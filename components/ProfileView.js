@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import PortfolioManager from "@/components/PortfolioManager";
 
 const PLATFORM_LABEL = {
   tiktok: "🎵 TikTok",
@@ -381,9 +382,11 @@ export default function ProfileView() {
         </div>
         <div className="stat-box">
           <div className="n" style={{ color: "var(--accent-3)" }}>${stats.earnings}</div>
-          <div className="l">Earnings</div>
+          <div className="l">Verified earnings</div>
         </div>
       </div>
+
+      {profile.role === "creator" && <PortfolioManager />}
 
       {/* Submissions table */}
       <div className="panel">
