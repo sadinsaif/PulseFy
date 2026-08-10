@@ -58,7 +58,8 @@ export default function AdminCreators({ rows = [] }) {
         ? true
         : (r.name || "").toLowerCase().includes(needle) ||
           (r.username || "").toLowerCase().includes(needle) ||
-          (r.email || "").toLowerCase().includes(needle)
+          (r.email || "").toLowerCase().includes(needle) ||
+          r.id.toLowerCase().includes(needle)
     );
 
   return (
@@ -101,6 +102,7 @@ export default function AdminCreators({ rows = [] }) {
             <thead>
               <tr>
                 <th>Creator</th>
+                <th>Creator ID</th>
                 <th>Username</th>
                 <th>Email</th>
                 <th>Submissions</th>
@@ -117,6 +119,7 @@ export default function AdminCreators({ rows = [] }) {
               {shown.map((r) => (
                 <tr key={r.id}>
                   <td><b>{r.name || "Creator"}</b></td>
+                  <td>{r.id}</td>
                   <td>{r.username ? `@${r.username}` : "—"}</td>
                   <td>{r.email || "—"}</td>
                   <td>{r.submissions.toLocaleString()}</td>

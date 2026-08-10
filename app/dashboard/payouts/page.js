@@ -37,8 +37,12 @@ export default async function PayoutsPage() {
   const session = await auth();
   const user = session?.user;
   const admin = isAdminEmail(user?.email);
-  const isBrand = user?.role === "brand";
+  const [currentUser] = user?.id
+    ? await db.select({ role: users.role }).from(users).where(eq(users.id, user.id))
+    : [];
+  const isBrand = currentUser?.role === "brand";
 
+  const effectiveUser = user ? { ...user, role: currentUser?.role || user.role } : user;
   // ---- BRAND / ADMIN: money paid out to creators ----
   if (isBrand || admin) {
     let rows = [];
@@ -143,7 +147,7 @@ export default async function PayoutsPage() {
 
     return (
       <div className="app">
-        <Sidebar user={user} isAdmin={admin} />
+        <Sidebar user={effectiveUser} isAdmin={admin} />
         <main className="main">
           <div className="topbar">
             <div>
@@ -320,7 +324,7 @@ export default async function PayoutsPage() {
 
   return (
     <div className="app">
-      <Sidebar user={user} isAdmin={admin} />
+      <Sidebar user={effectiveUser} isAdmin={admin} />
       <main className="main">
         <div className="topbar">
           <div>

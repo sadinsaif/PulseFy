@@ -124,6 +124,7 @@ export default function CreatorProfile({ id, meId = "" }) {
           <h1>{profile.name || "Creator"}</h1>
           <div className="meta">
             {profile.username && <span>🔗 @{profile.username}</span>}
+            <span>Creator ID: {profile.creatorId}</span>
           </div>
           {profile.bio && <p className="brief" style={{ marginTop: 8 }}>{profile.bio}</p>}
           {interestList.length > 0 && (

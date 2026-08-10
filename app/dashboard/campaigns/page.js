@@ -13,7 +13,11 @@ import { isAdminEmail } from "@/lib/admin";
 export default async function CampaignsPage() {
   const session = await auth();
   const user = session?.user;
-  const isBrand = user?.role === "brand";
+  const [currentUser] = user?.id
+    ? await db.select({ role: users.role }).from(users).where(eq(users.id, user.id))
+    : [];
+  const isBrand = currentUser?.role === "brand";
+  const effectiveUser = user ? { ...user, role: currentUser?.role || user.role } : user;
   const admin = isAdminEmail(user?.email);
 
   // ---- ADMIN: platform-wide campaign management ----------------------------
@@ -77,7 +81,7 @@ export default async function CampaignsPage() {
 
   return (
     <div className="app">
-      <Sidebar user={user} isAdmin={admin} />
+      <Sidebar user={effectiveUser} isAdmin={admin} />
 
       <main className="main">
         <div className="topbar">

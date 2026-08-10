@@ -1,6 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import { auth } from "@/auth";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import DiscoverCreators from "@/components/DiscoverCreators";
 import { isAdminEmail } from "@/lib/admin";
@@ -14,12 +17,16 @@ export default async function DiscoverPage() {
   const session = await auth();
   const user = session?.user;
   const admin = isAdminEmail(user?.email);
-  const isBrand = user?.role === "brand";
+  const [currentUser] = user?.id
+    ? await db.select({ role: users.role }).from(users).where(eq(users.id, user.id))
+    : [];
+  const effectiveUser = user ? { ...user, role: currentUser?.role || user.role } : user;
+  const isBrand = currentUser?.role === "brand";
 
   if (!isBrand && !admin) {
     return (
       <div className="app">
-        <Sidebar user={user} isAdmin={admin} />
+        <Sidebar user={effectiveUser} isAdmin={admin} />
         <main className="main">
           <div className="topbar">
             <div>
@@ -40,7 +47,7 @@ export default async function DiscoverPage() {
 
   return (
     <div className="app">
-      <Sidebar user={user} isAdmin={admin} />
+      <Sidebar user={effectiveUser} isAdmin={admin} />
 
       <main className="main">
         <div className="topbar">

@@ -55,6 +55,7 @@ export async function GET() {
 
   const profile = {
     role: u.role,
+    creatorId: u.role === "creator" ? u.id : null,
     name: u.name || "",
     email: u.email,
     username: u.username || "",

@@ -20,6 +20,7 @@ export async function GET(_req, { params }) {
 
   const rows = await db
     .select({
+      creatorId: users.id,
       id: users.id,
       name: users.name,
       username: users.username,
@@ -50,7 +51,8 @@ export async function GET(_req, { params }) {
       spotlighted: submissions.spotlighted,
       spotlightBonus: submissions.spotlightBonus,
       createdAt: submissions.createdAt,
-      campaignId: campaigns.id,
+      campaignId: submissions.campaignId,
+      campaignRecordId: campaigns.id,
       brandId: campaigns.brandId,
       visibility: campaigns.visibility,
       showContributions: campaigns.showContributions,
@@ -61,7 +63,9 @@ export async function GET(_req, { params }) {
     .orderBy(desc(submissions.createdAt));
 
   const participantIds = await participantCampaignIds(session.user.id, [...new Set(all.map((row) => row.campaignId).filter(Boolean))]);
-  const visible = all.filter((row) => canViewCampaignContributions(row, session, participantIds));
+  const visible = all.filter((row) =>
+    !row.campaignId || (row.campaignRecordId && canViewCampaignContributions(row, session, participantIds))
+  );
   const approvedRows = visible.filter((s) => s.status === "approved");
   const rejected = visible.filter((s) => s.status === "rejected").length;
   const reviewed = approvedRows.length + rejected;
@@ -102,5 +106,5 @@ export async function GET(_req, { params }) {
   };
 
   // Public portfolio = approved clips only.
-  return NextResponse.json({ profile, stats, clips: approvedRows.map(({ campaignId: _campaignId, brandId: _brandId, visibility: _visibility, showContributions: _showContributions, ...submission }) => submission) });
+  return NextResponse.json({ profile, stats, clips: approvedRows.map(({ campaignId: _campaignId, campaignRecordId: _campaignRecordId, brandId: _brandId, visibility: _visibility, showContributions: _showContributions, ...submission }) => submission) });
 }

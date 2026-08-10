@@ -73,6 +73,7 @@ export default function Leaderboard({ initialQ = "" }) {
                 <div className="lb-who">
                   <b>{c.name || "Creator"}</b>
                   {c.username && <span className="lb-user">@{c.username}</span>}
+                  <span className="lb-user">Creator ID: {c.creatorId}</span>
                 </div>
                 <div className="lb-meta">
                   <span className="lb-approved">{Number(c.approved ?? 0)} approved</span>

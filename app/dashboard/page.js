@@ -17,7 +17,11 @@ export default async function DashboardPage() {
   const session = await auth();
   const user = session?.user;
   const firstName = (user?.name || "there").split(" ")[0];
-  const isBrand = user?.role === "brand";
+  const [currentUser] = user?.id
+    ? await db.select({ role: users.role }).from(users).where(eq(users.id, user.id))
+    : [];
+  const isBrand = currentUser?.role === "brand";
+  const effectiveUser = user ? { ...user, role: currentUser?.role || user.role } : user;
 
   // ---- BRAND OVERVIEW ------------------------------------------------------
   // Brands get a business-focused Overview: KPIs + campaign performance, all
@@ -85,7 +89,7 @@ export default async function DashboardPage() {
 
     return (
       <div className="app">
-        <Sidebar user={user} isAdmin={isAdminEmail(user?.email)} />
+        <Sidebar user={effectiveUser} isAdmin={isAdminEmail(user?.email)} />
 
         <main className="main">
           <div className="topbar">
@@ -265,7 +269,7 @@ export default async function DashboardPage() {
 
     return (
       <div className="app">
-        <Sidebar user={user} isAdmin={false} />
+        <Sidebar user={effectiveUser} isAdmin={false} />
 
         <main className="main">
           <div className="topbar">
@@ -461,7 +465,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="app">
-      <Sidebar user={user} isAdmin={isAdminEmail(user?.email)} />
+      <Sidebar user={effectiveUser} isAdmin={isAdminEmail(user?.email)} />
 
       <main className="main">
         <div className="topbar">

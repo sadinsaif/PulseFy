@@ -328,6 +328,7 @@ export default function ProfileView() {
           <h1>{profile.name || "Your name"}</h1>
           <div className="meta">
             {profile.username && <span>🔗 @{profile.username}</span>}
+            {profile.creatorId && <span>Creator ID: {profile.creatorId}</span>}
             <span>✉️ {profile.email}</span>
           </div>
           {profile.bio && <p className="brief" style={{ marginTop: 8 }}>{profile.bio}</p>}

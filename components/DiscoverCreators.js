@@ -201,6 +201,7 @@ export default function DiscoverCreators() {
                   <div className="cc-id">
                     <b>{c.name || "Creator"}</b> <TrustBadge verified={c.isVerified} />
                     {c.username && <span className="cc-user">@{c.username}</span>}
+                    <span className="cc-user">Creator ID: {c.creatorId}</span>
                     {plats.length > 0 && (
                       <div className="cc-plats">
                         {plats.map((p) => (

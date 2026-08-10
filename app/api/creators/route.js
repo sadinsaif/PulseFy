@@ -66,12 +66,13 @@ export async function GET(req) {
   // ---- Lean default path (creator Leaderboard) — UNCHANGED ------------------
   if (!rich) {
     const where = q
-      ? sql`${notBrand} and (${ilike(users.name, `%${q}%`)} or ${ilike(users.username, `%${q}%`)})`
+      ? sql`${notBrand} and (${ilike(users.name, `%${q}%`)} or ${ilike(users.username, `%${q}%`)} or ${ilike(users.id, `%${q}%`)})`
       : notBrand;
 
     const rows = await db
       .select({
         id: users.id,
+        creatorId: users.id,
         name: users.name,
         username: users.username,
         image: users.image,
@@ -109,7 +110,7 @@ export async function GET(req) {
   const conds = [notBrand];
   if (q) {
     conds.push(
-      sql`(${ilike(users.name, `%${q}%`)} or ${ilike(users.username, `%${q}%`)})`
+      sql`(${ilike(users.name, `%${q}%`)} or ${ilike(users.username, `%${q}%`)} or ${ilike(users.id, `%${q}%`)})`
     );
   }
   if (platform && platform !== "any") {
@@ -133,6 +134,7 @@ export async function GET(req) {
   const rows = await db
     .select({
       id: users.id,
+      creatorId: users.id,
       name: users.name,
       username: users.username,
       image: users.image,
