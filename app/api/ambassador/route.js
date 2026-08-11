@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { ambassadorApplications } from "@/db/schema";
 import { and, or, eq, inArray, desc } from "drizzle-orm";
 import { ambassadorSchema } from "@/lib/validation";
-import { getAdminEmails } from "@/lib/admin";
+import { getAdminEmails, isAdminEmail } from "@/lib/admin";
 import { sendAmbassadorApplication } from "@/lib/email";
 import { notifyAdmins } from "@/lib/notify";
 
@@ -35,7 +35,7 @@ async function notifyTeam(application) {
   await notifyAdmins({
     type: "submission",
     message: `New Ambassador application — ${application.name} (${application.platform}).`,
-    link: null,
+    link: "/dashboard/ambassadors",
   });
 }
 
@@ -160,5 +160,49 @@ export async function POST(req) {
       { error: "Could not submit your application. Please try again." },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * GET /api/ambassador — admin-only. Lists every Ambassador application, newest
+ * first, for the admin review console. Fails soft to an empty list if migration
+ * 017 hasn't been applied yet (42P01), so the page never crashes.
+ */
+export async function GET() {
+  const session = await auth();
+  if (!isAdminEmail(session?.user?.email)) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+  }
+
+  try {
+    const rows = await db
+      .select({
+        id: ambassadorApplications.id,
+        userId: ambassadorApplications.userId,
+        name: ambassadorApplications.name,
+        email: ambassadorApplications.email,
+        country: ambassadorApplications.country,
+        platform: ambassadorApplications.platform,
+        handle: ambassadorApplications.handle,
+        socialLink: ambassadorApplications.socialLink,
+        audienceSize: ambassadorApplications.audienceSize,
+        contentCategory: ambassadorApplications.contentCategory,
+        reason: ambassadorApplications.reason,
+        referralSource: ambassadorApplications.referralSource,
+        status: ambassadorApplications.status,
+        reviewerNote: ambassadorApplications.reviewerNote,
+        submittedAt: ambassadorApplications.submittedAt,
+        reviewedAt: ambassadorApplications.reviewedAt,
+      })
+      .from(ambassadorApplications)
+      .orderBy(desc(ambassadorApplications.submittedAt));
+
+    return NextResponse.json({ applications: rows });
+  } catch (err) {
+    if (isMissingTable(err)) {
+      return NextResponse.json({ applications: [] });
+    }
+    console.error("Ambassador list failed:", err);
+    return NextResponse.json({ error: "Could not load applications." }, { status: 500 });
   }
 }

@@ -28,6 +28,7 @@ const ADMIN_NAV = [
   { href: "/dashboard/campaigns", icon: "🎯", label: "Campaigns" },
   { href: "/dashboard/brands", icon: "🏢", label: "Brands" },
   { href: "/dashboard/creators", icon: "👥", label: "Creators" },
+  { href: "/dashboard/ambassadors", icon: "🎖️", label: "Ambassadors" },
   { href: "/dashboard/applications", icon: "📥", label: "Applications" },
   { href: "/dashboard/submissions", icon: "✅", label: "Submissions" },
   { href: "/dashboard/payouts", icon: "💸", label: "Payments" },
