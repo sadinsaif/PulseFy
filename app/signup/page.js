@@ -36,6 +36,7 @@ function SignupInner() {
 
   const [role, setRole] = useState(initialRole);
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
@@ -53,7 +54,7 @@ function SignupInner() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role, ref }),
+        body: JSON.stringify({ name, username, email, password, role, ref }),
       });
       const data = await res.json().catch(() => ({}));
       setLoading(false);
@@ -130,6 +131,22 @@ function SignupInner() {
               placeholder={cfg.namePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="username">Username</label>
+            <input
+              id="username"
+              type="text"
+              autoComplete="username"
+              placeholder="e.g. maya_rahman"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              minLength={3}
+              maxLength={30}
+              pattern="[a-zA-Z0-9_.]+"
+              title="Letters, numbers, _ and . only (3–30 characters)"
               required
             />
           </div>

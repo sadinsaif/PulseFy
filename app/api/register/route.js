@@ -28,6 +28,7 @@ export async function POST(req) {
   }
 
   const name = parsed.data.name.trim();
+  const username = parsed.data.username.trim();
   const email = parsed.data.email.toLowerCase().trim();
   const password = parsed.data.password;
   const role = parsed.data.role === "brand" ? "brand" : "creator";
@@ -38,6 +39,20 @@ export async function POST(req) {
     // Don't reveal too much, but a clear message helps UX here.
     return NextResponse.json(
       { error: "An account with this email already exists." },
+      { status: 409 }
+    );
+  }
+
+  // Username must be unique (case-insensitively): it's the public handle and
+  // the referral lookup key (?ref=<username>), so a collision would credit the
+  // wrong referrer. The DB column isn't uniquely indexed, so enforce it here.
+  const usernameTaken = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(sql`lower(${users.username}) = ${username.toLowerCase()}`);
+  if (usernameTaken[0]) {
+    return NextResponse.json(
+      { error: "That username is already taken. Please choose another." },
       { status: 409 }
     );
   }
@@ -72,6 +87,7 @@ export async function POST(req) {
 
   await db.insert(users).values({
     name,
+    username,
     email,
     passwordHash,
     role,
