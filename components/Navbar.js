@@ -23,6 +23,14 @@ export default function Navbar({ session }) {
           <a href="/#how">How it works</a>
           <a href="/#features">Features</a>
           <a href="/#pricing">Pricing</a>
+          <Link
+            href="/ambassador"
+            className="btn btn-ambassador"
+            onClick={() => setOpen(false)}
+          >
+            <span className="amb-star" aria-hidden="true">★</span>
+            Become an Ambassador
+          </Link>
           {session ? <Link href="/dashboard">Dashboard</Link> : null}
         </div>
         <div className="nav-cta">

@@ -156,6 +156,39 @@ button { font-family: inherit; cursor: pointer; border: none; }
   transform: translateY(-1px);
 }
 
+/* Ambassador — a secondary/outline nav button in the brand's blue→violet
+   accent. Deliberately distinct from the orange primary CTA (.btn-primary)
+   and the green-glow ghost: a subtle gradient-tinted outline that lights up
+   with a blue/purple glow on hover. Used in the public navbar + hero.
+   Selector uses .btn.btn-ambassador so it outranks `.nav-links a`
+   (colour/size) when it sits inside the marketing nav. */
+.btn.btn-ambassador {
+  padding: 9px 18px;
+  font-size: 14px;
+  color: #d9c9ff;
+  background: linear-gradient(180deg, rgba(61,139,255,.10), rgba(168,85,247,.10));
+  border: 1px solid rgba(168,85,247,.45);
+}
+.btn-ambassador .amb-star {
+  font-size: 13px;
+  line-height: 1;
+  background: linear-gradient(135deg, #3d8bff 0%, #a05cf0 55%, #e64be0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.btn.btn-ambassador:hover {
+  color: #fff;
+  border-color: rgba(168,85,247,.85);
+  box-shadow: 0 8px 28px -8px rgba(120,80,246,.6);
+  transform: translateY(-1px);
+}
+.btn.btn-ambassador:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(168,85,247,.22), 0 0 0 1px rgba(168,85,247,.9);
+}
+
 .btn-block { width: 100%; justify-content: center; }
 .btn-lg { padding: 15px 30px; font-size: 16px; }
 .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 8px; }
