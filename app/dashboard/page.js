@@ -344,7 +344,7 @@ export default async function DashboardPage() {
     spend: 0,
     paidOut: 0,
   };
-  let activity = { active: 0, paused: 0, ended: 0 };
+  let activity = { active: 0, draft: 0, paused: 0, ended: 0 };
   let pending = { submissions: 0, payouts: 0 };
   let perf = { views: 0, engagement: 0, submissions: 0, approved: 0, spend: 0 };
   let perfRows = [];
@@ -390,7 +390,14 @@ export default async function DashboardPage() {
       paidOut: Number(po?.n || 0) / 100,
     };
 
-    // Campaign activity breakdown by status.
+    // Campaign activity breakdown by status. "draft" isn't part of the campaign
+    // status enum yet (active|paused|ended), so this is a real count that reads 0
+    // today and lights up automatically if draft campaigns are ever introduced —
+    // no fabricated number.
+    const [dr] = await db
+      .select({ n: sql`count(*)` })
+      .from(campaigns)
+      .where(sql`${campaigns.status} = 'draft'`);
     const [pa] = await db
       .select({ n: sql`count(*)` })
       .from(campaigns)
@@ -401,6 +408,7 @@ export default async function DashboardPage() {
       .where(sql`${campaigns.status} = 'ended'`);
     activity = {
       active: a.activeCampaigns,
+      draft: Number(dr?.n || 0),
       paused: Number(pa?.n || 0),
       ended: Number(en?.n || 0),
     };
@@ -505,6 +513,10 @@ export default async function DashboardPage() {
               <div className="perf-tile">
                 <div className="pt-val">{activity.active.toLocaleString()}</div>
                 <div className="pt-lbl">Active</div>
+              </div>
+              <div className="perf-tile">
+                <div className="pt-val">{activity.draft.toLocaleString()}</div>
+                <div className="pt-lbl">Draft</div>
               </div>
               <div className="perf-tile">
                 <div className="pt-val">{activity.paused.toLocaleString()}</div>
