@@ -222,12 +222,11 @@ button { font-family: inherit; cursor: pointer; border: none; }
 .logo-mark {
   display: inline-block;
   width: 34px; height: 34px;
-  border-radius: 9px;
   background-image: url('/logo-mark.png');
   background-repeat: no-repeat;
   background-position: center;
-  background-size: cover;
-  background-color: #0a0a0f;
+  background-size: contain;
+  background-color: transparent;
   font-size: 0;
   flex: none;
 }
