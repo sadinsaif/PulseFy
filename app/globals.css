@@ -2377,3 +2377,136 @@ tbody tr:last-child td { border-bottom: none; }
 @media (max-width: 1100px) { .perf-tiles { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 640px)  { .perf-tiles { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 400px)  { .perf-tiles { grid-template-columns: 1fr; } }
+
+/* ============================================
+   Ambassador Program (public /ambassador)
+   Additive only — reuses the existing palette. Ambassador-specific
+   elements get a subtle blue→violet glow to set them apart from the
+   orange primary CTA. No existing rules are changed.
+   ============================================ */
+
+/* Native <select> styled to match .field input (no such rule existed). */
+.field select {
+  width: 100%;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 38px 12px 14px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  font-weight: var(--fw-medium);
+  letter-spacing: -.003em;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  transition: border-color .18s, box-shadow .18s;
+}
+.field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.field select option { color: var(--text); background: var(--bg-elev); }
+
+/* Inline validation message under a field. */
+.field-err {
+  display: block;
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  color: #ffb3c0;
+}
+.field [aria-invalid="true"] { border-color: rgba(244,82,106,.55); }
+.field [aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(244,82,106,.16); }
+
+/* "(optional)" hint on a label. */
+.opt { color: var(--text-mute); font-weight: var(--fw-regular); font-size: 12px; }
+
+/* Paired fields — two columns on desktop, single on mobile. */
+.amb-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* Benefit cards — blue/violet accent instead of the orange icon tint. */
+.amb-feature .feature-icon {
+  background: linear-gradient(135deg, rgba(61,139,255,.16), rgba(168,85,247,.16));
+  border: 1px solid rgba(168,85,247,.35);
+}
+.amb-feature:hover {
+  border-color: rgba(168,85,247,.45);
+  box-shadow: 0 14px 40px -22px rgba(120,80,246,.55);
+}
+
+/* Who-can-apply checklist. */
+.req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.req-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  color: var(--text-dim);
+  font-size: 15px;
+}
+.req-check {
+  flex: none;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  font-size: 13px; font-weight: 800;
+  color: #d9c9ff;
+  background: linear-gradient(135deg, rgba(61,139,255,.18), rgba(168,85,247,.18));
+  border: 1px solid rgba(168,85,247,.4);
+}
+
+/* How-it-works — four steps across on desktop (overrides base 3-col .steps). */
+.steps-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* Application card — centered premium panel with a soft blue/violet halo. */
+.amb-panel {
+  max-width: 720px;
+  margin: 0 auto;
+  border-color: rgba(168,85,247,.22);
+  box-shadow: 0 30px 80px -50px rgba(120,80,246,.5);
+}
+
+/* Terms checkbox — a little breathing room, top-aligned for wrapped text. */
+.amb-terms { align-items: flex-start; margin-top: 4px; }
+.amb-terms input[type="checkbox"] { margin-top: 3px; }
+
+/* Status / confirmation card (real data only). */
+.amb-status { text-align: center; padding: 8px 4px; }
+.amb-status-icon { font-size: 44px; line-height: 1; margin-bottom: 14px; }
+.amb-status h3 { font-size: 24px; letter-spacing: -.02em; margin-bottom: 8px; }
+.amb-status .brief { max-width: 440px; margin: 0 auto 22px; }
+.amb-status-meta {
+  max-width: 380px;
+  margin: 0 auto 20px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 6px 18px;
+  text-align: left;
+}
+.amb-status-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 14px;
+}
+.amb-status-row:last-child { border-bottom: none; }
+.amb-status-row > span { color: var(--text-mute); }
+.amb-status-row strong { color: var(--text); font-weight: var(--fw-semibold); }
+.amb-status-note {
+  color: var(--text-dim); font-size: 14px;
+  max-width: 440px; margin: 0 auto 22px;
+}
+
+/* Ambassador responsive — appended last so these win the source-order
+   tie-break over the earlier 900px `.steps` collapse (media adds no
+   specificity). Tablet → 2-col, mobile → single-col, no horizontal scroll. */
+@media (max-width: 900px) { .steps-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .amb-two-col, .req-grid { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .steps-4 { grid-template-columns: 1fr; } }

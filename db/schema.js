@@ -4,6 +4,7 @@ import {
   timestamp,
   primaryKey,
   uniqueIndex,
+  index,
   serial,
   integer,
   bigint,
@@ -404,3 +405,47 @@ export const creatorSocialLinks = pgTable("creator_social_links", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+/**
+ * Ambassador Program applications. The public /ambassador page accepts these
+ * with or without an account, so userId is nullable (set when a signed-in user
+ * applies; SET NULL keeps the record if the account is later removed). PII here
+ * (email, social links, reason) is private to the applicant and admins.
+ * status: draft | submitted | under_review | approved | rejected — an
+ * application is "active" while submitted/under_review/approved, and a rejected
+ * applicant may re-apply. The two partial-unique indexes enforce one active
+ * application per email and per account at the database level.
+ */
+export const ambassadorApplications = pgTable("ambassador_applications", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  email: text("email").notNull(), // stored lowercased
+  country: text("country"), // country / region
+  platform: text("platform").notNull(), // tiktok | instagram | youtube | x | other
+  handle: text("handle").notNull(), // @handle or channel
+  socialLink: text("social_link"), // full profile/channel URL (optional)
+  audienceSize: text("audience_size").notNull(), // tier label, e.g. "1k-10k"
+  contentCategory: text("content_category"), // technology | gaming | ...
+  reason: text("reason").notNull(), // why they'd be a great ambassador
+  referralSource: text("referral_source"), // how they heard about PulseFy
+  status: text("status").notNull().default("submitted"),
+  reviewerId: text("reviewer_id").references(() => users.id, { onDelete: "set null" }),
+  reviewerNote: text("reviewer_note"),
+  submittedAt: timestamp("submitted_at", { mode: "date" }).notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  // One active application per email (case-insensitive) and per account.
+  activeEmailIdx: uniqueIndex("ambassador_applications_active_email_idx")
+    .on(sql`lower(${table.email})`)
+    .where(sql`${table.status} in ('submitted','under_review','approved')`),
+  activeUserIdx: uniqueIndex("ambassador_applications_active_user_idx")
+    .on(table.userId)
+    .where(sql`${table.userId} is not null and ${table.status} in ('submitted','under_review','approved')`),
+  userRecentIdx: index("ambassador_applications_user_idx").on(table.userId, table.submittedAt),
+  statusIdx: index("ambassador_applications_status_idx").on(table.status, table.submittedAt),
+}));
