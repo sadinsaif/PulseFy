@@ -2839,3 +2839,111 @@ tbody tr:last-child td { border-bottom: none; }
 /* ============================================================
    END LANDING PAGE v2
    ============================================================ */
+
+/* ============================================================
+   CAMPAIGN WIZARD — stepped RichCampaignForm (Brand account).
+   Additive only; reuses .rich-camp-form / .ct-card / .toggle-btn.
+   ============================================================ */
+
+/* Step progress bar */
+.cf-steps {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  list-style: none; padding: 0; margin: 0;
+}
+.cf-step {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--border-soft); background: var(--bg-card-2);
+  font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+}
+.cf-step.current { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.cf-step.done { border-color: var(--accent-3); color: var(--accent-3); }
+.cf-step-num {
+  width: 20px; height: 20px; border-radius: 999px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 11px; font-weight: 800;
+  background: var(--bg-elev); border: 1px solid var(--border-soft); color: var(--text-dim);
+}
+.cf-step.current .cf-step-num { background: var(--accent); border-color: var(--accent); color: #0a0b0d; }
+.cf-step.done .cf-step-num { background: var(--accent-3); border-color: var(--accent-3); color: #0a0b0d; }
+
+/* Step body + nav */
+.cf-panel { display: flex; flex-direction: column; gap: 20px; }
+.cf-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border-top: 1px solid var(--border-soft); padding-top: 16px;
+}
+
+/* Platform multi-select chips (checkmark + orange active) */
+.cf-multi { display: flex; flex-wrap: wrap; gap: 10px; }
+.cf-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--bg-card-2); border: 2px solid var(--border-soft);
+  color: var(--text); border-radius: 999px; padding: 9px 15px;
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.cf-chip:hover { border-color: var(--accent); }
+.cf-chip.active {
+  border-color: var(--accent); background: var(--accent-soft); color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,122,69,0.1);
+}
+.cf-chip-check {
+  width: 16px; height: 16px; border-radius: 999px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 11px; font-weight: 800;
+  border: 1.5px solid var(--border); color: var(--accent);
+}
+.cf-chip.active .cf-chip-check { border-color: var(--accent); background: var(--accent); color: #0a0b0d; }
+
+/* Content-type cards: room for a corner checkmark */
+.ct-card { position: relative; }
+.ct-check {
+  position: absolute; top: 8px; right: 10px;
+  color: var(--accent); font-size: 14px; font-weight: 800; line-height: 1;
+}
+
+/* Drag & drop wrapper around the existing image upload box */
+.cf-drop {
+  display: flex; gap: 16px; align-items: flex-start;
+  border: 1px dashed transparent; border-radius: 14px; transition: border-color .15s, background .15s;
+}
+.cf-drop.over { border-color: var(--accent); background: var(--accent-soft); padding: 10px; }
+.cf-drop .img-placeholder { font: inherit; color: var(--text-dim); }
+
+/* Live budget estimate */
+.cf-estimate {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  background: var(--accent-soft); border: 1px solid var(--accent-line);
+  border-radius: 12px; padding: 14px 16px;
+}
+.cf-estimate > span:first-child { font-size: 13px; color: var(--text-dim); }
+.cf-estimate b { font-family: var(--font-display); font-size: 24px; color: var(--accent); font-feature-settings: 'tnum' 1; }
+
+/* Review & launch preview (built from the actual entered data) */
+.cf-review {
+  background: var(--bg-card-2); border: 1px solid var(--border-soft);
+  border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px;
+}
+.cf-review-media { position: relative; }
+.cf-review-banner { width: 100%; height: 160px; object-fit: cover; border-radius: 12px; display: block; }
+.cf-review-thumb {
+  width: 72px; height: 72px; object-fit: cover; border-radius: 12px;
+  border: 3px solid var(--bg-card-2); position: absolute; left: 16px; bottom: -12px;
+}
+.cf-review-title { font-size: 22px; }
+.cf-review-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px;
+  border-top: 1px solid var(--border-soft); padding-top: 14px;
+}
+.cf-review-grid > div { display: flex; flex-direction: column; gap: 3px; }
+.cf-review-grid small { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-dim); }
+.cf-review-grid b { font-size: 14px; color: var(--text); }
+
+@media (max-width: 640px) {
+  .cf-nav { flex-direction: column-reverse; align-items: stretch; }
+  .cf-nav > div { display: flex; gap: 10px; }
+  .cf-nav .btn { flex: 1; }
+  .cf-drop { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-chip, .cf-drop { transition: none !important; }
+}

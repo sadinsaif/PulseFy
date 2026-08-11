@@ -10,20 +10,14 @@ import TrustPanel from "@/components/TrustPanel";
 import TrustReviewForm from "@/components/TrustReviewForm";
 import PrivateCampaignParticipants from "@/components/PrivateCampaignParticipants";
 import { isLive, statusLabel, countdown, budgetLeft } from "@/lib/campaign";
+import {
+  PLATFORM_LABEL,
+  CONTENT_TYPE_LABEL_LONG,
+  labelsFor,
+  parseMulti,
+  ANY_PLATFORM,
+} from "@/lib/taxonomy";
 
-  const PLABEL = {
-  any: "Any platform",
-  tiktok: "🎵 TikTok",
-  instagram: "📸 Instagram",
-  youtube: "▶️ YouTube",
-  x: "𝕏 X",
-};
-const CONTENT_TYPE_LABEL = {
-  ugc: "UGC (Raw, authentic creator content)",
-  edit: "Edit / Remix / Clip",
-  ai: "AI generated",
-  open: "Open Format (Memes, slides, screenshots, etc.)",
-};
 const STATUS_CLASS = { pending: "review", approved: "live", rejected: "ended" };
 const STATUS_LABEL = {
   pending: "Pending Review",
@@ -80,6 +74,21 @@ export default function CampaignDetail({ id, user, isAdmin = false }) {
     load();
   }, [id]);
 
+  // A campaign can target multiple platforms. Constrain the creator's submission
+  // platform picker to what the campaign accepts ("any" → all). If they have no
+  // existing submission and the current pick isn't allowed, snap to the first
+  // allowed one so the select never shows a platform the campaign didn't ask for.
+  useEffect(() => {
+    if (!camp || mine) return;
+    const parsed = parseMulti(camp.platform);
+    const allowed =
+      parsed.includes(ANY_PLATFORM) || parsed.length === 0
+        ? POST_PLATFORMS
+        : POST_PLATFORMS.filter((p) => parsed.includes(p));
+    const list = allowed.length ? allowed : POST_PLATFORMS;
+    setPlatform((cur) => (list.includes(cur) ? cur : list[0]));
+  }, [camp, mine]);
+
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
@@ -121,6 +130,14 @@ export default function CampaignDetail({ id, user, isAdmin = false }) {
   const open = live;
   const left = countdown(camp.endsAt, now);
 
+  // Submission platform options: the campaign's platforms ("any" → all four).
+  const parsedPlatforms = parseMulti(camp.platform);
+  const postPlatforms =
+    parsedPlatforms.includes(ANY_PLATFORM) || parsedPlatforms.length === 0
+      ? POST_PLATFORMS
+      : POST_PLATFORMS.filter((p) => parsedPlatforms.includes(p));
+  const allowedPost = postPlatforms.length ? postPlatforms : POST_PLATFORMS;
+
   return (
     <>
       {/* Banner image (if present) */}
@@ -152,7 +169,9 @@ export default function CampaignDetail({ id, user, isAdmin = false }) {
             {live && left && <span>⏳ {left}</span>}
           </div>
           <div className="tags">
-            <span className="tag-pill">{PLABEL[camp.platform] || camp.platform}</span>
+            {labelsFor(camp.platform, PLATFORM_LABEL).map((label, i) => (
+              <span key={i} className="tag-pill">{label}</span>
+            ))}
             <span className={`status ${live ? "live" : "ended"}`}>{statusLabel(camp)}</span>
           </div>
 
@@ -182,7 +201,14 @@ export default function CampaignDetail({ id, user, isAdmin = false }) {
             {camp.contentType && (
               <div>
                 <b style={{ fontSize: 13, color: "var(--text-dim)" }}>Content type</b>
-                <p style={{ marginTop: 4 }}>{CONTENT_TYPE_LABEL[camp.contentType] || camp.contentType}</p>
+                <p style={{ marginTop: 4, fontSize: 13, color: "var(--text-mute)" }}>
+                  Creators can submit content matching any of these:
+                </p>
+                <div className="tags" style={{ marginTop: 6 }}>
+                  {labelsFor(camp.contentType, CONTENT_TYPE_LABEL_LONG).map((label, i) => (
+                    <span key={i} className="tag-pill">{label}</span>
+                  ))}
+                </div>
               </div>
             )}
             {camp.requirements && (
@@ -247,8 +273,8 @@ export default function CampaignDetail({ id, user, isAdmin = false }) {
               <div className="field">
                 <label>Platform</label>
                 <select value={platform} onChange={(e) => setPlatform(e.target.value)}>
-                  {POST_PLATFORMS.map((p) => (
-                    <option key={p} value={p}>{PLABEL[p]}</option>
+                  {allowedPost.map((p) => (
+                    <option key={p} value={p}>{PLATFORM_LABEL[p]}</option>
                   ))}
                 </select>
               </div>

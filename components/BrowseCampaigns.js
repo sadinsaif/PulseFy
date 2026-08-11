@@ -2,20 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import CampaignCard from "@/components/CampaignCard";
+import { platformMatches, contentTypeMatches } from "@/lib/taxonomy";
 
 // Filter tabs. contentType-based (UGC / AI / Clipping) and platform-based tabs
 // share one row; a campaign matches by its own contentType/platform field.
-// "Clipping" maps to the "edit" contentType (Edit / Remix / Clip) — there is no
-// separate "clipping" value in the schema.
+// Both fields are multi-value (comma-separated), so matching is membership-based
+// via the taxonomy helpers — a "tiktok,instagram" campaign shows under BOTH the
+// TikTok and Instagram tabs, and an "any" campaign shows under every platform
+// tab. "Clipping" maps to the "edit" contentType (Edit / Remix / Clip).
 const FILTERS = [
   { key: "all", label: "All", test: () => true },
-  { key: "ugc", label: "UGC", test: (c) => c.contentType === "ugc" },
-  { key: "ai", label: "AI Generated", test: (c) => c.contentType === "ai" },
-  { key: "edit", label: "Clipping", test: (c) => c.contentType === "edit" },
-  { key: "tiktok", label: "TikTok", test: (c) => c.platform === "tiktok" },
-  { key: "instagram", label: "Instagram", test: (c) => c.platform === "instagram" },
-  { key: "youtube", label: "YouTube", test: (c) => c.platform === "youtube" },
-  { key: "x", label: "X", test: (c) => c.platform === "x" },
+  { key: "ugc", label: "UGC", test: (c) => contentTypeMatches(c.contentType, "ugc") },
+  { key: "ai", label: "AI Generated", test: (c) => contentTypeMatches(c.contentType, "ai") },
+  { key: "edit", label: "Clipping", test: (c) => contentTypeMatches(c.contentType, "edit") },
+  { key: "tiktok", label: "TikTok", test: (c) => platformMatches(c.platform, "tiktok") },
+  { key: "instagram", label: "Instagram", test: (c) => platformMatches(c.platform, "instagram") },
+  { key: "youtube", label: "YouTube", test: (c) => platformMatches(c.platform, "youtube") },
+  { key: "x", label: "X", test: (c) => platformMatches(c.platform, "x") },
 ];
 
 /**

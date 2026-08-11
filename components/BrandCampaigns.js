@@ -24,6 +24,8 @@ const FILTERS = [
 export default function BrandCampaigns() {
   const [rows, setRows] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null); // full campaign being edited
+  const [editErr, setEditErr] = useState("");
   const [filter, setFilter] = useState("all");
 
   async function load() {
@@ -63,6 +65,28 @@ export default function BrandCampaigns() {
     }
   }
 
+  // Open the editor for a campaign: fetch the full record (the list payload
+  // omits submitType/requirements/assetsUrl/banner etc.) then show the form in
+  // edit mode. Editing and the create form are mutually exclusive.
+  async function openEdit(id) {
+    setEditErr("");
+    setShowForm(false);
+    setEditing({ id, loading: true });
+    try {
+      const res = await fetch(`/api/campaigns/${id}`);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.campaign) {
+        setEditing({ id, loading: false, campaign: data.campaign });
+      } else {
+        setEditing(null);
+        setEditErr(data.error || "Could not load that campaign for editing.");
+      }
+    } catch {
+      setEditing(null);
+      setEditErr("Network error loading the campaign.");
+    }
+  }
+
   const list = rows || [];
   const counts = {
     all: list.length,
@@ -80,7 +104,7 @@ export default function BrandCampaigns() {
           <button
             className="btn btn-primary"
             style={{ padding: "8px 16px", fontSize: 14 }}
-            onClick={() => setShowForm((v) => !v)}
+            onClick={() => { setEditing(null); setShowForm((v) => !v); }}
           >
             {showForm ? "Close" : "+ New campaign"}
           </button>
@@ -96,6 +120,30 @@ export default function BrandCampaigns() {
           />
         )}
       </div>
+
+      {editErr && <div className="alert err" style={{ marginTop: 12 }}>{editErr}</div>}
+
+      {editing && (
+        <div className="panel" style={{ marginTop: 18 }}>
+          <div className="panel-head">
+            <h3>Edit campaign</h3>
+            <button className="btn btn-ghost" style={{ padding: "6px 12px", fontSize: 13 }} onClick={() => setEditing(null)}>Close</button>
+          </div>
+          {editing.loading ? (
+            <p className="brief" style={{ marginTop: 10 }}>Loading campaign…</p>
+          ) : (
+            <RichCampaignForm
+              campaignId={editing.id}
+              initialValues={editing.campaign}
+              onCancel={() => setEditing(null)}
+              onSuccess={() => {
+                setEditing(null);
+                load();
+              }}
+            />
+          )}
+        </div>
+      )}
 
       <div className="panel" style={{ marginTop: 18 }}>
         <div className="panel-head">
@@ -164,7 +212,8 @@ export default function BrandCampaigns() {
                     <td>{Number(c.approvedCount ?? 0).toLocaleString()}</td>
                     <td>{Number(c.totalViews ?? 0).toLocaleString()}</td>
                     <td>
-                      <div style={{ display: "flex", gap: 6 }}>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <button className="btn btn-ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => openEdit(c.id)}>Edit</button>
                         {c.status !== "active" && (
                           <button className="btn btn-ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => setStatus(c.id, "active")}>Activate</button>
                         )}

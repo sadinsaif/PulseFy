@@ -1,21 +1,11 @@
 import Link from "next/link";
 import { isLive, statusLabel, countdown, budgetLeft } from "@/lib/campaign";
+import {
+  PLATFORM_LABEL,
+  CONTENT_TYPE_LABEL,
+  labelsFor,
+} from "@/lib/taxonomy";
 import TrustBadge from "@/components/TrustBadge";
-
-const PLABEL = {
-  any: "Any platform",
-  tiktok: "🎵 TikTok",
-  instagram: "📸 Instagram",
-  youtube: "▶️ YouTube",
-  x: "𝕏 X",
-};
-
-const CONTENT_TYPE_LABEL = {
-  ugc: "UGC",
-  edit: "Edit",
-  ai: "AI Generated",
-  open: "Open Format",
-};
 
 /**
  * Shared GIMI-style campaign card used on the Overview feed and the Discover
@@ -34,6 +24,14 @@ export default function CampaignCard({ c, now }) {
   // brand approves posts and pays out rewards/spotlight bonuses.
   const budgetRemaining = budgetLeft(c);
   const hasMeta = c.budget > 0 || (live && left);
+
+  // Platform + content type are multi-value (comma-separated). On the compact
+  // card we show the first label and a "+N" overflow marker; the detail page
+  // lists them all. A legacy single value renders as one label with no marker.
+  const platformLabels = labelsFor(c.platform, PLATFORM_LABEL);
+  const contentTypeLabels = labelsFor(c.contentType, CONTENT_TYPE_LABEL);
+  const summarize = (labels) =>
+    labels.length > 1 ? `${labels[0]} +${labels.length - 1}` : labels[0] || "";
 
   return (
     <Link
@@ -60,9 +58,9 @@ export default function CampaignCard({ c, now }) {
         </span>
 
         {/* Content-type badge (top-right, GIMI-style) */}
-        {c.contentType && (
-          <span className="camp-badge">
-            {CONTENT_TYPE_LABEL[c.contentType] || c.contentType}
+        {contentTypeLabels.length > 0 && (
+          <span className="camp-badge" title={contentTypeLabels.join(" · ")}>
+            {summarize(contentTypeLabels)}
           </span>
         )}
 
@@ -86,7 +84,9 @@ export default function CampaignCard({ c, now }) {
             ${c.reward}
             <small>/post</small>
           </span>
-          <span className="tag-pill">{PLABEL[c.platform] || c.platform}</span>
+          <span className="tag-pill" title={platformLabels.join(" · ")}>
+            {summarize(platformLabels)}
+          </span>
         </div>
         <h3>{c.title}</h3>
         <p className="camp-brand">by {c.brandName || "A brand"} <TrustBadge verified={c.brandVerified} /></p>
