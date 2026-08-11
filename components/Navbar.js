@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 
 /**
@@ -11,6 +12,22 @@ import { signOut } from "next-auth/react";
  */
 export default function Navbar({ session }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // "Become an Ambassador" links to /ambassador. But when the visitor is
+  // ALREADY on that page, a link to the same route is a visual no-op — it
+  // reads as "the button doesn't work". So in that case scroll to the
+  // application form instead, so the click always does something.
+  function onAmbassadorClick(e) {
+    setOpen(false);
+    if (pathname === "/ambassador" && typeof document !== "undefined") {
+      const apply = document.getElementById("apply");
+      if (apply) {
+        e.preventDefault();
+        apply.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  }
 
   return (
     <nav className="nav">
@@ -26,7 +43,7 @@ export default function Navbar({ session }) {
           <Link
             href="/ambassador"
             className="btn btn-ambassador"
-            onClick={() => setOpen(false)}
+            onClick={onAmbassadorClick}
           >
             <span className="amb-star" aria-hidden="true">★</span>
             Become an Ambassador
