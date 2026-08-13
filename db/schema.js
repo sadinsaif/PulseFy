@@ -124,8 +124,17 @@ export const campaigns = pgTable("campaigns", {
   showContributions: text("show_contributions").default("yes"), // yes | no
   thumbnailUrl: text("thumbnail_url"), // campaign card image
   bannerUrl: text("banner_url"), // campaign detail hero image
+  // Idempotency guard for launch. A wallet-funded launch sends a client-generated
+  // key; a repeated POST with the same key returns the already-created campaign
+  // instead of creating a second one (and reserving its budget twice). Nullable:
+  // campaigns created before this column, and $0/unfunded launches, may omit it.
+  idempotencyKey: text("idempotency_key"),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-});
+}, (table) => ({
+  idempotencyIdx: uniqueIndex("campaigns_idempotency_key_idx")
+    .on(table.brandId, table.idempotencyKey)
+    .where(sql`${table.idempotencyKey} is not null`),
+}));
 
 /**
  * Submissions — a creator's entry into a challenge.
@@ -181,6 +190,57 @@ export const campaignFundingLedger = pgTable("campaign_funding_ledger", {
   note: text("note"), // internal admin evidence/note; never public
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+/**
+ * Brand top-ups — a brand adding money to its wallet. Amounts are whole dollars
+ * (USD), integer, to avoid floating-point money errors. This is the honest
+ * "confirmed payment" record: a top-up is created `pending` and only becomes
+ * `completed` when an admin confirms it with a payment `reference` (the same
+ * discipline as withdrawals, since no payment gateway is installed). Only
+ * `completed` top-ups count toward the wallet's available balance — never
+ * `pending`. A real Stripe/PayPal webhook can later replace the admin step with
+ * zero schema change. status: pending | processing | completed | failed | cancelled.
+ */
+export const brandTopups = pgTable("brand_topups", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  brandId: text("brand_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(), // whole dollars (USD); always > 0
+  status: text("status").notNull().default("pending"), // pending|processing|completed|failed|cancelled
+  reference: text("reference"), // payment reference, set by admin on completion
+  note: text("note"), // internal admin note; never public
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  brandCreatedIdx: index("brand_topups_brand_created_idx").on(table.brandId, table.createdAt),
+}));
+
+/**
+ * Brand wallet ledger — append-only, immutable (DB triggers block UPDATE/DELETE)
+ * record of brand-level budget movements. System-written only (never user-edited):
+ *   reserve — a campaign launch holds its whole budget out of Available (§8).
+ *   release — a campaign end returns its unused budget to Available (§14).
+ * Whole dollars, always positive. The partial-unique indexes guarantee a campaign
+ * reserves at most once and releases at most once — the DB-level double-charge
+ * guard (§9). Wallet balances are DERIVED from these rows + completed brand_topups,
+ * never stored as a mutable column.
+ */
+export const brandWalletLedger = pgTable("brand_wallet_ledger", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  brandId: text("brand_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  campaignId: text("campaign_id").notNull().references(() => campaigns.id, { onDelete: "restrict" }),
+  action: text("action").notNull(), // reserve | release
+  amount: integer("amount").notNull(), // whole dollars; always positive
+  note: text("note"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  brandCreatedIdx: index("brand_wallet_ledger_brand_created_idx").on(table.brandId, table.createdAt),
+  uniqueReserve: uniqueIndex("brand_wallet_ledger_unique_reserve_idx")
+    .on(table.campaignId)
+    .where(sql`${table.action} = 'reserve'`),
+  uniqueRelease: uniqueIndex("brand_wallet_ledger_unique_release_idx")
+    .on(table.campaignId)
+    .where(sql`${table.action} = 'release'`),
+}));
 
 /**
  * In-app notifications. One row per recipient.

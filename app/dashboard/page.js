@@ -9,9 +9,11 @@ import Sidebar from "@/components/Sidebar";
 import TopbarSearch from "@/components/TopbarSearch";
 import CampaignGrid from "@/components/CampaignGrid";
 import PerfChart from "@/components/PerfChart";
+import BrandTopUpButton from "@/components/BrandTopUpButton";
 import { isAdminEmail } from "@/lib/admin";
 import { canViewPrivateCampaignData, participantCampaignIds } from "@/lib/campaign-access";
 import { getCreatorBalanceCents } from "@/lib/creator-balance";
+import { getBrandWalletTotals } from "@/lib/brand-wallet";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -87,6 +89,16 @@ export default async function DashboardPage() {
       secondary: Number(p.spend || 0),
     }));
 
+    // Wallet balances (derived server-side from the ledger — never a mutable
+    // column, never trusted from the client). Empty ledger → $0 everywhere (§1/§20).
+    let wallet = { available: 0, reserved: 0, total: 0 };
+    try {
+      const w = await getBrandWalletTotals(db, me);
+      wallet = { available: w.available, reserved: w.reserved, total: w.total };
+    } catch {
+      // leave zeros if the DB is unreachable
+    }
+
     return (
       <div className="app">
         <Sidebar user={effectiveUser} isAdmin={isAdminEmail(user?.email)} />
@@ -103,11 +115,31 @@ export default async function DashboardPage() {
             </div>
             <div className="topbar-actions">
               <TopbarSearch to="/dashboard/discover" />
+              <BrandTopUpButton available={wallet.available} />
               <Link href="/dashboard/campaigns?new=1" className="btn btn-primary">
                 + Create Campaign
               </Link>
             </div>
           </div>
+
+          {/* Wallet balances — Available / Reserved / Total (§1) */}
+          <section className="kpis">
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">👛</div></div>
+              <div className="k-val">${wallet.available.toLocaleString()}</div>
+              <div className="k-lbl">Available balance</div>
+            </div>
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">🔒</div></div>
+              <div className="k-val">${wallet.reserved.toLocaleString()}</div>
+              <div className="k-lbl">Reserved</div>
+            </div>
+            <div className="kpi">
+              <div className="k-top"><div className="k-ic">Σ</div></div>
+              <div className="k-val">${wallet.total.toLocaleString()}</div>
+              <div className="k-lbl">Total balance</div>
+            </div>
+          </section>
 
           {/* Brand KPIs */}
           <section className="kpis">

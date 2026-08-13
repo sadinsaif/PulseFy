@@ -1,4 +1,4 @@
-const requiredVersion = "016";
+const requiredVersion = "018";
 const enforce =
   process.env.VERCEL_ENV === "production" ||
   process.env.PULSEFY_ENFORCE_FINANCIAL_MIGRATIONS === "true";
@@ -9,7 +9,7 @@ if (!enforce) {
 
 if (process.env.PULSEFY_FINANCIAL_MIGRATIONS_APPLIED !== requiredVersion) {
   console.error(
-    `Financial migration guard failed: apply migrations 014 → 015 → ${requiredVersion} ` +
+    `Financial migration guard failed: apply migrations 014 → … → ${requiredVersion} ` +
       "with the controlled migration process, verify them, then set " +
       `PULSEFY_FINANCIAL_MIGRATIONS_APPLIED=${requiredVersion} for the production build. ` +
       "db:push alone is not sufficient."

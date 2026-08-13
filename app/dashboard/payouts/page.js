@@ -8,6 +8,8 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import Sidebar from "@/components/Sidebar";
 import CreatorWallet from "@/components/CreatorWallet";
 import AdminWithdrawals from "@/components/AdminWithdrawals";
+import BrandWallet from "@/components/BrandWallet";
+import AdminTopups from "@/components/AdminTopups";
 import { isAdminEmail } from "@/lib/admin";
 import { canViewPrivateCampaignData, participantCampaignIds } from "@/lib/campaign-access";
 import { getCreatorBalanceCents } from "@/lib/creator-balance";
@@ -160,6 +162,8 @@ export default async function PayoutsPage() {
             </div>
           </div>
 
+          {isBrand && <BrandWallet />}
+
           <section className="kpis">
             <div className="kpi">
               <div className="k-top"><div className="k-ic">💸</div></div>
@@ -204,6 +208,7 @@ export default async function PayoutsPage() {
           )}
 
           {admin && <AdminWithdrawals />}
+          {admin && <AdminTopups />}
 
           <section className="panel" style={{ marginTop: 18 }}>
             <div className="panel-head">

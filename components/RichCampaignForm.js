@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import TopUpModal from "@/components/TopUpModal";
 import {
   PLATFORMS,
   PLATFORM_VALUES,
@@ -121,6 +123,58 @@ export default function RichCampaignForm({ onCancel, onSuccess, initialValues = 
     if (budget <= 0 || reward <= 0) return null;
     return Math.floor(budget / reward);
   }, [form.budget, form.reward]);
+
+  // ---- Wallet financials (§6/§7/§10). Read-only balance fetched on mount; the
+  // real gate is server-side. Edit mode doesn't reserve, so skip the wallet.
+  const [available, setAvailable] = useState(null); // null = not loaded yet
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [launched, setLaunched] = useState(null); // success payload for §11 screen
+  const [blocked, setBlocked] = useState(null);    // server 402 payload for §7 gate
+  // One idempotency key per form instance — a refresh/double-click/retry/second
+  // tab reuses it so the campaign never reserves its budget twice (§9).
+  const idemRef = useRef(null);
+  if (idemRef.current === null && typeof crypto !== "undefined" && crypto.randomUUID) {
+    idemRef.current = crypto.randomUUID();
+  }
+
+  useEffect(() => {
+    if (isEdit) return; // editing an existing campaign never re-reserves
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/wallet");
+        const json = await res.json();
+        if (alive) setAvailable(res.ok ? Number(json.wallet?.available || 0) : 0);
+      } catch {
+        if (alive) setAvailable(0);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [isEdit]);
+
+  // Re-read the server-derived available balance. Called after a top-up request
+  // so the Budget/Review previews reflect the wallet without a full remount. (A
+  // top-up is created pending, so this won't move the balance until an admin
+  // confirms it — but it keeps the preview honest and in sync with the server.)
+  async function refreshAvailable() {
+    try {
+      const res = await fetch("/api/wallet");
+      const json = await res.json();
+      setAvailable(res.ok ? Number(json.wallet?.available || 0) : 0);
+    } catch {
+      setAvailable(0);
+    }
+  }
+
+  // Derived launch math from the ACTUAL entered budget (§10 — no fake values).
+  const budgetNum = Math.max(0, Math.floor(Number(form.budget) || 0));
+  const reserveOnLaunch = budgetNum; // whole budget is reserved at launch
+  const avail = Number(available || 0);
+  const sufficient = available === null || reserveOnLaunch <= avail;
+  const shortfall = Math.max(0, reserveOnLaunch - avail);
+  const afterLaunch = Math.max(0, avail - reserveOnLaunch);
 
   // ---- Image upload: shared handler for click and drag & drop. Validates type
   // and size, then downscales/crops to a data URL (keeps the existing storage
@@ -243,22 +297,54 @@ export default function RichCampaignForm({ onCancel, onSuccess, initialValues = 
     setSaving(true);
     setErr("");
     try {
+      const payload = isEdit
+        ? form
+        : { ...form, idempotencyKey: idemRef.current || undefined };
       const res = await fetch(
         isEdit ? `/api/campaigns/${campaignId}` : "/api/campaigns",
         {
           method: isEdit ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         }
       );
       const data = await res.json().catch(() => ({}));
       setSaving(false);
+      // §7 — server-side balance gate. Show the block panel with the real
+      // Required / Available / shortfall from the server, not the client.
+      if (res.status === 402) {
+        setAvailable(Number(data.available ?? avail));
+        setErr("");
+        setBlocked({
+          required: Number(data.required ?? reserveOnLaunch),
+          available: Number(data.available ?? avail),
+          shortfall: Number(data.shortfall ?? shortfall),
+        });
+        return;
+      }
       if (!res.ok) {
         setErr(data.error || `Could not ${isEdit ? "save" : "create"} the campaign.`);
         return;
       }
-      if (!isEdit) setForm(EMPTY);
-      onSuccess?.(data.campaign);
+      if (isEdit) {
+        onSuccess?.(data.campaign);
+        return;
+      }
+      // §11 — success screen with the real reserved/remaining figures. Available
+      // comes from the server's freshly-derived wallet totals (§5/§18); only if
+      // the response omits them do we fall back to a client-side estimate.
+      const c = data.campaign || {};
+      const reserved = Number(c.budget) > 0 ? Number(c.budget) : reserveOnLaunch;
+      setLaunched({
+        id: c.id,
+        title: c.title || form.title,
+        budget: Number(c.budget) || budgetNum,
+        reserved,
+        available: data.wallet
+          ? Number(data.wallet.available || 0)
+          : Math.max(0, avail - reserved),
+      });
+      setForm(EMPTY);
     } catch {
       setSaving(false);
       setErr("Network error. Please try again.");
@@ -270,8 +356,50 @@ export default function RichCampaignForm({ onCancel, onSuccess, initialValues = 
     : concretePlatforms.map((p) => PLATFORM_LABEL[p]).join(", ");
   const contentSummary = form.contentType.map((t) => CONTENT_TYPE_LABEL[t]).join(" / ");
 
+  // ---- §11 · Launch success screen. Replaces the form until the brand picks
+  // where to go next; the real reserved/available figures come from submit(). ----
+  if (launched) {
+    return (
+      <div className="rich-camp-form">
+        <div className="cf-panel" style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 48, lineHeight: 1 }} aria-hidden="true">✅</div>
+          <h3 className="cf-review-title" style={{ marginTop: 12 }}>
+            Campaign launched successfully
+          </h3>
+          <p className="brief" style={{ marginTop: 4 }}>
+            Your budget is reserved and the campaign is live.
+          </p>
+          <div className="cf-review-grid" style={{ marginTop: 18, textAlign: "left" }}>
+            <div><small>Campaign</small><b>{launched.title || "Untitled campaign"}</b></div>
+            <div><small>Budget</small><b>${Number(launched.budget || 0).toLocaleString()}</b></div>
+            <div><small>Reserved</small><b>${Number(launched.reserved || 0).toLocaleString()}</b></div>
+            <div><small>Available balance</small><b>${Number(launched.available || 0).toLocaleString()}</b></div>
+          </div>
+          <div className="cf-nav" style={{ marginTop: 20, justifyContent: "center" }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+              {launched.id && (
+                <Link href={`/dashboard/campaigns/${launched.id}`} className="btn btn-primary">
+                  View campaign
+                </Link>
+              )}
+              <Link href="/dashboard/payouts" className="btn btn-ghost">
+                View transactions
+              </Link>
+              {onSuccess && (
+                <button type="button" className="btn btn-ghost" onClick={() => onSuccess()}>
+                  Done
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={submit} className="rich-camp-form" noValidate>
+    <>
+      <form onSubmit={submit} className="rich-camp-form" noValidate>
       {/* Step progress bar */}
       <ol className="cf-steps" aria-label="Campaign setup steps">
         {STEPS.map((label, i) => (
@@ -286,6 +414,42 @@ export default function RichCampaignForm({ onCancel, onSuccess, initialValues = 
       </ol>
 
       {err && <div className="alert err" role="alert">{err}</div>}
+
+      {/* §7 — server-side launch gate. The server (not the client) decided the
+          balance is short; show the real figures it returned + a Top Up path. */}
+      {blocked && (
+        <div
+          className="alert err"
+          role="alert"
+          style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}
+        >
+          <div style={{ fontWeight: "var(--fw-semibold)" }}>
+            Not enough available balance to launch this campaign.
+          </div>
+          <div style={{ display: "grid", gap: 4, width: "100%", maxWidth: 320 }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Required</span>
+              <b>${Number(blocked.required).toLocaleString()}</b>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Available</span>
+              <b>${Number(blocked.available).toLocaleString()}</b>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>You need</span>
+              <b>${Number(blocked.shortfall).toLocaleString()} more</b>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="button" className="btn btn-primary" onClick={() => setShowTopUp(true)}>
+              Top Up ${Number(blocked.shortfall).toLocaleString()}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setBlocked(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ============ STEP 1 · BASICS ============ */}
       {step === 0 && (
@@ -587,6 +751,49 @@ export default function RichCampaignForm({ onCancel, onSuccess, initialValues = 
           ) : (
             <p className="field-hint">Enter a budget and reward to see how many approved posts it funds.</p>
           )}
+
+          {/* §6 — wallet sufficiency for the entered budget. The real gate is
+              server-side at launch (§7); this is a live preview only, and is
+              hidden in edit mode because editing never re-reserves. */}
+          {!isEdit && budgetNum > 0 && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "14px 16px",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border)",
+                background: "var(--bg-card-2)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
+                <span className="field-hint" style={{ margin: 0 }}>Available balance</span>
+                <b>{available === null ? "…" : `$${avail.toLocaleString()}`}</b>
+              </div>
+              {available !== null &&
+                (sufficient ? (
+                  <div style={{ color: "var(--ok)", fontWeight: "var(--fw-semibold)" }}>
+                    ✓ Sufficient — ${afterLaunch.toLocaleString()} available after launch
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ color: "var(--warn)", fontWeight: "var(--fw-semibold)" }}>
+                      ⚠ Insufficient — you need ${shortfall.toLocaleString()} more
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{ alignSelf: "flex-start" }}
+                      onClick={() => setShowTopUp(true)}
+                    >
+                      Top Up ${shortfall.toLocaleString()}
+                    </button>
+                  </>
+                ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -642,6 +849,74 @@ export default function RichCampaignForm({ onCancel, onSuccess, initialValues = 
               </p>
             )}
           </div>
+
+          {/* §10 — funding summary from the ACTUAL entered values (no fakes).
+              This mirrors exactly what the server will reserve at launch; the
+              real authorization still happens server-side (§7). */}
+          {!isEdit && budgetNum > 0 && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: 16,
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border)",
+                background: "var(--bg-card-2)",
+              }}
+            >
+              <div style={{ fontWeight: "var(--fw-semibold)", marginBottom: 10 }}>Funding summary</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <span className="field-hint" style={{ margin: 0 }}>Campaign budget</span>
+                  <b>${budgetNum.toLocaleString()}</b>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <span className="field-hint" style={{ margin: 0 }}>Approval reward</span>
+                  <b>${(Number(form.reward) || 0).toLocaleString()}/post</b>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <span className="field-hint" style={{ margin: 0 }}>Available balance</span>
+                  <b>{available === null ? "…" : `$${avail.toLocaleString()}`}</b>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <span className="field-hint" style={{ margin: 0 }}>Amount reserved on launch</span>
+                  <b style={{ color: "var(--accent-2)" }}>${reserveOnLaunch.toLocaleString()}</b>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    borderTop: "1px solid var(--border)",
+                    paddingTop: 8,
+                  }}
+                >
+                  <span className="field-hint" style={{ margin: 0 }}>Balance after launch</span>
+                  <b>${afterLaunch.toLocaleString()}</b>
+                </div>
+              </div>
+              {available !== null && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    fontWeight: "var(--fw-semibold)",
+                    color: sufficient ? "var(--ok)" : "var(--warn)",
+                  }}
+                >
+                  {sufficient ? "✓ Ready to launch" : `⚠ Insufficient — you need $${shortfall.toLocaleString()} more`}
+                </div>
+              )}
+              {available !== null && !sufficient && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ marginTop: 10 }}
+                  onClick={() => setShowTopUp(true)}
+                >
+                  Top Up ${shortfall.toLocaleString()}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -665,6 +940,21 @@ export default function RichCampaignForm({ onCancel, onSuccess, initialValues = 
           )}
         </div>
       </div>
-    </form>
+      </form>
+
+      {/* §3/§6 — Top Up modal, reachable from the Budget step, the Review step,
+          and the launch-blocked panel. Rendered as a sibling (not inside the
+          form) so the modal's own form is never nested inside this one. On a
+          successful request we refresh the balance but keep the modal mounted so
+          it can show its honest "pending confirmation" screen (§4); the brand
+          dismisses it with the modal's own Done/Cancel. */}
+      {showTopUp && (
+        <TopUpModal
+          available={avail}
+          onClose={() => setShowTopUp(false)}
+          onSuccess={refreshAvailable}
+        />
+      )}
+    </>
   );
 }

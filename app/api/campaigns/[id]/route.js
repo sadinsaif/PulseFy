@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { campaignParticipants, campaigns, users, submissions } from "@/db/schema";
+import { campaignParticipants, campaigns, users, submissions, brandWalletLedger } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { campaignStatusSchema, campaignSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
@@ -72,6 +72,13 @@ export async function GET(_req, { params }) {
 /**
  * PATCH /api/campaigns/[id] — change status (active/paused/ended).
  * Only the owning brand (or an admin) may do this.
+ *
+ * Wallet-funded campaigns carry two extra invariants (§9/§14):
+ *   - Ending a campaign that reserved budget releases its UNUSED budget
+ *     (budget − budget_spent) back to the brand's Available balance, once.
+ *   - A campaign that has already released its budget cannot be re-opened
+ *     (active/paused) — that would let its remaining budget be spent after it
+ *     was returned to the wallet (double-spend).
  */
 export async function PATCH(req, { params }) {
   const session = await auth();
@@ -105,12 +112,85 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  await db
-    .update(campaigns)
-    .set({ status: parsed.data.status })
-    .where(eq(campaigns.id, params.id));
+  const nextStatus = parsed.data.status;
 
-  return NextResponse.json({ ok: true, status: parsed.data.status });
+  try {
+    await db.transaction(async (tx) => {
+      // Lock the campaign row for the whole status decision.
+      const [current] = await tx
+        .select()
+        .from(campaigns)
+        .where(eq(campaigns.id, params.id))
+        .for("update");
+      if (!current) {
+        const error = new Error("Campaign not found");
+        error.status = 404;
+        throw error;
+      }
+
+      // Does this campaign participate in the wallet (has a reserve row)?
+      const [reserveRow] = await tx
+        .select({ id: brandWalletLedger.id })
+        .from(brandWalletLedger)
+        .where(
+          and(
+            eq(brandWalletLedger.campaignId, current.id),
+            eq(brandWalletLedger.action, "reserve")
+          )
+        );
+      const [releaseRow] = await tx
+        .select({ id: brandWalletLedger.id })
+        .from(brandWalletLedger)
+        .where(
+          and(
+            eq(brandWalletLedger.campaignId, current.id),
+            eq(brandWalletLedger.action, "release")
+          )
+        );
+
+      // Reopen guard: once released, a wallet campaign stays ended.
+      if (releaseRow && nextStatus !== "ended") {
+        const error = new Error(
+          "This campaign's budget was already released to your wallet and cannot be re-opened."
+        );
+        error.status = 409;
+        throw error;
+      }
+
+      await tx
+        .update(campaigns)
+        .set({ status: nextStatus })
+        .where(eq(campaigns.id, current.id));
+
+      // Release unused budget when a wallet-funded campaign ends (§14). Only
+      // budget − budget_spent, only if positive, only once (partial-unique index
+      // on action='release' is the DB backstop against a double release).
+      if (nextStatus === "ended" && reserveRow && !releaseRow) {
+        const unused = Number(current.budget) - Number(current.budgetSpent || 0);
+        if (unused > 0) {
+          await tx.insert(brandWalletLedger).values({
+            brandId: current.brandId,
+            campaignId: current.id,
+            action: "release",
+            amount: unused,
+            note: "Unused budget released on campaign end",
+          });
+        }
+      }
+    });
+  } catch (error) {
+    // A racing double-end trips the partial-unique release index — the release
+    // already happened, so the end itself is effectively done.
+    if (error?.code === "23505" || error?.cause?.code === "23505") {
+      return NextResponse.json({ ok: true, status: nextStatus });
+    }
+    if (error.status) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
+  }
+
+  return NextResponse.json({ ok: true, status: nextStatus });
 }
 
 /**
@@ -156,11 +236,38 @@ export async function PUT(req, { params }) {
   const d = parsed.data;
 
   // A brand can't drop the budget below what the pool has already paid out.
+  // This includes budget=0: a non-reserved campaign with budget_spent>0 would
+  // otherwise slip past this guard and trip the budget_spent<=budget DB CHECK as
+  // an opaque 500 instead of this clean 400.
   const spent = Number(campaign.budgetSpent || 0);
-  if (Number(d.budget) > 0 && Number(d.budget) < spent) {
+  if (Number(d.budget) < spent) {
     return NextResponse.json(
       { error: `Budget can't be lower than the $${spent.toLocaleString()} already spent.` },
       { status: 400 }
+    );
+  }
+
+  // Wallet-funded campaigns lock their budget after launch: the reserved amount
+  // must stay exactly equal to the reserve row, or Available/Reserved would drift
+  // from the ledger. Changing the budget would need a reserve/release delta
+  // reconciliation, which is a documented future extension — for now, reject the
+  // change with a clear message. All other edits are allowed. (§8 invariant.)
+  const [reserveRow] = await db
+    .select({ amount: brandWalletLedger.amount })
+    .from(brandWalletLedger)
+    .where(
+      and(
+        eq(brandWalletLedger.campaignId, campaign.id),
+        eq(brandWalletLedger.action, "reserve")
+      )
+    );
+  if (reserveRow && Number(d.budget) !== Number(campaign.budget)) {
+    return NextResponse.json(
+      {
+        error:
+          "This campaign's budget is reserved from your wallet and can't be changed after launch. End the campaign to release unused funds, then launch a new one.",
+      },
+      { status: 409 }
     );
   }
 

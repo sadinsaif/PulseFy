@@ -3,10 +3,17 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { campaigns, users, submissions } from "@/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import {
+  campaigns,
+  users,
+  submissions,
+  brandWalletLedger,
+  campaignFundingLedger,
+} from "@/db/schema";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { campaignSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
+import { getBrandWalletTotals } from "@/lib/brand-wallet";
 
 /**
  * GET /api/campaigns
@@ -146,6 +153,7 @@ export async function POST(req) {
     showContributions,
     thumbnailUrl,
     bannerUrl,
+    idempotencyKey,
   } = parsed.data;
 
   // Turn the brand's chosen duration (in days) into a concrete end date for the
@@ -154,28 +162,183 @@ export async function POST(req) {
   const endsAt =
     days >= 1 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
 
-  const inserted = await db
-    .insert(campaigns)
-    .values({
-      brandId: session.user.id,
-      title: title.trim(),
-      brief: brief ? brief.trim() : null,
-      platform,
-      reward,
-      budget,
-      spotlightReward,
-      performanceMult,
-      endsAt,
-      submitType,
-      requirements: requirements ? requirements.trim() : null,
-      contentType,
-      assetsUrl: assetsUrl || null,
-      visibility,
-      showContributions,
-      thumbnailUrl: thumbnailUrl || null,
-      bannerUrl: bannerUrl || null,
-    })
-    .returning();
+  const key = idempotencyKey && idempotencyKey.trim() ? idempotencyKey.trim() : null;
+  const fundedLaunch = Number(budget) > 0;
 
-  return NextResponse.json({ ok: true, campaign: inserted[0] }, { status: 201 });
+  // The launch is transactional and server-authoritative (§7/§8/§9). We never
+  // trust a client-supplied balance: the wallet is recomputed under a lock, the
+  // budget is reserved atomically with the campaign insert, and idempotency is
+  // guarded three ways (campaign key, partial-unique reserve row, unique funding
+  // reference). A $0/unfunded campaign keeps the original behaviour — no wallet
+  // check, no reserve — so nothing existing breaks.
+  let created;
+  try {
+    created = await db.transaction(async (tx) => {
+      // Lock the brand's account row to serialize its wallet operations, exactly
+      // like POST /api/withdrawals. Concurrent launches then can't both pass the
+      // balance check off a stale read.
+      const [account] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, session.user.id))
+        .for("update");
+      if (!account) {
+        const error = new Error("User not found");
+        error.status = 404;
+        throw error;
+      }
+
+      // Idempotency guard #1 — a repeated POST with the same key returns the
+      // already-created campaign instead of creating (and reserving) a second.
+      // Scoped to THIS brand: the key is client-supplied, so an unscoped match
+      // could return (and leak) another brand's campaign (§19).
+      if (key) {
+        const [existing] = await tx
+          .select()
+          .from(campaigns)
+          .where(
+            and(
+              eq(campaigns.idempotencyKey, key),
+              eq(campaigns.brandId, session.user.id)
+            )
+          );
+        if (existing) return { campaign: existing, replayed: true };
+      }
+
+      if (fundedLaunch) {
+        const { available } = await getBrandWalletTotals(tx, session.user.id);
+        if (available < Number(budget)) {
+          const error = new Error(
+            "Insufficient wallet balance to launch this campaign."
+          );
+          error.status = 402;
+          error.payload = {
+            error: error.message,
+            required: Number(budget),
+            available,
+            shortfall: Number(budget) - available,
+          };
+          throw error;
+        }
+      }
+
+      const [campaign] = await tx
+        .insert(campaigns)
+        .values({
+          brandId: session.user.id,
+          title: title.trim(),
+          brief: brief ? brief.trim() : null,
+          platform,
+          reward,
+          budget,
+          spotlightReward,
+          performanceMult,
+          endsAt,
+          submitType,
+          requirements: requirements ? requirements.trim() : null,
+          contentType,
+          assetsUrl: assetsUrl || null,
+          visibility,
+          showContributions,
+          thumbnailUrl: thumbnailUrl || null,
+          bannerUrl: bannerUrl || null,
+          idempotencyKey: key,
+        })
+        .returning();
+
+      if (fundedLaunch) {
+        // Reserve the budget out of Available (§8). Idempotency guard #2: the
+        // partial-unique index on (campaign_id) WHERE action='reserve' means a
+        // campaign can reserve at most once, ever.
+        await tx.insert(brandWalletLedger).values({
+          brandId: session.user.id,
+          campaignId: campaign.id,
+          action: "reserve",
+          amount: Number(budget),
+          note: "Campaign launch budget reservation",
+        });
+
+        // Critical integration (§13): the review route pays creators only up to
+        // getCampaignFundingTotals().available from campaign_funding_ledger. A
+        // wallet-funded campaign must therefore carry a matching `funding` row or
+        // creators could never be paid. reference is unique per campaign, so this
+        // is idempotency guard #3. Wallet balances still derive purely from
+        // brand_wallet_ledger + brand_topups, so this does not double-count.
+        await tx.insert(campaignFundingLedger).values({
+          campaignId: campaign.id,
+          actorId: session.user.id,
+          action: "funding",
+          amount: Number(budget),
+          reference: `wallet:${campaign.id}`,
+          note: "Wallet-funded campaign launch",
+        });
+      }
+
+      return { campaign, replayed: false };
+    });
+  } catch (error) {
+    if (error.status === 402 && error.payload) {
+      return NextResponse.json(error.payload, { status: 402 });
+    }
+    if (error.status) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    // A racing duplicate launch (same idempotency key or reserve row) trips a
+    // unique constraint — treat it as the idempotent no-op it is.
+    if (error?.code === "23505" || error?.cause?.code === "23505") {
+      if (key) {
+        const [existing] = await db
+          .select()
+          .from(campaigns)
+          .where(
+            and(
+              eq(campaigns.idempotencyKey, key),
+              eq(campaigns.brandId, session.user.id)
+            )
+          );
+        if (existing) {
+          let replayWallet = null;
+          try {
+            const totals = await getBrandWalletTotals(db, session.user.id);
+            replayWallet = {
+              available: totals.available,
+              reserved: totals.reserved,
+              total: totals.total,
+            };
+          } catch {
+            replayWallet = null;
+          }
+          return NextResponse.json(
+            { ok: true, campaign: existing, wallet: replayWallet },
+            { status: 200 }
+          );
+        }
+      }
+      return NextResponse.json(
+        { error: "This campaign was already launched." },
+        { status: 409 }
+      );
+    }
+    throw error;
+  }
+
+  // Return the freshly-derived wallet totals so the launch success screen shows a
+  // server-authoritative balance (§5/§18), not stale client-side math. Non-fatal
+  // if it fails — the client falls back to its own estimate when wallet is null.
+  let wallet = null;
+  try {
+    const totals = await getBrandWalletTotals(db, session.user.id);
+    wallet = {
+      available: totals.available,
+      reserved: totals.reserved,
+      total: totals.total,
+    };
+  } catch {
+    wallet = null;
+  }
+
+  return NextResponse.json(
+    { ok: true, campaign: created.campaign, wallet },
+    { status: created.replayed ? 200 : 201 }
+  );
 }
