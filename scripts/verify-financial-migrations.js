@@ -1,4 +1,4 @@
-const requiredVersion = "018";
+const requiredVersion = "019";
 const enforce =
   process.env.VERCEL_ENV === "production" ||
   process.env.PULSEFY_ENFORCE_FINANCIAL_MIGRATIONS === "true";

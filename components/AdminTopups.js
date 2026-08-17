@@ -19,6 +19,18 @@ function fmtDate(d) {
   }
 }
 
+// Human label for the funding rail. null = the original manual/admin flow.
+function providerLabel(p) {
+  if (p === "nowpayments") return "Crypto · NOWPayments";
+  return null;
+}
+
+// Shorten a long charge id / on-chain tx hash for display (full value on hover).
+function shortRef(s) {
+  if (!s) return "";
+  return s.length > 22 ? `${s.slice(0, 10)}…${s.slice(-6)}` : s;
+}
+
 /**
  * Admin-only panel listing brand wallet top-up requests. The admin verifies the
  * real payment (bank / crypto / gateway) out-of-band, then Confirms with a
@@ -87,6 +99,13 @@ export default function AdminTopups() {
 
       {err && <div className="alert err" style={{ marginTop: 10 }}>{err}</div>}
 
+      {(rows || []).some((r) => r.provider) && (
+        <p className="brief" style={{ marginTop: 6, fontSize: 12.5, color: "var(--text-mute)" }}>
+          Crypto top-ups confirm automatically once the payment clears on-chain. Confirm /
+          Fail here is a manual fallback.
+        </p>
+      )}
+
       {rows === null ? (
         <p className="brief" style={{ marginTop: 10 }}>Loading…</p>
       ) : rows.length === 0 ? (
@@ -115,6 +134,23 @@ export default function AdminTopups() {
                     <td>
                       <b>{t.brandName || "Brand"}</b>
                       <div style={{ color: "var(--text-mute)", fontSize: 12 }}>{t.brandEmail}</div>
+                      {providerLabel(t.provider) && (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            marginTop: 4,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--accent)",
+                            background: "var(--accent-soft)",
+                            border: "1px solid var(--accent-line)",
+                            borderRadius: 999,
+                            padding: "2px 8px",
+                          }}
+                        >
+                          {providerLabel(t.provider)}
+                        </span>
+                      )}
                     </td>
                     <td style={{ color: "var(--accent-3)", fontWeight: 700, whiteSpace: "nowrap" }}>
                       ${Number(t.amount).toLocaleString()}
@@ -129,7 +165,17 @@ export default function AdminTopups() {
                           style={{ maxWidth: 150 }}
                         />
                       ) : (
-                        <span style={{ color: "var(--text-mute)", fontSize: 13 }}>{t.reference || "—"}</span>
+                        <span style={{ color: "var(--text-mute)", fontSize: 13 }} title={t.reference || ""}>
+                          {shortRef(t.reference) || "—"}
+                        </span>
+                      )}
+                      {t.providerChargeId && (
+                        <div
+                          style={{ color: "var(--text-mute)", fontSize: 11, marginTop: 4 }}
+                          title={t.providerChargeId}
+                        >
+                          Charge {shortRef(t.providerChargeId)}
+                        </div>
                       )}
                     </td>
                     <td><span className={`status ${STATUS_CLASS[t.status] || "review"}`}>{t.status}</span></td>

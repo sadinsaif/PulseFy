@@ -206,12 +206,18 @@ export const brandTopups = pgTable("brand_topups", {
   brandId: text("brand_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(), // whole dollars (USD); always > 0
   status: text("status").notNull().default("pending"), // pending|processing|completed|failed|cancelled
-  reference: text("reference"), // payment reference, set by admin on completion
+  reference: text("reference"), // payment reference (tx hash / charge id), set on completion
   note: text("note"), // internal admin note; never public
+  provider: text("provider"), // 'nowpayments' for crypto; null for manual top-ups
+  providerChargeId: text("provider_charge_id"), // provider invoice/charge id — idempotency + audit correlation
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 }, (table) => ({
   brandCreatedIdx: index("brand_topups_brand_created_idx").on(table.brandId, table.createdAt),
+  // One top-up per provider charge — DB-level idempotency for re-delivered webhooks.
+  providerChargeIdx: uniqueIndex("brand_topups_provider_charge_idx")
+    .on(table.providerChargeId)
+    .where(sql`${table.providerChargeId} is not null`),
 }));
 
 /**

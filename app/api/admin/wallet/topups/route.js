@@ -24,6 +24,8 @@ export async function GET() {
       status: brandTopups.status,
       reference: brandTopups.reference,
       note: brandTopups.note,
+      provider: brandTopups.provider,
+      providerChargeId: brandTopups.providerChargeId,
       createdAt: brandTopups.createdAt,
       brandId: brandTopups.brandId,
       brandName: users.name,

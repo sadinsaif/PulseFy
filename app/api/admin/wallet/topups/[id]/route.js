@@ -2,23 +2,22 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/db";
-import { brandTopups } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { isAdminEmail } from "@/lib/admin";
 import { notifyUser } from "@/lib/notify";
+import { applyTopupTransition } from "@/lib/topup-transition";
 
 // The transitions an admin may apply to a pending/processing top-up. Only
 // `completed` credits the brand's Available balance (derived), and it requires a
-// payment reference — the honest "money confirmed" step (§4/§5). A real Stripe
-// webhook could later drive the same transition with zero UI change.
+// payment reference — the honest "money confirmed" step (§4/§5). The crypto
+// webhook drives the SAME transition via the shared helper below.
 const ALLOWED = ["processing", "completed", "failed", "cancelled"];
 
 /**
  * PATCH /api/admin/wallet/topups/[id]
  * Body: { status, reference?, note? }. Admin-only. A top-up is only credited to
  * the wallet when it becomes `completed`; balances are derived, so this route
- * writes no balance column — it just advances the lifecycle safely under a lock.
+ * writes no balance column — it just advances the lifecycle safely under a lock
+ * (shared with the crypto webhook via applyTopupTransition).
  */
 export async function PATCH(req, { params }) {
   const session = await auth();
@@ -48,42 +47,10 @@ export async function PATCH(req, { params }) {
 
   let result;
   try {
-    result = await db.transaction(async (tx) => {
-      const [current] = await tx
-        .select()
-        .from(brandTopups)
-        .where(eq(brandTopups.id, params.id))
-        .for("update");
-      if (!current) {
-        const error = new Error("Top-up not found");
-        error.status = 404;
-        throw error;
-      }
-
-      if (current.status === status) return { current, changed: false };
-
-      // Terminal states are final — never rewrite a completed/failed/cancelled
-      // financial record (§17).
-      if (["completed", "failed", "cancelled"].includes(current.status)) {
-        const error = new Error(
-          `A ${current.status} top-up is final and cannot be changed.`
-        );
-        error.status = 409;
-        throw error;
-      }
-
-      await tx
-        .update(brandTopups)
-        .set({
-          status,
-          reference: status === "completed" ? ref : current.reference,
-          note: typeof note === "string" && note.trim() ? note.trim() : current.note,
-          updatedAt: new Date(),
-        })
-        .where(eq(brandTopups.id, current.id));
-
-      return { current, changed: true };
-    });
+    result = await applyTopupTransition(
+      { id: params.id },
+      { status, reference: ref, note }
+    );
   } catch (error) {
     if (error.status) {
       return NextResponse.json({ error: error.message }, { status: error.status });

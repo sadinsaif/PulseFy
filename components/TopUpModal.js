@@ -1,25 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const QUICK = [100, 500, 1000, 2500];
 
 /**
  * Brand wallet top-up modal (mirrors the withdrawal modal's shell/classes).
- * A top-up is a REQUEST — it never claims "successful". After a successful POST
- * the modal shows an honest "pending confirmation" state: the balance only moves
- * once an admin confirms the payment (§4). `available` is the brand's current
+ * A top-up is a REQUEST — it never claims "successful". After a successful manual
+ * POST the modal shows an honest "pending confirmation" state: the balance only
+ * moves once the payment is confirmed (§4). `available` is the brand's current
  * available balance in whole dollars; `presetAmount` optionally pre-fills the
  * amount (e.g. the exact shortfall from the Budget step).
+ *
+ * When the crypto provider is configured (GET /api/wallet/config →
+ * cryptoEnabled), a second method — "Pay with crypto" — is offered. It hands off
+ * to our provider's hosted crypto checkout; the balance is still credited only
+ * later, when the signed webhook confirms the on-chain payment. When crypto is
+ * NOT configured, this modal behaves exactly as the manual-only flow always has.
  */
 export default function TopUpModal({ available = 0, presetAmount = 0, onClose, onSuccess }) {
   const [amount, setAmount] = useState(presetAmount > 0 ? String(presetAmount) : "");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState(false);
+  const [cryptoEnabled, setCryptoEnabled] = useState(false);
+  const [method, setMethod] = useState("manual"); // "manual" | "crypto"
+
+  // Ask the server whether the crypto option should be shown. Fail closed: any
+  // error or a false flag leaves the manual-only flow in place.
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/wallet/config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d) setCryptoEnabled(!!d.cryptoEnabled);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const amt = Math.floor(Number(amount) || 0);
   const nextAvailable = available + (amt > 0 ? amt : 0);
+  const isCrypto = cryptoEnabled && method === "crypto";
 
   async function submit() {
     setErr("");
@@ -29,6 +53,26 @@ export default function TopUpModal({ available = 0, presetAmount = 0, onClose, o
     }
     setSaving(true);
     try {
+      if (isCrypto) {
+        // Hand off to our provider's hosted crypto checkout. Keep `saving` true
+        // through the redirect so the button stays disabled while the browser
+        // navigates.
+        const res = await fetch("/api/wallet/topups/crypto", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: amt }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.hosted_url) {
+          setSaving(false);
+          setErr(data.error || "Could not start the crypto payment.");
+          return;
+        }
+        window.location.href = data.hosted_url;
+        return;
+      }
+
+      // Manual request (unchanged): creates a pending top-up an admin confirms.
       const res = await fetch("/api/wallet/topups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -101,6 +145,36 @@ export default function TopUpModal({ available = 0, presetAmount = 0, onClose, o
                 ))}
               </div>
 
+              {cryptoEnabled && (
+                <>
+                  <label className="wd-label" style={{ marginTop: 4 }}>Payment method</label>
+                  <div className="toggle-group">
+                    <button
+                      type="button"
+                      className={`toggle-btn${method === "manual" ? " active" : ""}`}
+                      onClick={() => setMethod("manual")}
+                      aria-pressed={method === "manual"}
+                    >
+                      <div>
+                        <b>Manual request</b>
+                        <span>Bank transfer or other — our team confirms it</span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      className={`toggle-btn${method === "crypto" ? " active" : ""}`}
+                      onClick={() => setMethod("crypto")}
+                      aria-pressed={method === "crypto"}
+                    >
+                      <div>
+                        <b>Pay with crypto</b>
+                        <span>Connect your wallet — confirmed automatically on-chain</span>
+                      </div>
+                    </button>
+                  </div>
+                </>
+              )}
+
               <div className="wd-breakdown">
                 <div><span>Current balance</span><span>${available.toLocaleString()}</span></div>
                 <div><span>Top-up</span><span>+${amt > 0 ? amt.toLocaleString() : "0"}</span></div>
@@ -111,8 +185,9 @@ export default function TopUpModal({ available = 0, presetAmount = 0, onClose, o
               </div>
 
               <p className="wd-minmax" style={{ marginTop: 12 }}>
-                Payments are confirmed manually. Your balance updates once the payment
-                clears — you&apos;ll never see &quot;successful&quot; before it&apos;s confirmed.
+                {isCrypto
+                  ? "You'll finish paying on our secure crypto checkout. Your balance updates only after the payment is confirmed on-chain — never before."
+                  : "Payments are confirmed manually. Your balance updates once the payment clears — you'll never see “successful” before it's confirmed."}
               </p>
 
               <button
@@ -121,7 +196,13 @@ export default function TopUpModal({ available = 0, presetAmount = 0, onClose, o
                 disabled={saving}
                 onClick={submit}
               >
-                {saving ? "Requesting…" : "Continue"}
+                {isCrypto
+                  ? saving
+                    ? "Starting…"
+                    : "Pay with crypto"
+                  : saving
+                    ? "Requesting…"
+                    : "Continue"}
               </button>
               <button
                 className="btn btn-ghost"
