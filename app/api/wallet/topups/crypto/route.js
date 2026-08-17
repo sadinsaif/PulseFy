@@ -90,8 +90,15 @@ export async function POST(req) {
     });
   } catch (err) {
     console.error("NOWPayments invoice creation failed:", err);
+    // TEMP DIAGNOSTIC (2026-08-17): surface the upstream NOWPayments error to the
+    // brand so we can see WHY invoice creation fails without Vercel log access.
+    // REVERT to the plain generic message once the root cause is identified.
     return NextResponse.json(
-      { error: "Couldn't start the crypto payment. Please try again." },
+      {
+        error:
+          "Couldn't start the crypto payment. [diag] " +
+          String(err?.message || err).slice(0, 400),
+      },
       { status: 502 }
     );
   }
