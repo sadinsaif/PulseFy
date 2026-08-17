@@ -129,6 +129,13 @@ export const campaigns = pgTable("campaigns", {
   // instead of creating a second one (and reserving its budget twice). Nullable:
   // campaigns created before this column, and $0/unfunded launches, may omit it.
   idempotencyKey: text("idempotency_key"),
+  // Admin soft-delete marker (migration 020). Non-null = archived: the campaign is
+  // hidden from every listing / browse / detail surface, but its row and all
+  // financial + audit history that references it are preserved. A hard delete is
+  // impossible for a funded campaign — the two ledgers reference campaigns
+  // ON DELETE RESTRICT and are immutable (016/018) — so "delete" is always a soft
+  // delete that also releases unused budget back to the brand wallet (like End).
+  deletedAt: timestamp("deleted_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 }, (table) => ({
   idempotencyIdx: uniqueIndex("campaigns_idempotency_key_idx")

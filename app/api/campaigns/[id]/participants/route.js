@@ -8,8 +8,8 @@ import { campaignParticipants, campaigns, users } from "@/db/schema";
 import { isAdminEmail } from "@/lib/admin";
 
 async function manager(params, session) {
-  const [campaign] = await db.select({ id: campaigns.id, brandId: campaigns.brandId, visibility: campaigns.visibility }).from(campaigns).where(eq(campaigns.id, params.id));
-  if (!campaign || campaign.visibility !== "private" || (campaign.brandId !== session.user.id && !isAdminEmail(session.user.email))) return null;
+  const [campaign] = await db.select({ id: campaigns.id, brandId: campaigns.brandId, visibility: campaigns.visibility, deletedAt: campaigns.deletedAt }).from(campaigns).where(eq(campaigns.id, params.id));
+  if (!campaign || campaign.deletedAt || campaign.visibility !== "private" || (campaign.brandId !== session.user.id && !isAdminEmail(session.user.email))) return null;
   return campaign;
 }
 
@@ -28,10 +28,10 @@ export async function POST(req, { params }) {
   let body; try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
   if (!body?.creatorId || typeof body.creatorId !== "string") return NextResponse.json({ error: "Missing creator" }, { status: 400 });
   const [[campaign], [creator]] = await Promise.all([
-    db.select({ id: campaigns.id, brandId: campaigns.brandId, visibility: campaigns.visibility }).from(campaigns).where(eq(campaigns.id, params.id)),
+    db.select({ id: campaigns.id, brandId: campaigns.brandId, visibility: campaigns.visibility, deletedAt: campaigns.deletedAt }).from(campaigns).where(eq(campaigns.id, params.id)),
     db.select({ id: users.id, role: users.role }).from(users).where(eq(users.id, body.creatorId)),
   ]);
-  if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  if (!campaign || campaign.deletedAt) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   if (campaign.visibility !== "private") return NextResponse.json({ error: "Campaign is not private" }, { status: 409 });
   if (campaign.brandId !== session.user.id && !isAdminEmail(session.user.email)) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   if (!creator || creator.role !== "creator") return NextResponse.json({ error: "Creator not found" }, { status: 404 });

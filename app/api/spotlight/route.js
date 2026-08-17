@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { campaigns, submissions, users } from "@/db/schema";
@@ -21,7 +21,7 @@ export async function GET(req) {
     creatorImage: users.image, campaignId: campaigns.id, brandId: campaigns.brandId, visibility: campaigns.visibility,
     showContributions: campaigns.showContributions,
   }).from(submissions).leftJoin(users, eq(submissions.userId, users.id)).innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
-    .where(filter).orderBy(desc(submissions.spotlightBonus), desc(submissions.createdAt)).limit(MAX);
+    .where(and(filter, isNull(campaigns.deletedAt))).orderBy(desc(submissions.spotlightBonus), desc(submissions.createdAt)).limit(MAX);
   const participantIds = await participantCampaignIds(session.user.id, [...new Set(rows.map((row) => row.campaignId))]);
   const spotlights = rows.filter((row) => canViewCampaignContributions(row, session, participantIds))
     .map(({ campaignId: _campaignId, brandId: _brandId, visibility: _visibility, showContributions: _showContributions, ...row }) => row);

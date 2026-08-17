@@ -85,14 +85,14 @@ export async function GET(req) {
       })
       .from(campaigns)
       .leftJoin(users, eq(campaigns.brandId, users.id))
-      .where(eq(campaigns.brandId, session.user.id))
+      .where(and(eq(campaigns.brandId, session.user.id), sql`${campaigns.deletedAt} is null`))
       .orderBy(desc(campaigns.createdAt));
   } else {
     rows = await db
       .select(cols)
       .from(campaigns)
       .leftJoin(users, eq(campaigns.brandId, users.id))
-      .where(sql`${campaigns.status} <> 'paused' and ${campaigns.visibility} is distinct from 'private'`)
+      .where(sql`${campaigns.status} <> 'paused' and ${campaigns.visibility} is distinct from 'private' and ${campaigns.deletedAt} is null`)
       .orderBy(liveFirst, desc(campaigns.createdAt));
   }
 

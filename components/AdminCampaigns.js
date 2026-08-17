@@ -39,6 +39,10 @@ export default function AdminCampaigns({ rows = [] }) {
   const [list, setList] = useState(rows);
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
+  // Delete flow: `pendingDelete` holds the campaign awaiting confirmation.
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteErr, setDeleteErr] = useState("");
 
   async function setStatus(id, status) {
     try {
@@ -52,6 +56,27 @@ export default function AdminCampaigns({ rows = [] }) {
       }
     } catch {
       /* ignore */
+    }
+  }
+
+  // Soft-delete (archive) a campaign. The server hides it from every listing and
+  // returns any reserved (unspent) budget to the brand's wallet; we drop the row.
+  async function remove(id) {
+    setDeleteBusy(true);
+    setDeleteErr("");
+    try {
+      const res = await fetch(`/api/admin/campaigns/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setList((prev) => prev.filter((r) => r.id !== id));
+        setPendingDelete(null);
+      } else {
+        setDeleteErr(data.error || "Could not delete this campaign.");
+      }
+    } catch {
+      setDeleteErr("Could not delete this campaign.");
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -164,12 +189,42 @@ export default function AdminCampaigns({ rows = [] }) {
                       {c.status !== "ended" && (
                         <button className="btn btn-ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => setStatus(c.id, "ended")}>End</button>
                       )}
+                      <button className="btn btn-danger" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => { setDeleteErr(""); setPendingDelete(c); }}>Delete</button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {pendingDelete && (
+        <div className="modal-overlay" onClick={() => !deleteBusy && setPendingDelete(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>Delete campaign</h3>
+              <button className="modal-x" onClick={() => !deleteBusy && setPendingDelete(null)}>×</button>
+            </div>
+            <p>
+              Delete <b>{pendingDelete.title}</b>
+              {pendingDelete.brandName ? <> by {pendingDelete.brandName}</> : null}? It will be
+              removed from every listing across the platform. Any reserved (unspent)
+              budget is returned to the brand&apos;s wallet automatically, and creator
+              earnings already paid out are kept.
+            </p>
+            <p className="alert err">
+              This hides the campaign everywhere. Its financial and submission history
+              is preserved, and it can only be restored from the database.
+            </p>
+            {deleteErr && <div className="alert err">{deleteErr}</div>}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+              <button className="btn btn-ghost" onClick={() => setPendingDelete(null)} disabled={deleteBusy}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => remove(pendingDelete.id)} disabled={deleteBusy}>
+                {deleteBusy ? "Deleting…" : "Delete campaign"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

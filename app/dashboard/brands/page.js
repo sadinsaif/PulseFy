@@ -42,7 +42,7 @@ export default async function BrandsPage() {
 
   // Per-brand aggregates via correlated subqueries. Spend = approved rewards +
   // spotlight bonuses across the brand's own campaigns (matches budgetSpent).
-  const campaignCount = sql`(select count(*) from ${campaigns} where ${campaigns.brandId} = ${users.id})`;
+  const campaignCount = sql`(select count(*) from ${campaigns} where ${campaigns.brandId} = ${users.id} and ${campaigns.deletedAt} is null)`;
   const activeCount = sql`(select count(*) from ${campaigns} where ${campaigns.brandId} = ${users.id} and ${campaigns.status} = 'active')`;
   const spend = sql`(
     (select coalesce(sum(${submissions.reward}), 0) from ${submissions}

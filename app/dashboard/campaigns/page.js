@@ -67,6 +67,7 @@ export default async function CampaignsPage() {
         })
         .from(campaigns)
         .leftJoin(users, eq(campaigns.brandId, users.id))
+        .where(sql`${campaigns.deletedAt} is null`)
         .orderBy(desc(campaigns.createdAt));
 
       // Normalise createdAt to an ISO string for clean client serialization.

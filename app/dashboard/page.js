@@ -38,7 +38,7 @@ export default async function DashboardPage() {
         .select({ n: sql`count(*)` })
         .from(campaigns)
         .where(
-          sql`${campaigns.brandId} = ${me} and ${campaigns.status} = 'active' and (${campaigns.endsAt} is null or ${campaigns.endsAt} > now())`
+          sql`${campaigns.brandId} = ${me} and ${campaigns.status} = 'active' and (${campaigns.endsAt} is null or ${campaigns.endsAt} > now()) and ${campaigns.deletedAt} is null`
         );
 
       const spendExpr = sql`coalesce(sum(case when ${submissions.status} = 'approved' then ${submissions.reward} else 0 end), 0)
@@ -75,7 +75,7 @@ export default async function DashboardPage() {
         })
         .from(campaigns)
         .leftJoin(submissions, eq(submissions.campaignId, campaigns.id))
-        .where(eq(campaigns.brandId, me))
+        .where(sql`${campaigns.brandId} = ${me} and ${campaigns.deletedAt} is null`)
         .groupBy(campaigns.id, campaigns.title)
         .orderBy(desc(sql`coalesce(sum(${submissions.views}), 0)`))
         .limit(8);
@@ -246,7 +246,7 @@ export default async function DashboardPage() {
       })
       .from(campaigns)
       .leftJoin(users, eq(campaigns.brandId, users.id))
-      .where(sql`${campaigns.status} <> 'paused' and ${campaigns.visibility} is distinct from 'private'`)
+      .where(sql`${campaigns.status} <> 'paused' and ${campaigns.visibility} is distinct from 'private' and ${campaigns.deletedAt} is null`)
       .orderBy(liveFirst, desc(campaigns.createdAt));
   } catch {
     allCampaigns = [];
@@ -392,8 +392,8 @@ export default async function DashboardPage() {
     const [ac] = await db
       .select({ n: sql`count(*)` })
       .from(campaigns)
-      .where(sql`${campaigns.status} = 'active'`);
-    const [tc] = await db.select({ n: sql`count(*)` }).from(campaigns);
+      .where(sql`${campaigns.status} = 'active' and ${campaigns.deletedAt} is null`);
+    const [tc] = await db.select({ n: sql`count(*)` }).from(campaigns).where(sql`${campaigns.deletedAt} is null`);
     const [sb] = await db.select({ n: sql`count(*)` }).from(submissions);
     const [pr] = await db
       .select({ n: sql`count(*)` })
@@ -429,15 +429,15 @@ export default async function DashboardPage() {
     const [dr] = await db
       .select({ n: sql`count(*)` })
       .from(campaigns)
-      .where(sql`${campaigns.status} = 'draft'`);
+      .where(sql`${campaigns.status} = 'draft' and ${campaigns.deletedAt} is null`);
     const [pa] = await db
       .select({ n: sql`count(*)` })
       .from(campaigns)
-      .where(sql`${campaigns.status} = 'paused'`);
+      .where(sql`${campaigns.status} = 'paused' and ${campaigns.deletedAt} is null`);
     const [en] = await db
       .select({ n: sql`count(*)` })
       .from(campaigns)
-      .where(sql`${campaigns.status} = 'ended'`);
+      .where(sql`${campaigns.status} = 'ended' and ${campaigns.deletedAt} is null`);
     activity = {
       active: a.activeCampaigns,
       draft: Number(dr?.n || 0),
@@ -479,6 +479,7 @@ export default async function DashboardPage() {
       })
       .from(campaigns)
       .leftJoin(submissions, eq(submissions.campaignId, campaigns.id))
+      .where(sql`${campaigns.deletedAt} is null`)
       .groupBy(campaigns.id, campaigns.title)
       .orderBy(desc(sql`coalesce(sum(${submissions.views}), 0)`))
       .limit(8);

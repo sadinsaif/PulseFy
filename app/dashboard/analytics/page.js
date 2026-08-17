@@ -59,7 +59,7 @@ export default async function AnalyticsPage() {
         })
         .from(submissions)
         .innerJoin(campaigns, eq(submissions.campaignId, campaigns.id))
-        .where(eq(submissions.userId, user.id))
+        .where(sql`${submissions.userId} = ${user.id} and ${campaigns.deletedAt} is null`)
         .groupBy(campaigns.id, campaigns.title)
         .orderBy(desc(sql`coalesce(sum(${submissions.views}), 0)`))
         .limit(8);
@@ -161,11 +161,12 @@ export default async function AnalyticsPage() {
 
     perf = scoped
       ? await perfBase
-          .where(eq(campaigns.brandId, user.id))
+          .where(sql`${campaigns.brandId} = ${user.id} and ${campaigns.deletedAt} is null`)
           .groupBy(campaigns.id, campaigns.title)
           .orderBy(desc(sql`coalesce(sum(${submissions.views}), 0)`))
           .limit(8)
       : await perfBase
+          .where(sql`${campaigns.deletedAt} is null`)
           .groupBy(campaigns.id, campaigns.title)
           .orderBy(desc(sql`coalesce(sum(${submissions.views}), 0)`))
           .limit(8);

@@ -23,11 +23,12 @@ export async function GET(_req, { params }) {
 
   // Need the campaign owner to authorize a brand viewer.
   const campRows = await db
-    .select({ id: campaigns.id, brandId: campaigns.brandId, visibility: campaigns.visibility, status: campaigns.status, endsAt: campaigns.endsAt })
+    .select({ id: campaigns.id, brandId: campaigns.brandId, visibility: campaigns.visibility, status: campaigns.status, endsAt: campaigns.endsAt, deletedAt: campaigns.deletedAt })
     .from(campaigns)
     .where(eq(campaigns.id, params.id));
   const camp = campRows[0];
-  if (!camp) {
+  if (!camp || camp.deletedAt) {
+    // A deleted (archived) campaign is treated as non-existent.
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 

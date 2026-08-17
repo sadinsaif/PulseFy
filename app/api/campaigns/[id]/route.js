@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { campaignParticipants, campaigns, users, submissions, brandWalletLedger } from "@/db/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { campaignStatusSchema, campaignSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
 
@@ -32,6 +32,9 @@ export async function GET(_req, { params }) {
       endsAt: campaigns.endsAt,
       status: campaigns.status,
       createdAt: campaigns.createdAt,
+      // Needed so the archived-campaign guard below actually fires — a partial
+      // projection that omitted this made `campaign.deletedAt` always undefined.
+      deletedAt: campaigns.deletedAt,
       submitType: campaigns.submitType,
       requirements: campaigns.requirements,
       contentType: campaigns.contentType,
@@ -48,7 +51,8 @@ export async function GET(_req, { params }) {
     .where(eq(campaigns.id, params.id));
 
   const campaign = rows[0];
-  if (!campaign) {
+  if (!campaign || campaign.deletedAt) {
+    // A deleted (archived) campaign is treated as non-existent everywhere.
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
@@ -91,7 +95,8 @@ export async function PATCH(req, { params }) {
     .from(campaigns)
     .where(eq(campaigns.id, params.id));
   const campaign = rows[0];
-  if (!campaign) {
+  if (!campaign || campaign.deletedAt) {
+    // A deleted (archived) campaign is treated as non-existent — no status changes.
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
@@ -123,6 +128,14 @@ export async function PATCH(req, { params }) {
         .where(eq(campaigns.id, params.id))
         .for("update");
       if (!current) {
+        const error = new Error("Campaign not found");
+        error.status = 404;
+        throw error;
+      }
+      if (current.deletedAt) {
+        // Re-check under the row lock: an admin delete may have committed between
+        // the pre-read guard and acquiring this lock. A deleted campaign is
+        // non-existent — never mutate its status.
         const error = new Error("Campaign not found");
         error.status = 404;
         throw error;
@@ -209,7 +222,8 @@ export async function PUT(req, { params }) {
 
   const rows = await db.select().from(campaigns).where(eq(campaigns.id, params.id));
   const campaign = rows[0];
-  if (!campaign) {
+  if (!campaign || campaign.deletedAt) {
+    // A deleted (archived) campaign is treated as non-existent — no edits allowed.
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
@@ -304,7 +318,10 @@ export async function PUT(req, { params }) {
       thumbnailUrl: d.thumbnailUrl || null,
       bannerUrl: d.bannerUrl || null,
     })
-    .where(eq(campaigns.id, params.id));
+    // Guard against a concurrent admin delete: if the campaign was soft-deleted
+    // between the pre-read above and now, this UPDATE matches no rows and the
+    // archived campaign is left untouched.
+    .where(and(eq(campaigns.id, params.id), isNull(campaigns.deletedAt)));
 
   return NextResponse.json({ ok: true });
 }
