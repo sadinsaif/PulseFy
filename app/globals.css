@@ -678,6 +678,7 @@ thead th {
   text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .6px;
   color: var(--text-mute); font-weight: 600; padding: 0 14px 14px; border-bottom: 1px solid var(--border-soft);
 }
+.wd-history thead th { color: #c3c9d4; }
 tbody td { padding: 15px 14px; border-bottom: 1px solid var(--border-soft); font-size: 14px; }
 tbody tr:hover { background: var(--bg-card-2); }
 tbody tr:last-child td { border-bottom: none; }
@@ -694,6 +695,7 @@ tbody tr:last-child td { border-bottom: none; }
 .status.live { background: rgba(74,222,128,.14); color: var(--ok); }
 .status.review { background: rgba(246,196,83,.14); color: var(--warn); }
 .status.ended { background: rgba(107,114,128,.16); color: var(--text-mute); }
+.status.failed { background: rgba(244,82,106,.16); color: #ffb3c0; }
 
 /* progress bar cell */
 .mini-prog { height: 7px; background: var(--bg-card-2); border-radius: 999px; overflow: hidden; width: 120px; }
@@ -1588,11 +1590,11 @@ tbody tr:last-child td { border-bottom: none; }
   border: 1px solid var(--border-soft); border-radius: 18px; padding: 24px 26px;
 }
 .wallet-bal { display: flex; flex-direction: column; gap: 4px; }
-.wallet-lbl { font-size: 13px; color: var(--text-mute); text-transform: uppercase; letter-spacing: .6px; }
+.wallet-lbl { font-size: 13px; color: #d5dae2; text-transform: uppercase; letter-spacing: .6px; }
 .wallet-val { font-family: var(--font-display); font-size: 40px; font-weight: var(--fw-display); letter-spacing: -.028em; color: var(--accent-3); font-feature-settings: 'tnum' 1, 'lnum' 1; }
-.wallet-sub { font-size: 13px; color: var(--text-dim); }
+.wallet-sub { font-size: 13px; color: #c3c9d4; }
 .wallet-hero .btn { padding: 12px 22px; font-size: 15px; white-space: nowrap; }
-.wallet-hero .btn:disabled { opacity: .5; cursor: not-allowed; }
+.wallet-hero .btn:disabled { opacity: .6; cursor: not-allowed; }
 
 /* Three-up balance cards under the wallet hero (Available / Reserved / Total).
    auto-fit keeps them from causing horizontal scroll on small screens (§22). */
@@ -1639,12 +1641,17 @@ tbody tr:last-child td { border-bottom: none; }
 
 .wd-overlay {
   position: fixed; inset: 0; z-index: 200;
-  background: rgba(4,7,14,.72); backdrop-filter: blur(4px);
+  /* Solid dark scrim only — the dashboard behind stays completely sharp
+     (no backdrop blur). The modal itself remains crisp. */
+  background: rgba(0,0,0,.66);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .wd-modal {
   width: 100%; max-width: 440px; background: var(--bg-card);
-  border: 1px solid var(--border-soft); border-radius: 20px; overflow: hidden;
+  border: 1px solid var(--border-soft); border-radius: 20px;
+  /* Cap height and scroll vertically so long steps (coin/network/details)
+     are never clipped on short screens; corners still clip children. */
+  overflow: hidden auto; max-height: 90vh;
   box-shadow: 0 30px 80px rgba(0,0,0,.5);
 }
 .wd-head {
@@ -1699,6 +1706,7 @@ tbody tr:last-child td { border-bottom: none; }
   background: var(--bg-card-2); border: 1px solid var(--accent-3);
   border-radius: 12px; padding: 12px 14px;
 }
+.wd-amount:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .wd-currency { font-size: 22px; font-weight: 800; color: #ffffff; }
 .wd-amount input {
   flex: 1; background: none; border: none; outline: none;
@@ -1717,7 +1725,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .wd-quick button:hover:not(:disabled) { border-color: var(--accent); color: #fff; }
 .wd-quick button:disabled { opacity: .4; cursor: not-allowed; }
-.wd-minmax { text-align: center; font-size: 12.5px; color: #a9afbb; font-weight: 500; }
+.wd-minmax { text-align: center; font-size: 12.5px; color: #b8c0cc; font-weight: 500; }
 .wd-breakdown {
   background: var(--bg-card-2); border: 1px solid var(--border);
   border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 9px;
@@ -1732,11 +1740,17 @@ tbody tr:last-child td { border-bottom: none; }
   border-radius: 12px; padding: 12px 14px; color: #fff; outline: none; font-size: 14px; font-weight: 500;
 }
 .wd-dest::placeholder { color: #9aa1af; opacity: 1; }
-.wd-dest:focus { border-color: var(--accent); }
+.wd-dest:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .wd-done { padding: 32px 26px; text-align: center; display: flex; flex-direction: column; gap: 10px; }
 .wd-done-ic { font-size: 48px; }
 .wd-done h3 { font-size: 20px; font-weight: 800; color: #ffffff; }
 .wd-done p { font-size: 14px; color: #c3c9d4; line-height: 1.5; }
+
+/* Payment-method cards inside a withdrawal/top-up modal (Manual request / Pay
+   with crypto). Scoped to .wd-body so the campaign-builder toggles are untouched.
+   Force a bright title and a readable light-gray description in every state. */
+.wd-body .toggle-btn b { color: #ffffff; }
+.wd-body .toggle-btn span { color: #dfe3e9; }
 
 @media (max-width: 560px) {
   .wallet-hero { flex-direction: column; align-items: stretch; text-align: center; }

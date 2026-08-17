@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import WithdrawModal from "@/components/WithdrawModal";
 
 const METHOD_LABEL = { stablecoin: "Stablecoin", bank: "Bank / PayPal" };
-const STATUS_CLASS = { pending: "review", paid: "live", failed: "ended" };
+const STATUS_CLASS = { pending: "review", paid: "live", failed: "failed" };
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -81,7 +81,7 @@ export default function CreatorWallet() {
             No withdrawals yet. When you cash out, your requests show up here.
           </p>
         ) : (
-          <div className="table-wrap" style={{ marginTop: 12 }}>
+          <div className="table-wrap wd-history" style={{ marginTop: 12 }}>
             <table>
               <thead>
                 <tr>
@@ -100,7 +100,7 @@ export default function CreatorWallet() {
                     <td>
                       <b>{METHOD_LABEL[w.method] || w.method}</b>
                       {w.method === "stablecoin" && w.coin && (
-                        <span style={{ color: "var(--text-mute)", fontSize: 12 }}>
+                        <span style={{ color: "#c3c9d4", fontSize: 12 }}>
                           {" "}· {w.coin.toUpperCase()} / {w.network}
                         </span>
                       )}
@@ -111,7 +111,7 @@ export default function CreatorWallet() {
                         : w.destination}
                     </td>
                     <td>${(w.amount / 100).toFixed(2)}</td>
-                    <td style={{ color: "var(--text-mute)" }}>-${(w.fee / 100).toFixed(2)}</td>
+                    <td style={{ color: "#c3c9d4" }}>-${(w.fee / 100).toFixed(2)}</td>
                     <td style={{ color: "var(--accent-3)", fontWeight: 700 }}>
                       ${(w.net / 100).toFixed(2)}
                     </td>
