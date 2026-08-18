@@ -37,6 +37,8 @@ export default function Navbar({ session }) {
           <span className="wordmark">Pulse<span className="wm-fy">Fy</span></span>
         </Link>
         <div className="nav-links" style={open ? mobileOpen : undefined}>
+          <a href="/#creators">For Creators</a>
+          <a href="/#brands">For Brands</a>
           <a href="/#how">How it works</a>
           <a href="/#features">Features</a>
           <a href="/#pricing">Pricing</a>

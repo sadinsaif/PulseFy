@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import Navbar from "@/components/Navbar";
 import Reveal from "@/components/Reveal";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import HeroActivity from "@/components/landing/HeroActivity";
+import HeroOrbit from "@/components/landing/HeroOrbit";
 import PulseScore from "@/components/landing/PulseScore";
 import StatCounter from "@/components/landing/StatCounter";
 import { getLandingData } from "@/lib/landing";
@@ -88,28 +88,45 @@ export default async function Home() {
       {/* ===================== HERO ===================== */}
       <header className="hero hero-v2">
         <div className="container">
-          <span className="pill">
-            <span className="dot"></span> A live operating system for the creator economy
-          </span>
-          <h1>
-            The creator economy,
-            <br />
-            from <span className="grad">brief to payout</span>.
-          </h1>
-          <p className="sub">
-            Brands launch campaigns. Thousands of creators submit. AI filters
-            what&apos;s on-brand, humans approve, and rewards pay out
-            automatically — worldwide.
-          </p>
-          <div className="hero-actions">
-            <Link href={startCreating} className="btn btn-primary btn-lg">
-              Start Creating →
-            </Link>
-            <Link href={startCampaign} className="btn btn-ghost btn-lg">
-              Start a Campaign →
-            </Link>
+          <div className="hero-grid">
+            <div className="hero-copy">
+              <span className="pill">
+                <span className="dot"></span> A live operating system for the creator economy
+              </span>
+              <h1>
+                The creator economy,
+                <br />
+                from <span className="grad">brief to payout</span>.
+              </h1>
+              <p className="sub">
+                Brands launch campaigns. Thousands of creators submit. AI filters
+                what&apos;s on-brand, humans approve, and rewards pay out
+                automatically — worldwide.
+              </p>
+              <div className="hero-actions">
+                <Link href={startCreating} className="btn btn-primary btn-lg">
+                  Start Creating →
+                </Link>
+                <Link href={startCampaign} className="btn btn-green btn-lg">
+                  Start a Campaign →
+                </Link>
+              </div>
+              <p className="hero-note">No credit card required · Set up in minutes</p>
+
+              {hasData ? (
+                <div className="hero-stats">
+                  <StatCounter value={stats.creators} label="Creators on PulseFy" />
+                  <StatCounter value={stats.activeCampaigns} label="Live campaigns" />
+                  <StatCounter value={stats.paidOut} prefix="$" label="Paid to creators" />
+                  <StatCounter value={4} label="Platforms tracked" />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="hero-visual">
+              <HeroOrbit activity={activity} />
+            </div>
           </div>
-          <p className="hero-note">No credit card required · Set up in minutes</p>
 
           <div className="hero-pipeline" aria-label="How value flows through PulseFy">
             {["Brands", "Campaigns", "Creators", "AI review", "Approval", "Payout"].map((s, i, a) => (
@@ -120,9 +137,71 @@ export default async function Home() {
             ))}
           </div>
         </div>
-
-        <HeroActivity items={activity} />
       </header>
+
+      {/* ============== WORKS WITH (real platforms) ============== */}
+      <section className="works" aria-label="Supported platforms">
+        <div className="container">
+          <Reveal>
+            <p className="works-label">Works with the platforms your creators already use</p>
+            <div className="works-row">
+              {["TikTok", "Instagram", "YouTube", "X"].map((p) => (
+                <span className="works-chip" key={p}>
+                  <span className="works-dot" aria-hidden="true" />
+                  {p}
+                </span>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ============== FOR BRANDS / FOR CREATORS ============== */}
+      <section className="section promo-section">
+        <div className="container">
+          <div className="promo-2">
+            {/* ---- For Brands (green) ---- */}
+            <Reveal as="article" className="promo-card promo-brands" id="brands">
+              <span className="promo-art" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 11v2a1 1 0 0 0 1 1h2l3.5 3.3a1 1 0 0 0 1.7-.73V7.43a1 1 0 0 0-1.7-.72L6 10H4a1 1 0 0 0-1 1Z" />
+                  <path d="M15 8.5a4 4 0 0 1 0 7" />
+                  <path d="M7 15v3a1.5 1.5 0 0 0 3 0v-1.5" />
+                </svg>
+              </span>
+              <span className="promo-eyebrow">For Brands</span>
+              <h3>Launch campaigns in minutes.</h3>
+              <p>
+                Brief once, reach creators you can vet by Pulse Score and reviews,
+                and pay only for approved, on-brand content — with global payouts
+                handled for you.
+              </p>
+              <div className="promo-actions">
+                <Link href={startCampaign} className="btn btn-green btn-lg">Start a Campaign →</Link>
+              </div>
+            </Reveal>
+
+            {/* ---- For Creators (orange) ---- */}
+            <Reveal as="article" className="promo-card promo-creators" id="creators">
+              <span className="promo-art" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20.3S4.2 16 4.2 10.4A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7.8 2.4C19.8 16 12 20.3 12 20.3Z" />
+                  <path d="M10.7 9.9l3 1.8-3 1.8V9.9Z" fill="currentColor" stroke="none" />
+                </svg>
+              </span>
+              <span className="promo-eyebrow">For Creators</span>
+              <h3>Get paid for the content you make.</h3>
+              <p>
+                Browse live campaigns, submit your best work, and cash out in USDC
+                or to your bank / PayPal — building a Pulse Score that brands trust.
+              </p>
+              <div className="promo-actions">
+                <Link href={startCreating} className="btn btn-primary btn-lg">Start Creating →</Link>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
 
       {/* ============== FROM BRIEF TO PAYOUT (#how) ============== */}
       <section className="section workflow-section" id="how">
@@ -351,7 +430,7 @@ export default async function Home() {
             <h2>The infrastructure layer</h2>
             <p>Not a marketplace — the tools to build and scale your own creator ecosystem.</p>
           </Reveal>
-          <div className="features">
+          <div className="features why-choose">
             {FEATURES.map(([icon, title, body]) => (
               <Reveal className="feature" key={title}>
                 <div className="feature-icon">{icon}</div>
@@ -362,20 +441,6 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
-      {/* ============== SOCIAL PROOF — REAL platform stats ============== */}
-      {hasData ? (
-        <section className="section">
-          <div className="container">
-            <Reveal className="stats-band stats-band-v2">
-              <StatCounter value={stats.creators} label="Creators on PulseFy" />
-              <StatCounter value={stats.activeCampaigns} label="Live campaigns" />
-              <StatCounter value={stats.paidOut} prefix="$" label="Paid to creators" />
-              <StatCounter value={7} label="Platforms tracked" />
-            </Reveal>
-          </div>
-        </section>
-      ) : null}
 
       {/* ============== AMBASSADOR PROGRAM ============== */}
       <section className="section">
@@ -474,6 +539,23 @@ export default async function Home() {
             <div className="footer-brand">
               <Link href="/" className="logo"><span className="logo-mark" aria-hidden="true" /><span className="wordmark">Pulse<span className="wm-fy">Fy</span></span></Link>
               <p>Infrastructure for the AI creator economy. From brief to payout — automated.</p>
+              <div className="footer-social">
+                <a href="#" aria-label="PulseFy on X">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.53 3h3.02l-6.6 7.54L21.75 21h-6.06l-4.75-6.2L5.5 21H2.47l7.06-8.07L2.25 3h6.21l4.29 5.67L17.53 3Zm-1.06 16.2h1.67L7.6 4.71H5.8l10.67 14.49Z" /></svg>
+                </a>
+                <a href="#" aria-label="PulseFy on Instagram">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c3.2 0 3.6 0 4.85.07 1.17.05 1.8.25 2.23.42.56.22.96.48 1.38.9.42.42.68.82.9 1.38.17.42.37 1.06.42 2.23.06 1.26.07 1.64.07 4.83s0 3.57-.07 4.83c-.05 1.17-.25 1.8-.42 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.17-1.06.37-2.23.42-1.26.06-1.64.07-4.85.07s-3.59 0-4.85-.07c-1.17-.05-1.8-.25-2.23-.42a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.17-.42-.37-1.06-.42-2.23C2.2 15.57 2.2 15.19 2.2 12s0-3.57.07-4.83c.05-1.17.25-1.8.42-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.17 1.06-.37 2.23-.42C8.41 2.2 8.79 2.2 12 2.2Zm0 1.8c-3.14 0-3.5 0-4.74.07-.9.04-1.38.19-1.7.32-.43.17-.74.37-1.06.69-.32.32-.52.63-.69 1.06-.13.32-.28.8-.32 1.7C3.4 8.5 3.4 8.86 3.4 12s0 3.5.07 4.74c.04.9.19 1.38.32 1.7.17.43.37.74.69 1.06.32.32.63.52 1.06.69.32.13.8.28 1.7.32 1.24.07 1.6.07 4.74.07s3.5 0 4.74-.07c.9-.04 1.38-.19 1.7-.32.43-.17.74-.37 1.06-.69.32-.32.52-.63.69-1.06.13-.32.28-.8.32-1.7.07-1.24.07-1.6.07-4.74s0-3.5-.07-4.74c-.04-.9-.19-1.38-.32-1.7a2.9 2.9 0 0 0-.69-1.06 2.9 2.9 0 0 0-1.06-.69c-.32-.13-.8-.28-1.7-.32C15.5 4 15.14 4 12 4Zm0 3.06A4.94 4.94 0 1 1 7.06 12 4.94 4.94 0 0 1 12 7.06Zm0 1.8A3.14 3.14 0 1 0 15.14 12 3.14 3.14 0 0 0 12 8.86Zm5.14-.66a1.15 1.15 0 1 1-1.15 1.15 1.15 1.15 0 0 1 1.15-1.15Z" /></svg>
+                </a>
+                <a href="#" aria-label="PulseFy on YouTube">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.5 6.5a3 3 0 0 0-2.1-2.1C19.5 3.9 12 3.9 12 3.9s-7.5 0-9.4.5A3 3 0 0 0 .5 6.5 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.5 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.5ZM9.6 15.6V8.4l6.2 3.6-6.2 3.6Z" /></svg>
+                </a>
+                <a href="#" aria-label="PulseFy on TikTok">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.6 5.82a4.28 4.28 0 0 1-1.06-2.82h-3.2v12.86a2.59 2.59 0 1 1-2.59-2.59c.27 0 .53.04.77.12V9.13a5.87 5.87 0 0 0-.77-.05 5.86 5.86 0 1 0 5.86 5.86V9.01a7.44 7.44 0 0 0 4.35 1.39V7.2a4.28 4.28 0 0 1-3.36-1.38Z" /></svg>
+                </a>
+                <a href="#" aria-label="PulseFy on LinkedIn">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14Zm1.78 13.02H3.56V9h3.56v11.45ZM22.22 0H1.77C.8 0 0 .78 0 1.73v20.53C0 23.22.8 24 1.77 24h20.45c.98 0 1.78-.78 1.78-1.74V1.73C24 .78 23.2 0 22.22 0Z" /></svg>
+                </a>
+              </div>
             </div>
             <div className="footer-col">
               <h4>Product</h4>

@@ -272,6 +272,27 @@ button { font-family: inherit; cursor: pointer; border: none; }
     0 10px 28px -14px rgba(255, 122, 69, .5);
 }
 
+/* Marketing GREEN CTA — the brand's emerald as a solid action button, used
+   for brand-side actions (Start a Campaign, For Brands). A brighter, grassier
+   emerald than the structural --accent-green so it reads as a confident
+   primary action beside the orange .btn-primary. Brand-new class, referenced
+   by no dashboard/auth surface, so it needs no .nav/.container scoping. */
+.btn-green {
+  background: linear-gradient(180deg, #54e9b0 0%, #25c98e 100%);
+  color: #04140d;
+  box-shadow: var(--lx-glow-warm-in), 0 10px 28px -14px var(--accent-green-glow);
+}
+.btn-green:hover {
+  box-shadow: 0 1px 0 rgba(255,255,255,.28) inset, 0 18px 40px -12px rgba(37,201,142,.62);
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.04) saturate(1.04);
+}
+.btn-green:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-green-soft), 0 0 0 1px var(--accent-green),
+    0 10px 28px -14px var(--accent-green-glow);
+}
+
 .btn-block { width: 100%; justify-content: center; }
 .btn-lg { padding: 15px 30px; font-size: 16px; }
 .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 8px; }
@@ -657,6 +678,10 @@ button { font-family: inherit; cursor: pointer; border: none; }
 /* ============================================
    Responsive
    ============================================ */
+@media (max-width: 1080px) {
+  .nav-links { display: none; }
+  .nav-toggle { display: block; }
+}
 @media (max-width: 900px) {
   .nav-links { display: none; }
   .nav-toggle { display: block; }
@@ -2821,16 +2846,16 @@ tbody tr:last-child td { border-bottom: none; }
 }
 /* the glowing connector line running behind the row (desktop) */
 .workflow::before {
-  content: ""; position: absolute; top: 30px; left: 10%; right: 10%; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--glow-green-line), var(--accent-line), transparent);
+  content: ""; position: absolute; top: 30px; left: 10%; right: 10%; height: 0;
+  border-top: 2px dotted var(--accent-green-line);
   z-index: 0;
 }
 .wf-step > * { position: relative; z-index: 1; }
 .wf-dot {
   width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
-  margin: 0 auto 14px; font-weight: var(--fw-display); font-size: 13px; color: #0a0b0d;
-  background: linear-gradient(120deg, var(--accent), var(--accent-3));
-  box-shadow: 0 0 0 5px rgba(255,122,69,.10);
+  margin: 0 auto 14px; font-weight: var(--fw-display); font-size: 13px; color: #04140d;
+  background: linear-gradient(140deg, #54e9b0, #25c98e);
+  box-shadow: 0 0 0 5px var(--accent-green-soft);
 }
 .wf-icon { font-size: 26px; margin-bottom: 12px; }
 .wf-step h3 { font-size: 16px; margin-bottom: 8px; }
@@ -3075,8 +3100,145 @@ tbody tr:last-child td { border-bottom: none; }
 .lx-ccamp-subs,
 .pulse-foot { color: var(--lx-text-mute); }
 
+/* ============================================================
+   Reference-match layer : 2-col hero + orbital graphic, works-with
+   strip, For Brands/Creators promo cards, footer social, centered
+   "why choose" features. All additive & landing-scoped.
+   ============================================================ */
+
+/* ---- Hero v2 : two-column layout (copy + stats / orbital graphic) ---- */
+.hero-v2 .hero-grid {
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: 52px;
+  align-items: center;
+  text-align: left;
+}
+.hero-v2 .hero-copy { min-width: 0; }
+.hero-v2 .hero-copy .pill { margin-bottom: 24px; }
+.hero-v2 .hero-copy h1 { font-size: clamp(34px, 4.4vw, 60px); margin-bottom: 20px; }
+.hero-v2 .hero-copy .sub { margin: 0 0 32px; max-width: 540px; }
+.hero-v2 .hero-copy .hero-actions { justify-content: flex-start; }
+/* Emerald accent word — matches the reference's green highlight. Same
+   specificity as base .hero h1 .grad but later in source, so it wins only
+   inside the v2 hero; other .hero blocks keep the orange→violet gradient.
+   background-clip/color:transparent are inherited from the base rule. */
+.hero-v2 h1 .grad {
+  background: linear-gradient(105deg, #54e9b0 0%, #3ee0a0 45%, #25c98e 100%);
+}
+
+/* Compact in-hero stat row (reuses StatCounter's .lx-stat markup) */
+.hero-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 22px; margin-top: 36px; max-width: 540px;
+}
+.hero-stats .lx-stat { text-align: left; }
+.hero-stats .lx-stat + .lx-stat { border-left: 1px solid var(--lx-hairline); padding-left: 22px; }
+.hero-stats .lx-stat-num { font-size: clamp(22px, 2.4vw, 30px); }
+.hero-stats .lx-stat-label { font-size: 12.5px; margin-top: 4px; }
+
+/* ---- Hero orbital graphic (decorative; real avatars + live cards) ---- */
+.hero-visual { display: flex; justify-content: center; align-items: center; }
+.hero-orbit { position: relative; width: 100%; max-width: 460px; aspect-ratio: 1 / 1; margin: 0 auto; }
+.orbit-svg {
+  position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;
+  transform-origin: 50% 50%; animation: orbitSpin 64s linear infinite;
+}
+.orbit-ring { fill: none; stroke: var(--accent-green-line); stroke-width: 1; opacity: .5; }
+.orbit-arc { fill: none; stroke: url(#orbitArc); stroke-width: 2.5; stroke-linecap: round; }
+.orbit-arc-glow { fill: none; stroke: var(--accent-green); stroke-width: 7; opacity: .12; stroke-linecap: round; }
+@keyframes orbitSpin { to { transform: rotate(360deg); } }
+.orbit-core {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; z-index: 3;
+  background: radial-gradient(circle at 50% 40%, rgba(62,224,160,.22), rgba(18,21,29,.92) 70%);
+  border: 1px solid var(--accent-green-line);
+  box-shadow: 0 0 0 8px rgba(62,224,160,.05), 0 18px 46px -18px var(--accent-green-glow), var(--lx-shadow);
+}
+.orbit-logo { width: 50px; height: 50px; object-fit: contain; }
+.orbit-av { position: absolute; width: 46px; height: 46px; border-radius: 50%; z-index: 2; box-shadow: 0 8px 22px -8px rgba(0,0,0,.7); }
+.orbit-av .ha-avatar { width: 46px; height: 46px; border: 2px solid var(--lx-surface-2); }
+.orbit-av-1 { top: 5%;  left: 36%; }
+.orbit-av-2 { top: 26%; right: 9%; }
+.orbit-av-3 { bottom: 18%; right: 15%; }
+.orbit-av-4 { bottom: 9%;  left: 28%; }
+.orbit-av-5 { top: 42%;  left: 5%; }
+/* live-activity cards float around the orbit instead of a full-width band */
+.hero-orbit .hero-activity { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; margin: 0; z-index: 4; }
+.hero-orbit .ha-card { width: 228px; max-width: 82%; padding: 11px 13px; }
+.hero-orbit .ha-card-1 { left: -6%;  top: 0;    margin-left: 0; }
+.hero-orbit .ha-card-2 { left: auto; right: -8%; top: 47%; margin-left: 0; }
+.hero-orbit .ha-card-3 { left: 0;    right: auto; top: auto; bottom: -4%; }
+
+/* ---- "Works with" — truthful platform strip (real integrations) ---- */
+.works { padding: 42px 0 4px; }
+.works-label {
+  text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: .18em;
+  color: var(--lx-text-mute); margin-bottom: 22px;
+  font-family: var(--font-display); font-weight: var(--fw-bold);
+}
+.works-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; }
+.works-chip {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px;
+  background: var(--lx-surface-grad); border: 1px solid var(--lx-border); box-shadow: var(--lx-shadow);
+  font-family: var(--font-display); font-weight: var(--fw-semibold); font-size: 14px; color: var(--text-dim);
+  transition: border-color var(--t-med) var(--ease), color var(--t-med), transform var(--t-med);
+}
+.works-chip:hover { border-color: var(--accent-green-line); color: var(--text); transform: translateY(-2px); }
+.works-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-green); flex: none; box-shadow: 0 0 8px var(--accent-green); }
+
+/* ---- For Brands / For Creators promo cards ---- */
+.promo-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.promo-card {
+  position: relative; scroll-margin-top: 96px; overflow: hidden; display: flex; flex-direction: column; gap: 16px;
+  padding: 40px 36px; border-radius: var(--radius-lg);
+  background: var(--lx-surface-grad); border: 1px solid var(--lx-border); box-shadow: var(--lx-shadow);
+  transition: transform var(--t-med) var(--ease), border-color var(--t-med), box-shadow var(--t-med);
+}
+.promo-card:hover { transform: translateY(-6px); box-shadow: var(--lx-shadow-hover); }
+.promo-card > * { position: relative; z-index: 1; }
+.promo-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
+  padding: 6px 13px; border-radius: 999px;
+  font-family: var(--font-display); font-weight: var(--fw-bold);
+  font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+}
+.promo-card h3 { font-size: clamp(22px, 2.6vw, 30px); letter-spacing: -.02em; margin: 0; }
+.promo-card p { color: var(--text-dim); font-size: 15.5px; line-height: 1.6; margin: 0; }
+.promo-actions { margin-top: 8px; }
+.promo-art { position: absolute; top: 26px; right: 28px; width: 62px; height: 62px; opacity: .92; pointer-events: none; }
+.promo-art svg { width: 100%; height: 100%; display: block; }
+.promo-brands .promo-art { color: var(--accent-green); }
+.promo-creators .promo-art { color: var(--accent); }
+.promo-brands .promo-eyebrow { color: var(--accent-green); background: var(--accent-green-soft); border: 1px solid var(--accent-green-line); }
+.promo-brands:hover { border-color: var(--accent-green-line); box-shadow: var(--lx-shadow-hover), 0 30px 62px -34px var(--accent-green-glow); }
+.promo-brands::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(120% 90% at 100% 0%, rgba(62,224,160,.10), transparent 55%); }
+.promo-creators .promo-eyebrow { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-line); }
+.promo-creators:hover { border-color: var(--accent-line); box-shadow: var(--lx-shadow-hover), 0 30px 62px -34px rgba(255,122,69,.4); }
+.promo-creators::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(120% 90% at 100% 0%, rgba(255,122,69,.10), transparent 55%); }
+
+/* ---- Footer social icons (inline SVG) ---- */
+.footer-social { display: flex; gap: 10px; margin-top: 20px; }
+.footer-social a {
+  width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%;
+  border: 1px solid var(--lx-border); color: var(--text-mute); background: var(--lx-surface);
+  transition: color var(--t-med) var(--ease), border-color var(--t-med), transform var(--t-med), background var(--t-med);
+}
+.footer-social a:hover { color: var(--accent-green); border-color: var(--accent-green-line); background: var(--lx-surface-2); transform: translateY(-2px); }
+.footer-social svg { width: 18px; height: 18px; display: block; fill: currentColor; }
+
+/* ---- "Why choose" — centered feature cards (landing-only modifier so the
+   shared .feature / .feature-icon on /ambassador stays left-aligned) ---- */
+.features.why-choose .feature { text-align: center; }
+.features.why-choose .feature-icon { margin-left: auto; margin-right: auto; border-radius: 50%; }
+
 /* ---- Landing v2 responsive ---- */
 @media (max-width: 980px) {
+  .hero-v2 .hero-grid { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+  .hero-v2 .hero-copy .sub { margin-left: auto; margin-right: auto; }
+  .hero-v2 .hero-copy .hero-actions { justify-content: center; }
+  .hero-stats { margin-left: auto; margin-right: auto; }
+  .hero-orbit { max-width: 360px; }
   .lx-creators, .lx-camps { grid-template-columns: repeat(2, 1fr); }
   .pulse-grid { grid-template-columns: 1fr; gap: 32px; }
   .pulse-visual { order: -1; }
@@ -3084,20 +3246,30 @@ tbody tr:last-child td { border-bottom: none; }
   /* stack the workflow vertically; connector line runs down the left rail */
   .workflow { grid-template-columns: 1fr; gap: 14px; }
   .workflow::before {
-    top: 30px; bottom: 30px; left: 30px; right: auto; width: 2px; height: auto;
-    background: linear-gradient(180deg, transparent, var(--glow-green-line), var(--accent-line), transparent);
+    top: 30px; bottom: 30px; left: 30px; right: auto; width: 0; height: auto;
+    border-top: none; border-left: 2px dotted var(--accent-green-line); background: none;
   }
   .wf-step { text-align: left; padding-left: 68px; }
   .wf-dot { position: absolute; left: 16px; top: 30px; margin: 0; }
   .wf-icon { margin-bottom: 8px; }
 }
+@media (max-width: 900px) {
+  .promo-2 { grid-template-columns: 1fr; }
+  .features.why-choose { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 680px) {
   .hero-activity { display: none; }
+  .hero-visual { display: none; }
   .hero-v2 { padding-bottom: 60px; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); gap: 18px 20px; max-width: 380px; }
+  .hero-stats .lx-stat + .lx-stat { border-left: none; padding-left: 0; }
   .lx-creators, .lx-camps { grid-template-columns: 1fr; }
   .levels { grid-template-columns: repeat(2, 1fr); }
   .stats-band-v2 { grid-template-columns: repeat(2, 1fr); }
   .pulse-factors li { grid-template-columns: 100px 1fr; }
+}
+@media (max-width: 520px) {
+  .features.why-choose { grid-template-columns: 1fr; }
 }
 @media (max-width: 460px) {
   .levels { grid-template-columns: 1fr; }
@@ -3107,10 +3279,14 @@ tbody tr:last-child td { border-bottom: none; }
 /* ---- Landing v2 reduced-motion : drop float + hover lift, keep layout ---- */
 @media (prefers-reduced-motion: reduce) {
   .ha-card { animation: none !important; }
+  .orbit-svg { animation: none !important; }
   .wf-step:hover,
   .lx-ccard:hover,
   .lx-ccamp:hover,
-  .level:hover { transform: none !important; }
+  .level:hover,
+  .promo-card:hover,
+  .works-chip:hover,
+  .footer-social a:hover { transform: none !important; }
 }
 /* ============================================================
    END LANDING PAGE v2
