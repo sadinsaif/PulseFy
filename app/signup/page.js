@@ -18,11 +18,11 @@ const ROLES = {
   brand: {
     icon: "🏢",
     title: "Start as Brand",
-    blurb: "Run campaigns and hire creators to make your product go viral.",
+    blurb: "Run campaigns and pay only for approved, on-brand content.",
     nameLabel: "Company name",
     namePlaceholder: "Nebula Inc.",
     emailPlaceholder: "you@brand.com",
-    lead: "Launch campaigns and let creators amplify your reach.",
+    lead: "Launch a campaign, review submissions, and pay for approved work.",
     cta: "Start a campaign",
   },
 };
