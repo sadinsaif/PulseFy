@@ -42,27 +42,27 @@ function Avatar({ name, image, className = "" }) {
 
 const FLOW = [
   ["📝", "Post a brief", "A brand defines the campaign, rules and reward — open to all or an invite-only creator pool."],
-  ["🎬", "Creators submit", "Creators post to TikTok, Instagram, YouTube, X and more, then submit their clip."],
+  ["🎬", "Creators submit", "Creators post to TikTok, Instagram, YouTube or X, then submit their clip."],
   ["🔍", "Human review", "Every submission is checked by a real person — off-brief content is filtered out before approval."],
   ["✅", "Approve on-brand", "The brand approves what fits in one click — no spreadsheets, no chasing."],
   ["💸", "Global payout", "Approved creators get paid in USDC or to their bank / PayPal — anywhere in the world."],
 ];
 
 const LEVELS = [
-  ["🌱", "New", "You've joined and made your first submissions."],
-  ["📈", "Rising", "Approved work is stacking up and your Pulse Score is climbing."],
-  ["⚡", "Pro", "A consistent, reliable creator that brands recognise."],
-  ["💎", "Elite", "Top-tier output and approval rate across campaigns."],
+  ["🌱", "Start free", "Join as a creator and make your first submissions — no cost to begin."],
+  ["✅", "Earn approvals", "Every approved submission builds your track record and pays out."],
+  ["💬", "Get rated", "Brands review your work, and strong ratings lift your Pulse Score."],
+  ["💎", "Get verified", "Verification and a high Pulse Score help brands trust you faster."],
   ["★", "Ambassador", "Represent PulseFy through the Ambassador Program."],
 ];
 
 const FEATURES = [
   ["🌍", "Global payouts", "Pay creators anywhere — in USDC or to their bank / PayPal — without wiring each one yourself."],
   ["📊", "Cross-platform tracking", "TikTok, Instagram, YouTube and X — all in one dashboard."],
-  ["🛡️", "Verified metrics", "Views and engagement are real numbers — fetched from platform APIs and verified at review, never invented."],
+  ["🛡️", "Verified metrics", "Views and engagement are real numbers — auto-fetched from the YouTube API where available and confirmed by a human reviewer, never invented."],
   ["🔒", "Tiered creator access", "Open or invite-only challenges with gated, brand-approved creator pools."],
   ["✨", "Human moderation", "Every submission is reviewed by a real person, so only on-brief, on-brand content gets approved."],
-  ["🔧", "API & white-label", "Embed the whole engine into your own platform with a full SDK and white-label options."],
+  ["📈", "Campaign analytics", "Track views, engagement, spend and your top creators across every campaign — from one dashboard."],
 ];
 
 export default async function Home() {
@@ -230,7 +230,7 @@ export default async function Home() {
           <Reveal className="section-head">
             <span className="tag">Creators</span>
             <h2>Creators are building with PulseFy.</h2>
-            <p>Real people turning content into income across every major platform.</p>
+            <p>Real people turning content into income across TikTok, Instagram, YouTube and X.</p>
           </Reveal>
 
           {creators.length ? (
@@ -344,8 +344,8 @@ export default async function Home() {
               <h2>Your reputation, scored.</h2>
               <p>
                 Every creator earns a <strong>Pulse Score</strong> — a single,
-                honest signal built from your approved work, approval rate,
-                ratings and verification. It grows as you create, and brands use
+                honest signal built from your approved work, ratings and
+                verification. It grows as you create, and brands use
                 it to trust you faster.
               </p>
               <ul className="pulse-points">
@@ -362,13 +362,13 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ============== CREATOR LEVELS (informational) ============== */}
+      {/* ============== CREATOR GROWTH (informational) ============== */}
       <section className="section">
         <div className="container">
           <Reveal className="section-head">
-            <span className="tag">Creator Levels</span>
+            <span className="tag">Creator growth</span>
             <h2>A path that grows with you.</h2>
-            <p>As your approved work and Pulse Score grow, so does your standing on PulseFy.</p>
+            <p>Start free, earn approvals, and build a Pulse Score that brands trust.</p>
           </Reveal>
           <Reveal className="levels">
             {LEVELS.map(([icon, name, note], i) => {
@@ -543,7 +543,6 @@ export default async function Home() {
               <a href="#features">Features</a>
               <a href="#pricing">Pricing</a>
               <Link href="/dashboard">Dashboard</Link>
-              <a href="#">API docs</a>
             </div>
             <div className="footer-col">
               <h4>Company</h4>

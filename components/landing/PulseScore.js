@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from "react";
  */
 const FACTORS = [
   { label: "Approved work", pct: 88 },
-  { label: "Approval rate", pct: 76 },
+  { label: "Ratings", pct: 76 },
   { label: "Verification", pct: 100 },
   { label: "Consistency", pct: 64 },
 ];
@@ -127,7 +127,7 @@ export default function PulseScore({ sample = 82 }) {
       </ul>
 
       <p className="pulse-foot">
-        Built from your approved work, approval rate, ratings and verification —
+        Built from your approved work, ratings and verification —
         updated as you create. Sign in to see your live score.
       </p>
     </div>
