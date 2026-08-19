@@ -542,7 +542,6 @@ export default async function Home() {
               <h4>Product</h4>
               <a href="#features">Features</a>
               <a href="#pricing">Pricing</a>
-              <Link href="/dashboard">Dashboard</Link>
             </div>
             <div className="footer-col">
               <h4>Company</h4>
