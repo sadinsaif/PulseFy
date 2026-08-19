@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
  * fabricate one for anybody — the ring animates to a fixed sample value purely
  * to illustrate the shape of the feature. The factors listed below are the real
  * inputs a signed-in creator's live score is built from (approved work, ratings,
- * verification, consistency), so the preview is honest about what it represents.
+ * verification, review volume), so the preview is honest about what it represents.
  *
  * Reduced-motion: draws the final ring immediately, no sweep.
  */
@@ -18,7 +18,7 @@ const FACTORS = [
   { label: "Approved work", pct: 88 },
   { label: "Ratings", pct: 76 },
   { label: "Verification", pct: 100 },
-  { label: "Consistency", pct: 64 },
+  { label: "Review volume", pct: 64 },
 ];
 
 export default function PulseScore({ sample = 82 }) {

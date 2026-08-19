@@ -62,7 +62,7 @@ const FEATURES = [
   ["🛡️", "Verified metrics", "Views and engagement are real numbers — auto-fetched from the YouTube API where available and confirmed by a human reviewer, never invented."],
   ["🔒", "Tiered creator access", "Open or invite-only challenges with gated, brand-approved creator pools."],
   ["✨", "Human moderation", "Every submission is reviewed by a real person, so only on-brief, on-brand content gets approved."],
-  ["📈", "Campaign analytics", "Track views, engagement, spend and your top creators across every campaign — from one dashboard."],
+  ["📈", "Campaign analytics", "Track views, engagement, spend and creators hired across every campaign — from one dashboard."],
 ];
 
 export default async function Home() {
@@ -398,7 +398,7 @@ export default async function Home() {
             <Reveal className="section-head">
               <span className="tag">Live activity</span>
               <h2>The platform is moving.</h2>
-              <p>Recent approved work from creators across live campaigns.</p>
+              <p>Recent approved work from creators across campaigns.</p>
             </Reveal>
             <Reveal className="activity-feed">
               {activity.slice(0, 6).map((a, i) => (
@@ -428,7 +428,7 @@ export default async function Home() {
           <Reveal className="section-head">
             <span className="tag">Features</span>
             <h2>The infrastructure layer</h2>
-            <p>Not a marketplace — the tools to build and scale your own creator ecosystem.</p>
+            <p>The tools to launch campaigns, vet creators, and pay them worldwide — from brief to payout.</p>
           </Reveal>
           <div className="features why-choose">
             {FEATURES.map(([icon, title, body]) => (
