@@ -624,6 +624,43 @@ button { font-family: inherit; cursor: pointer; border: none; }
 .price-list li { display: flex; gap: 10px; padding: 8px 0; font-size: 15px; color: var(--text-dim); }
 .price-list li::before { content: '✓'; color: var(--accent-green); font-weight: 800; }
 
+/* Single honest pricing block (one real plan — no fabricated tiers) */
+.pricing-solo { display: flex; justify-content: center; }
+.price-solo {
+  display: grid;
+  grid-template-columns: 1.1fr .9fr;
+  width: 100%;
+  max-width: 900px;
+  background: var(--lx-surface-grad);
+  border: 1px solid var(--lx-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lx-shadow);
+  overflow: hidden;
+}
+.price-solo-main { padding: 42px 40px 40px; }
+.price-solo .price-amt { margin-bottom: 8px; }
+.price-solo-tag { color: var(--text-mute); font-size: 15px; margin-bottom: 28px; }
+.price-model { list-style: none; margin-bottom: 32px; }
+.price-model li {
+  padding: 12px 0;
+  font-size: 15px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--lx-border);
+}
+.price-model li:first-child { border-top: none; padding-top: 0; }
+.price-model strong { color: var(--accent-green); font-weight: 700; }
+.price-solo-side {
+  padding: 42px 34px;
+  background: linear-gradient(180deg, rgba(62,224,160,.055), transparent 62%);
+  border-left: 1px solid var(--lx-border);
+}
+.price-side-label {
+  display: block;
+  font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent-green); margin-bottom: 16px;
+}
+.price-solo-side .price-list { margin-bottom: 0; }
+
 /* ============================================
    CTA band
    ============================================ */
@@ -686,6 +723,8 @@ button { font-family: inherit; cursor: pointer; border: none; }
   .nav-links { display: none; }
   .nav-toggle { display: block; }
   .steps, .features, .pricing { grid-template-columns: 1fr; }
+  .price-solo { grid-template-columns: 1fr; }
+  .price-solo-side { border-left: none; border-top: 1px solid var(--lx-border); }
   .feature.wide { grid-column: span 1; }
   .stats-band { grid-template-columns: repeat(2, 1fr); padding: 36px 24px; }
   .footer-grid { grid-template-columns: 1fr 1fr; }

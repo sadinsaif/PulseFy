@@ -468,51 +468,32 @@ export default async function Home() {
         <div className="container">
           <Reveal className="section-head">
             <span className="tag">Pricing</span>
-            <h2>Start free. Scale when ready.</h2>
-            <p>No hidden fees. Pay only when your creators earn.</p>
+            <h2>Free to start.</h2>
+            <p>No subscription, and no platform cut of creator rewards. Brands fund campaigns as they go.</p>
           </Reveal>
-          <div className="pricing">
-            <Reveal className="price-card">
-              <h3>Starter</h3>
-              <p className="desc">For your first campaigns</p>
-              <div className="price-amt"><span className="num">$0</span><span className="per">/month</span></div>
-              <p className="price-fee">+ 20% platform fee on creator rewards</p>
-              <ul className="price-list">
-                <li>Unlimited challenges</li>
-                <li>Cross-platform tracking</li>
-                <li>Human moderation</li>
-                <li>Global payouts</li>
-              </ul>
-              <Link href={cta} className="btn btn-ghost btn-block">Get started</Link>
-            </Reveal>
-            <Reveal className="price-card featured">
-              <span className="price-badge">Most popular</span>
-              <h3>Pro</h3>
-              <p className="desc">For teams running many campaigns</p>
-              <div className="price-amt"><span className="num">$280</span><span className="per">/month</span></div>
-              <p className="price-fee">+ 18% platform fee on creator rewards</p>
-              <ul className="price-list">
-                <li>Everything in Starter</li>
-                <li>Team seats &amp; roles</li>
-                <li>Advanced analytics</li>
-                <li>Creator Pulse Scores</li>
-                <li>Priority support</li>
-              </ul>
-              <Link href={cta} className="btn btn-primary btn-block">Start Pro trial</Link>
-            </Reveal>
-            <Reveal className="price-card">
-              <h3>Enterprise</h3>
-              <p className="desc">For scaled creator ecosystems</p>
-              <div className="price-amt"><span className="num">Custom</span></div>
-              <p className="price-fee">Reduced 15% fee</p>
-              <ul className="price-list">
-                <li>Everything in Pro</li>
-                <li>White-label</li>
-                <li>API &amp; SDK access</li>
-                <li>Dedicated manager</li>
-                <li>Custom contract</li>
-              </ul>
-              <a href="#" className="btn btn-ghost btn-block">Contact sales</a>
+          <div className="pricing-solo">
+            <Reveal className="price-solo">
+              <div className="price-solo-main">
+                <div className="price-amt"><span className="num">$0</span><span className="per">to start</span></div>
+                <p className="price-solo-tag">Sign up free — brands and creators both start here.</p>
+                <ul className="price-model">
+                  <li>Brands top up a wallet to fund campaign rewards.</li>
+                  <li>Creators keep <strong>100%</strong> of every approved reward.</li>
+                  <li>A flat <strong>5%</strong> fee applies only when a creator withdraws.</li>
+                </ul>
+                <Link href={cta} className="btn btn-primary btn-lg">Get started</Link>
+              </div>
+              <div className="price-solo-side">
+                <span className="price-side-label">Included, live today</span>
+                <ul className="price-list">
+                  <li>Unlimited challenges</li>
+                  <li>Cross-platform tracking</li>
+                  <li>Human review</li>
+                  <li>Global payouts — USDC or bank / PayPal</li>
+                  <li>Creator Pulse Scores</li>
+                  <li>Campaign analytics</li>
+                </ul>
+              </div>
             </Reveal>
           </div>
         </div>
