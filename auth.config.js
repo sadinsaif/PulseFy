@@ -4,6 +4,12 @@
  */
 const PROTECTED = ["/dashboard", "/challenge", "/creator"];
 
+// Individual creator profiles (/creator/<id>) are PUBLIC — a shared profile link
+// must open for logged-out visitors. Only the single-segment profile route is
+// exempted from the login gate: the bare /creator prefix stays protected, and so
+// would any future sub-page like /creator/<id>/edit.
+const PUBLIC_EXCEPTIONS = [/^\/creator\/[^/]+\/?$/];
+
 export const authConfig = {
   session: { strategy: "jwt" },
   pages: {
@@ -13,7 +19,9 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const loggedIn = !!auth?.user;
-      const isProtected = PROTECTED.some((p) => nextUrl.pathname.startsWith(p));
+      const path = nextUrl.pathname;
+      if (PUBLIC_EXCEPTIONS.some((re) => re.test(path))) return true;
+      const isProtected = PROTECTED.some((p) => path.startsWith(p));
       if (isProtected && !loggedIn) return false; // → redirect to signIn page
       return true;
     },

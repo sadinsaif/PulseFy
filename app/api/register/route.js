@@ -85,16 +85,34 @@ export async function POST(req) {
   // (after verifying a sending domain) to turn the email flow back on.
   const requireVerify = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
 
-  await db.insert(users).values({
-    name,
-    username,
-    email,
-    passwordHash,
-    role,
-    company: role === "brand" ? name : null, // brands use it as the brand label
-    emailVerified: requireVerify ? null : new Date(),
-    referredBy: referrerId, // null for organic signups, referrer's id for ?ref= signups
-  });
+  try {
+    await db.insert(users).values({
+      name,
+      username,
+      email,
+      passwordHash,
+      role,
+      company: role === "brand" ? name : null, // brands use it as the brand label
+      emailVerified: requireVerify ? null : new Date(),
+      referredBy: referrerId, // null for organic signups, referrer's id for ?ref= signups
+    });
+  } catch (err) {
+    // Two near-simultaneous signups can both slip past the case-insensitive
+    // pre-checks above (a TOCTOU window widened by the bcrypt hash) and then race
+    // on the DB's unique indexes — the raw email UNIQUE plus the functional
+    // lower(username)/lower(email) indexes from migration 021. Turn that Postgres
+    // unique violation (23505) into the same friendly 409 the sequential path
+    // returns, instead of an unhandled 500.
+    const code = err?.code || err?.cause?.code;
+    if (code === "23505") {
+      const constraint = err?.constraint || err?.cause?.constraint || "";
+      const message = /email/i.test(constraint)
+        ? "An account with this email already exists."
+        : "That username is already taken. Please choose another.";
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+    throw err;
+  }
 
   if (!requireVerify) {
     return NextResponse.json(

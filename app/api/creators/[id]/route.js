@@ -10,13 +10,14 @@ import { and, desc, eq, sql } from "drizzle-orm";
 /**
  * GET /api/creators/[id]
  * Public profile of one creator: their profile fields, aggregate stats, and
- * their approved clips (portfolio). Any signed-in user can view it.
+ * their approved clips (portfolio). Public — viewable by anyone, including
+ * logged-out visitors opening a shared link. A signed-in viewer additionally
+ * sees contributions from private/hidden campaigns they own, administer, or
+ * participate in; an anonymous viewer sees only public-campaign contributions.
  */
 export async function GET(_req, { params }) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  }
+  const viewerId = session?.user?.id || null;
 
   const rows = await db
     .select({
@@ -63,7 +64,12 @@ export async function GET(_req, { params }) {
     .where(eq(submissions.userId, params.id))
     .orderBy(desc(submissions.createdAt));
 
-  const participantIds = await participantCampaignIds(session.user.id, [...new Set(all.map((row) => row.campaignId).filter(Boolean))]);
+  // An anonymous viewer participates in no campaigns, so skip the lookup and use
+  // an empty set — canViewCampaignContributions then only clears public-campaign
+  // contributions for them.
+  const participantIds = viewerId
+    ? await participantCampaignIds(viewerId, [...new Set(all.map((row) => row.campaignId).filter(Boolean))])
+    : new Set();
   const visible = all.filter((row) =>
     !row.campaignId || (row.campaignRecordId && canViewCampaignContributions(row, session, participantIds))
   );

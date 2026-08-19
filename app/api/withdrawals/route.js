@@ -71,12 +71,21 @@ export async function GET(req) {
     .where(eq(withdrawals.userId, session.user.id))
     .orderBy(desc(withdrawals.createdAt));
 
+  // The auto-provisioned embedded wallet (0x, USDC-on-Base) prefills the
+  // withdrawal form. Convenience only — withdrawalSchema + admin settlement
+  // remain the authority over what's actually paid.
+  const [me] = await db
+    .select({ walletAddress: users.walletAddress })
+    .from(users)
+    .where(eq(users.id, session.user.id));
+
   return NextResponse.json({
     balance: {
       earned: earnedCents / 100,
       withdrawn: drawnCents / 100,
       available: availableCents / 100,
     },
+    walletAddress: me?.walletAddress || null,
     withdrawals: rows,
   });
 }

@@ -26,6 +26,12 @@ export const users = pgTable("users", {
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
   company: text("company"),
+  // Privy auth (see migrations/021). privyId is the stable Privy DID — the key
+  // the auth bridge resolves by FIRST so a Privy login always maps to the same
+  // row. walletAddress is the auto-provisioned embedded USDC-on-Base wallet
+  // (0x EVM address), read server-side from Privy and prefilled into withdrawals.
+  privyId: text("privy_id"),
+  walletAddress: text("wallet_address"),
   role: text("role").notNull().default("creator"), // "creator" | "brand"
   // Public creator profile fields.
   username: text("username"),

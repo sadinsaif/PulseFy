@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
+import SignOutButton from "@/components/SignOutButton";
 import NotificationBell from "@/components/NotificationBell";
 
 const NAV = [
@@ -105,13 +105,12 @@ export default function Sidebar({ user, isAdmin = false }) {
             );
           })}
         </nav>
-        <button
+        <SignOutButton
           className="logout-btn"
           style={{ marginTop: "auto", width: "100%" }}
-          onClick={() => signOut({ callbackUrl: "/" })}
         >
           Sign out
-        </button>
+        </SignOutButton>
       </aside>
     </>
   );

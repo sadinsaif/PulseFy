@@ -9,9 +9,11 @@ const QUICK = [15, 20, 30, 50];
  * GIMI-style multi-step withdrawal modal.
  * Steps: method → (stablecoin coin → network) → details (amount + wallet).
  * `available` is the creator's available balance in dollars.
+ * `defaultDestination` is the creator's auto-provisioned embedded wallet (0x),
+ * used to prefill the stablecoin address (still editable).
  * Calls onSuccess() after a successful POST and onClose() to dismiss.
  */
-export default function WithdrawModal({ available = 0, onClose, onSuccess }) {
+export default function WithdrawModal({ available = 0, defaultDestination = "", onClose, onSuccess }) {
   const [step, setStep] = useState("method"); // method | coin | network | details
   const [method, setMethod] = useState(null); // stablecoin | bank
   const [coin, setCoin] = useState("usdc");
@@ -29,6 +31,11 @@ export default function WithdrawModal({ available = 0, onClose, onSuccess }) {
   function chooseMethod(m) {
     setMethod(m);
     setErr("");
+    // Destination is method-specific: a 0x wallet for stablecoin, a payout email
+    // for bank/PayPal. Reset it on every method switch so a prefilled wallet can
+    // never leak into the email field (and vice-versa). For stablecoin, seed the
+    // auto-provisioned embedded wallet as a starting point — still fully editable.
+    setDestination(m === "stablecoin" && defaultDestination ? defaultDestination : "");
     setStep(m === "stablecoin" ? "coin" : "details");
   }
 

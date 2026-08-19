@@ -4,6 +4,10 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import PrivyAuthButton from "@/components/PrivyAuthButton";
+
+// Only render the Privy button when the provider is configured (see Providers.js).
+const PRIVY_ON = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
 function LoginInner() {
   const router = useRouter();
@@ -91,6 +95,8 @@ function LoginInner() {
           {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
+
+      {PRIVY_ON && <PrivyAuthButton />}
 
       <p className="auth-foot">
         New to PulseFy? <Link href="/signup">Create an account</Link>
