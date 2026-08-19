@@ -3122,9 +3122,11 @@ tbody tr:last-child td { border-bottom: none; }
 /* Emerald accent word — matches the reference's green highlight. Same
    specificity as base .hero h1 .grad but later in source, so it wins only
    inside the v2 hero; other .hero blocks keep the orange→violet gradient.
-   background-clip/color:transparent are inherited from the base rule. */
+   Must use background-image (not the `background` shorthand): the shorthand
+   would reset background-clip to border-box, undoing the base rule's
+   background-clip:text and leaving the transparent text as a solid bar. */
 .hero-v2 h1 .grad {
-  background: linear-gradient(105deg, #54e9b0 0%, #3ee0a0 45%, #25c98e 100%);
+  background-image: linear-gradient(105deg, #54e9b0 0%, #3ee0a0 45%, #25c98e 100%);
 }
 
 /* Compact in-hero stat row (reuses StatCounter's .lx-stat markup) */

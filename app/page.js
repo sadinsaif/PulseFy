@@ -43,9 +43,9 @@ function Avatar({ name, image, className = "" }) {
 const FLOW = [
   ["📝", "Post a brief", "A brand defines the campaign, rules and reward — open to all or an invite-only creator pool."],
   ["🎬", "Creators submit", "Creators post to TikTok, Instagram, YouTube, X and more, then submit their clip."],
-  ["🤖", "AI + human review", "AI filters off-brief submissions and surfaces the content genuinely worth approving."],
+  ["🔍", "Human review", "Every submission is checked by a real person — off-brief content is filtered out before approval."],
   ["✅", "Approve on-brand", "The brand approves what fits in one click — no spreadsheets, no chasing."],
-  ["💸", "Automatic payout", "Rewards flow to creators in fiat or USDC, anywhere in the world."],
+  ["💸", "Global payout", "Approved creators get paid in USDC or to their bank / PayPal — anywhere in the world."],
 ];
 
 const LEVELS = [
@@ -57,11 +57,11 @@ const LEVELS = [
 ];
 
 const FEATURES = [
-  ["🌍", "Automated global payouts", "Pay creators anywhere in fiat or USDC. One invoice. Full compliance. Zero manual work."],
-  ["📊", "Cross-platform tracking", "TikTok, Instagram, YouTube, X, Reddit, Facebook & LinkedIn — all in one dashboard."],
-  ["🤖", "Anti-bot protection", "A Clean Engagement Score with real-time AI scanning flags fake engagement instantly."],
+  ["🌍", "Global payouts", "Pay creators anywhere — in USDC or to their bank / PayPal — without wiring each one yourself."],
+  ["📊", "Cross-platform tracking", "TikTok, Instagram, YouTube and X — all in one dashboard."],
+  ["🛡️", "Verified metrics", "Views and engagement are real numbers — fetched from platform APIs and verified at review, never invented."],
   ["🔒", "Tiered creator access", "Open or invite-only challenges with gated, brand-approved creator pools."],
-  ["✨", "AI moderation", "Filters off-brief submissions and surfaces the content that's genuinely worth approving."],
+  ["✨", "Human moderation", "Every submission is reviewed by a real person, so only on-brief, on-brand content gets approved."],
   ["🔧", "API & white-label", "Embed the whole engine into your own platform with a full SDK and white-label options."],
 ];
 
@@ -99,9 +99,9 @@ export default async function Home() {
                 from <span className="grad">brief to payout</span>.
               </h1>
               <p className="sub">
-                Brands launch campaigns. Thousands of creators submit. AI filters
-                what&apos;s on-brand, humans approve, and rewards pay out
-                automatically — worldwide.
+                Brands launch campaigns. Creators submit their best work.
+                A real person reviews what&apos;s on-brand, brands approve,
+                and creators get paid — worldwide.
               </p>
               <div className="hero-actions">
                 <Link href={startCreating} className="btn btn-primary btn-lg">
@@ -129,7 +129,7 @@ export default async function Home() {
           </div>
 
           <div className="hero-pipeline" aria-label="How value flows through PulseFy">
-            {["Brands", "Campaigns", "Creators", "AI review", "Approval", "Payout"].map((s, i, a) => (
+            {["Brands", "Campaigns", "Creators", "Review", "Approval", "Payout"].map((s, i, a) => (
               <span className="hp-node" key={s}>
                 {s}
                 {i < a.length - 1 ? <i className="hp-arrow" aria-hidden="true">→</i> : null}
@@ -480,7 +480,7 @@ export default async function Home() {
               <ul className="price-list">
                 <li>Unlimited challenges</li>
                 <li>Cross-platform tracking</li>
-                <li>AI moderation</li>
+                <li>Human moderation</li>
                 <li>Global payouts</li>
               </ul>
               <Link href={cta} className="btn btn-ghost btn-block">Get started</Link>
@@ -495,7 +495,7 @@ export default async function Home() {
                 <li>Everything in Starter</li>
                 <li>Team seats &amp; roles</li>
                 <li>Advanced analytics</li>
-                <li>Clean Engagement Score</li>
+                <li>Creator Pulse Scores</li>
                 <li>Priority support</li>
               </ul>
               <Link href={cta} className="btn btn-primary btn-block">Start Pro trial</Link>
@@ -510,7 +510,7 @@ export default async function Home() {
                 <li>White-label</li>
                 <li>API &amp; SDK access</li>
                 <li>Dedicated manager</li>
-                <li>Custom compliance</li>
+                <li>Custom contract</li>
               </ul>
               <a href="#" className="btn btn-ghost btn-block">Contact sales</a>
             </Reveal>
@@ -538,7 +538,7 @@ export default async function Home() {
           <div className="footer-grid">
             <div className="footer-brand">
               <Link href="/" className="logo"><span className="logo-mark" aria-hidden="true" /><span className="wordmark">Pulse<span className="wm-fy">Fy</span></span></Link>
-              <p>Infrastructure for the AI creator economy. From brief to payout — automated.</p>
+              <p>Infrastructure for the creator economy. From brief to payout, in one place.</p>
               <div className="footer-social">
                 <a href="#" aria-label="PulseFy on X">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.53 3h3.02l-6.6 7.54L21.75 21h-6.06l-4.75-6.2L5.5 21H2.47l7.06-8.07L2.25 3h6.21l4.29 5.67L17.53 3Zm-1.06 16.2h1.67L7.6 4.71H5.8l10.67 14.49Z" /></svg>
@@ -575,7 +575,6 @@ export default async function Home() {
               <h4>Legal</h4>
               <a href="#">Privacy</a>
               <a href="#">Terms</a>
-              <a href="#">Compliance</a>
             </div>
           </div>
           <div className="footer-bottom">
