@@ -10,6 +10,7 @@ import { getCreatorBalanceCents } from "@/lib/creator-balance";
 import { reviewSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
 import { notifyUser } from "@/lib/notify";
+import { sendApprovalEmail } from "@/lib/email";
 
 function failure(message, status) { const error = new Error(message); error.status = status; return error; }
 function committed(submission) {
@@ -106,5 +107,24 @@ export async function POST(req) {
   } catch (error) { if (error.status) return NextResponse.json({ error: error.message }, { status: error.status }); throw error; }
   if ((status === "approved" || status === "rejected") && status !== result.submission.status) await notifyUser(result.submission.userId, { type: "review", message: `Your submission to ${result.submission.challengeId} was ${status === "approved" ? `approved ✅ — you earned $${result.next.reward}` : "rejected"}.`, link: "/dashboard/profile" });
   if (result.next.spotlighted && result.next.spotlightBonus > 0 && (!result.submission.spotlighted || result.next.spotlightBonus !== result.submission.spotlightBonus)) await notifyUser(result.submission.userId, { type: "review", message: `✦ Your post to ${result.submission.challengeId} was Spotlighted! You earned a $${result.next.spotlightBonus} bonus.`, link: "/dashboard/profile" });
+  // Best-effort approval email to the creator. Never blocks or fails the review —
+  // the reward is already committed above, so a mail hiccup must not 500 the request.
+  if (status === "approved" && status !== result.submission.status && process.env.RESEND_API_KEY) {
+    try {
+      const [creator] = await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, result.submission.userId));
+      if (creator?.email) {
+        const base = process.env.AUTH_URL || process.env.NEXTAUTH_URL || new URL(req.url).origin;
+        await sendApprovalEmail(creator.email, {
+          name: creator.name,
+          challenge: result.submission.challengeId,
+          reward: result.next.reward,
+          spotlightBonus: result.next.spotlightBonus,
+          dashboardUrl: `${base}/dashboard/profile`,
+        });
+      }
+    } catch (err) {
+      console.error("Approval email failed:", err);
+    }
+  }
   return NextResponse.json({ ok: true, status, reward: result.next.reward, spotlighted: result.next.spotlighted, spotlightBonus: result.next.spotlightBonus });
 }
