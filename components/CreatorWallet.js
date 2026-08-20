@@ -2,10 +2,6 @@
 
 import { useEffect, useState } from "react";
 import WithdrawModal from "@/components/WithdrawModal";
-import PrivyWalletSync from "@/components/PrivyWalletSync";
-
-// Only sync the embedded wallet when Privy is configured (see Providers.js).
-const PRIVY_ON = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
 const METHOD_LABEL = { stablecoin: "Stablecoin", bank: "Bank / PayPal" };
 const STATUS_CLASS = { pending: "review", paid: "live", failed: "failed" };
@@ -47,9 +43,6 @@ export default function CreatorWallet() {
 
   return (
     <>
-      {/* Capture the embedded Privy wallet address once it exists (no UI). */}
-      {PRIVY_ON && <PrivyWalletSync onSynced={load} />}
-
       {/* Balance hero */}
       <section className="wallet-hero">
         <div className="wallet-bal">

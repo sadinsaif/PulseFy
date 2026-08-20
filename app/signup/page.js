@@ -3,10 +3,6 @@
 import Link from "next/link";
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import PrivyAuthButton from "@/components/PrivyAuthButton";
-
-// Only render the Privy button when the provider is configured (see Providers.js).
-const PRIVY_ON = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
 const ROLES = {
   creator: {
@@ -183,8 +179,6 @@ function SignupInner() {
             {loading ? "Creating…" : cfg.cta}
           </button>
         </form>
-
-        {PRIVY_ON && <PrivyAuthButton role={role} referral={ref} />}
 
         <p className="auth-foot">
           Already have an account? <Link href="/login">Sign in</Link>
