@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/db";
@@ -9,6 +9,19 @@ import { authConfig } from "@/auth.config";
 import { getUserAccess } from "@/lib/moderation";
 import { verifyPrivyAccessToken, fetchPrivyUser, extractPrivyIdentity } from "@/lib/privy-server";
 import { findReferrerId, createPrivyUser } from "@/lib/provisioning";
+
+// Auth.js only forwards a thrown error's identity to the client when it's a
+// CredentialsSignin: the framework sets `?error=CredentialsSignin&code=<code>`
+// on the redirect, which surfaces as `res.code` from signIn(..., {redirect:false}).
+// A plain `throw new Error("…")` is masked to `?error=Configuration` with no
+// code, so the client can't tell these recoverable cases from a generic failure.
+// One subclass per recoverable reason; `code` is what the client branches on.
+class EmailNotVerified extends CredentialsSignin {
+  code = "EMAIL_NOT_VERIFIED";
+}
+class PrivyEmailRequired extends CredentialsSignin {
+  code = "PRIVY_EMAIL_REQUIRED";
+}
 
 const nextAuth = NextAuth({
   ...authConfig,
@@ -32,14 +45,20 @@ const nextAuth = NextAuth({
         const user = rows[0];
         if (!user || !user.passwordHash) return null;
 
-        // Block unverified accounts
-        if (!user.emailVerified) {
-          throw new Error("EMAIL_NOT_VERIFIED");
-        }
-
-        // Check password
+        // Check the password BEFORE the verified-state gate. Revealing
+        // "email not verified" only to someone who supplied the correct
+        // password means an attacker without it can't use the login form to
+        // tell a registered-but-unverified address apart from a wrong one —
+        // they just get "Wrong email or password." A real owner (who knows
+        // their password) is still routed to the code screen to finish
+        // verifying.
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return null;
+
+        // Block unverified accounts (credentials are valid at this point).
+        if (!user.emailVerified) {
+          throw new EmailNotVerified();
+        }
 
         return {
           id: user.id,
@@ -108,7 +127,7 @@ const nextAuth = NextAuth({
         //     ADMIN_EMAIL gate, notifications), so a wallet/social login with no
         //     verified email is refused with a code the client can surface.
         if (!localUser) {
-          if (!verifiedEmail) throw new Error("PRIVY_EMAIL_REQUIRED");
+          if (!verifiedEmail) throw new PrivyEmailRequired();
           const role = credentials?.role === "brand" ? "brand" : "creator";
           const referrerId = await findReferrerId(credentials?.ref);
           localUser = await createPrivyUser({

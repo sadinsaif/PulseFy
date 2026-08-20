@@ -39,7 +39,7 @@ export default function PrivyAuthButton({ role = "", referral = "", label }) {
       });
       if (res?.error) {
         setErr(
-          res.error.includes("PRIVY_EMAIL_REQUIRED")
+          res.code === "PRIVY_EMAIL_REQUIRED"
             ? "Add and verify an email on your login, then try again."
             : "Could not complete sign-in. Please try again."
         );

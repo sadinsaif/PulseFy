@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const ROLES = {
   creator: {
@@ -28,6 +28,7 @@ const ROLES = {
 };
 
 function SignupInner() {
+  const router = useRouter();
   const params = useSearchParams();
   const initialRole = params.get("role") === "brand" ? "brand" : "creator";
   // Referral — who invited this user (?ref=<username>). Forwarded to the
@@ -60,6 +61,12 @@ function SignupInner() {
       setLoading(false);
       if (!res.ok) {
         setErr(data.error || "Could not create your account. Try again.");
+        return;
+      }
+      // Code-verification flow: account created but unverified — send them to
+      // the 6-digit code screen (register already emailed the code).
+      if (data.needsCode) {
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
         return;
       }
       setMsg(data.message || data.warning || "Account created!");

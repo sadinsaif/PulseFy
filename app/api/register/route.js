@@ -6,10 +6,8 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { signupSchema } from "@/lib/validation";
-import { createToken } from "@/lib/tokens";
-import { sendVerificationEmail } from "@/lib/email";
-
-const DAY = 24 * 60 * 60 * 1000;
+import { createCode, deleteCode } from "@/lib/tokens";
+import { sendVerificationCode } from "@/lib/email";
 
 export async function POST(req) {
   let body;
@@ -121,31 +119,31 @@ export async function POST(req) {
     );
   }
 
-  // Create verification token + send email
-  const token = await createToken(email, "verify", DAY);
-  const base =
-    process.env.AUTH_URL ||
-    process.env.NEXTAUTH_URL ||
-    new URL(req.url).origin;
-  const url = `${base}/verify?token=${token}&email=${encodeURIComponent(email)}`;
-
+  // Email verification via 6-digit code. Create + send it; on a transient send
+  // failure still route the user to the code screen — they can resend there.
   try {
-    await sendVerificationEmail(email, url);
+    const code = await createCode(email, "verify");
+    await sendVerificationCode(email, code);
   } catch (err) {
-    // Account exists but email failed — tell the user to try res/login later.
-    console.error("Verification email failed:", err);
+    console.error("Verification code send failed:", err);
+    // The code was stored before the send. Since the send failed, drop it so
+    // the 60s resend cooldown isn't already armed against a code that never
+    // arrived — the user can tap "Resend code" on the next screen right away.
+    await deleteCode(email, "verify").catch(() => {});
     return NextResponse.json(
       {
         ok: true,
+        needsCode: true,
+        email,
         warning:
-          "Account created, but we couldn't send the verification email. Contact support.",
+          "Account created — but sending the code failed. Tap “Resend code” on the next screen.",
       },
       { status: 201 }
     );
   }
 
   return NextResponse.json(
-    { ok: true, message: "Check your email to verify your account." },
+    { ok: true, needsCode: true, email, message: "We emailed you a 6-digit code." },
     { status: 201 }
   );
 }

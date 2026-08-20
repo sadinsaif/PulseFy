@@ -316,6 +316,11 @@ export const verificationTokens = pgTable(
     identifier: text("identifier").notNull(),
     token: text("token").notNull(),
     purpose: text("purpose").notNull().default("verify"), // "verify" | "reset"
+    // Wrong-guess counter for the 6-digit signup CODE flow (migration 023).
+    // After MAX_ATTEMPTS wrong guesses the code is burned and the user must
+    // request a new one. The LINK flow (findToken looks a long token up by
+    // value) never reads this column, so it stays 0 there.
+    attempts: integer("attempts").notNull().default(0),
     expires: timestamp("expires", { mode: "date" }).notNull(),
   },
   (vt) => ({

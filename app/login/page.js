@@ -36,11 +36,18 @@ function LoginInner() {
     setLoading(false);
 
     if (res?.error) {
-      if (res.error.includes("EMAIL_NOT_VERIFIED")) {
-        setErr("Please verify your email before signing in. Check your inbox.");
-      } else {
-        setErr("Wrong email or password.");
+      if (res.code === "EMAIL_NOT_VERIFIED") {
+        // Unverified account — send a fresh code and take them to the code
+        // screen. Email + password stay the login credentials.
+        fetch("/api/resend-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }).catch(() => {});
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+        return;
       }
+      setErr("Wrong email or password.");
       return;
     }
     router.push("/dashboard");
