@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import { ambassadorReviewSchema } from "@/lib/validation";
 import { isAdminEmail } from "@/lib/admin";
 import { notifyUser } from "@/lib/notify";
+import { sendAmbassadorApprovalEmail } from "@/lib/email";
 
 // A friendly, applicant-facing line for each decision (in-app notification).
 const DECISION_MESSAGE = {
@@ -48,7 +49,13 @@ export async function PATCH(req, { params }) {
 
   try {
     const [existing] = await db
-      .select({ id: ambassadorApplications.id, userId: ambassadorApplications.userId })
+      .select({
+        id: ambassadorApplications.id,
+        userId: ambassadorApplications.userId,
+        email: ambassadorApplications.email,
+        name: ambassadorApplications.name,
+        status: ambassadorApplications.status,
+      })
       .from(ambassadorApplications)
       .where(eq(ambassadorApplications.id, params.id));
 
@@ -82,6 +89,21 @@ export async function PATCH(req, { params }) {
         message: DECISION_MESSAGE[status] || "Your Ambassador application was updated.",
         link: "/ambassador",
       });
+    }
+
+    // Email the applicant when they're newly approved (best-effort). The email
+    // lives on the application row, so this works even without an account, and a
+    // mail failure must never fail the review that already succeeded above.
+    if (status === "approved" && existing.status !== "approved" && existing.email && process.env.RESEND_API_KEY) {
+      try {
+        const base = process.env.AUTH_URL || process.env.NEXTAUTH_URL || new URL(req.url).origin;
+        await sendAmbassadorApprovalEmail(existing.email, {
+          name: existing.name,
+          url: `${base}/ambassador`,
+        });
+      } catch (err) {
+        console.error("Ambassador approval email failed:", err);
+      }
     }
 
     return NextResponse.json({ ok: true, application: row });
