@@ -8,9 +8,10 @@ import ReporterReports from "@/components/ReporterReports";
 import { isAdminEmail } from "@/lib/admin";
 
 /**
- * /dashboard/reports — Reports & Disputes (admin only). Future-ready shell:
- * no reporting/dispute tables exist yet, so this renders a real admin layout
- * with a clear "coming soon" empty-state rather than any fake data or actions.
+ * /dashboard/reports — Reports & Disputes. Admins get the full moderation queue
+ * (AdminReports) plus the audit log; everyone else sees their own private report
+ * history (ReporterReports). Backed by the real reports/report_events tables
+ * (migration 010) — this is live, not a placeholder.
  */
 export default async function ReportsPage() {
   const session = await auth();

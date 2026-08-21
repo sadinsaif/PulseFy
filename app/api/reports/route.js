@@ -20,19 +20,31 @@ function isActiveDuplicateError(error) {
   return false;
 }
 
+// Postgres "undefined_table" — thrown until migration 010 is applied on Neon.
+// Mirror the ambassador route: fail soft to an empty list instead of a 500.
+function isMissingTable(err) {
+  return err?.code === "42P01" || err?.cause?.code === "42P01";
+}
+
 export async function GET(req) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (new URL(req.url).searchParams.get("mine") === "1") {
-    const rows = await db.select().from(reports).where(eq(reports.reporterId, session.user.id)).orderBy(desc(reports.createdAt));
-    return NextResponse.json({ reports: rows });
+  try {
+    if (new URL(req.url).searchParams.get("mine") === "1") {
+      const rows = await db.select().from(reports).where(eq(reports.reporterId, session.user.id)).orderBy(desc(reports.createdAt));
+      return NextResponse.json({ reports: rows });
+    }
+    if (!isAdminEmail(session.user.email)) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+    const rows = await db.select().from(reports).orderBy(desc(reports.createdAt)).limit(200);
+    const ids = [...new Set(rows.flatMap((r) => [r.reporterId, r.reportedUserId]))];
+    const people = ids.length ? await db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(inArray(users.id, ids)) : [];
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return NextResponse.json({ reports: rows.map((r) => ({ ...r, reporter: byId.get(r.reporterId), reportedUser: byId.get(r.reportedUserId) })) });
+  } catch (err) {
+    if (isMissingTable(err)) return NextResponse.json({ reports: [] });
+    console.error("Reports list failed:", err);
+    return NextResponse.json({ error: "Could not load reports." }, { status: 500 });
   }
-  if (!isAdminEmail(session.user.email)) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
-  const rows = await db.select().from(reports).orderBy(desc(reports.createdAt)).limit(200);
-  const ids = [...new Set(rows.flatMap((r) => [r.reporterId, r.reportedUserId]))];
-  const people = ids.length ? await db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(inArray(users.id, ids)) : [];
-  const byId = new Map(people.map((p) => [p.id, p]));
-  return NextResponse.json({ reports: rows.map((r) => ({ ...r, reporter: byId.get(r.reporterId), reportedUser: byId.get(r.reportedUserId) })) });
 }
 
 export async function POST(req) {
