@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { campaigns, users, submissions, follows } from "@/db/schema";
+import { campaigns, users, submissions, follows, creatorPortfolio, creatorSocialLinks } from "@/db/schema";
 import { canViewCampaignContributions, participantCampaignIds } from "@/lib/campaign-access";
 import { and, desc, eq, sql } from "drizzle-orm";
 
@@ -112,6 +112,43 @@ export async function GET(_req, { params }) {
     following,
   };
 
+  // The creator's self-curated portfolio items + external social links. Both
+  // are public. Fail soft to empty arrays if the tables aren't present yet
+  // (mirrors the follow-count fallback above), so an old DB never 500s here.
+  let portfolio = [];
+  let socialLinks = [];
+  try {
+    portfolio = await db
+      .select({
+        id: creatorPortfolio.id,
+        title: creatorPortfolio.title,
+        description: creatorPortfolio.description,
+        category: creatorPortfolio.category,
+        workUrl: creatorPortfolio.workUrl,
+        platform: creatorPortfolio.platform,
+      })
+      .from(creatorPortfolio)
+      .where(eq(creatorPortfolio.creatorId, params.id))
+      .orderBy(creatorPortfolio.displayOrder, desc(creatorPortfolio.createdAt));
+    socialLinks = await db
+      .select({
+        id: creatorSocialLinks.id,
+        platform: creatorSocialLinks.platform,
+        url: creatorSocialLinks.url,
+      })
+      .from(creatorSocialLinks)
+      .where(eq(creatorSocialLinks.creatorId, params.id));
+  } catch {
+    portfolio = [];
+    socialLinks = [];
+  }
+
   // Public portfolio = approved clips only.
-  return NextResponse.json({ profile, stats, clips: approvedRows.map(({ campaignId: _campaignId, campaignRecordId: _campaignRecordId, brandId: _brandId, visibility: _visibility, showContributions: _showContributions, ...submission }) => submission) });
+  return NextResponse.json({
+    profile,
+    stats,
+    clips: approvedRows.map(({ campaignId: _campaignId, campaignRecordId: _campaignRecordId, brandId: _brandId, visibility: _visibility, showContributions: _showContributions, ...submission }) => submission),
+    portfolio,
+    socialLinks,
+  });
 }

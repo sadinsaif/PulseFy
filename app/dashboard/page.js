@@ -358,6 +358,22 @@ export default async function DashboardPage() {
               <CampaignGrid campaigns={allCampaigns} now={Date.now()} style={{ marginTop: 14 }} />
             )}
           </section>
+
+          {/* Refer & earn — surfaces the real referral program (5% of a referred
+              creator's payouts for their first 90 days) that otherwise only lives
+              in the sidebar. Links to the full referrals page. */}
+          <section className="panel" style={{ marginTop: 18 }}>
+            <div className="panel-head">
+              <h3>Refer &amp; earn</h3>
+              <Link href="/dashboard/referrals" style={{ color: "var(--accent)" }}>
+                Get your link →
+              </Link>
+            </div>
+            <p className="brief" style={{ marginTop: 6 }}>
+              Invite creators you know and earn 5% of their payouts for their
+              first 90 days.
+            </p>
+          </section>
         </main>
       </div>
     );

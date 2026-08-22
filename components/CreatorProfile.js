@@ -14,6 +14,18 @@ const PLATFORM_LABEL = {
   any: "🌐 Any",
 };
 
+// Plain text labels for the creator's own social links (rendered as clickable
+// pills). Text-only on purpose — no new icon set, just the platform name.
+const SOCIAL_LABEL = {
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  x: "X",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  website: "Website",
+};
+
 /**
  * Public, read-only view of any creator's profile: header (avatar, name, bio,
  * interests, socials), stat cards, and their approved clips (portfolio of
@@ -95,7 +107,7 @@ export default function CreatorProfile({ id, meId = "" }) {
 
   if (!data) return <p className="brief">Loading profile…</p>;
 
-  const { profile, stats, clips } = data;
+  const { profile, stats, clips, portfolio = [], socialLinks = [] } = data;
   const initial = (profile.name || profile.username || "S")[0].toUpperCase();
   const interestList = (profile.interests || "")
     .split(",")
@@ -139,6 +151,22 @@ export default function CreatorProfile({ id, meId = "" }) {
             <div className="tags" style={{ marginTop: 8 }}>
               {profile.twitter && <span className="tag-pill">𝕏 {profile.twitter}</span>}
               {profile.instagram && <span className="tag-pill">📸 {profile.instagram}</span>}
+            </div>
+          )}
+          {socialLinks.length > 0 && (
+            <div className="tags" style={{ marginTop: 8 }}>
+              {socialLinks.map((l) => (
+                <a
+                  key={l.id}
+                  className="tag-pill"
+                  href={l.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ textDecoration: "none" }}
+                >
+                  {SOCIAL_LABEL[l.platform] || l.platform} ↗
+                </a>
+              ))}
             </div>
           )}
           {meId && meId !== profile.id && (
@@ -193,7 +221,33 @@ export default function CreatorProfile({ id, meId = "" }) {
         </div>
       </div>
 
-      {/* Approved clips = public portfolio */}
+      {/* Curated portfolio the creator added themselves (distinct from the
+          campaign clips below). Only shown when they've added at least one. */}
+      {portfolio.length > 0 && (
+        <div className="panel" style={{ marginBottom: 18 }}>
+          <div className="panel-head">
+            <h3>Portfolio</h3>
+          </div>
+          <div>
+            {portfolio.map((p) => (
+              <div
+                key={p.id}
+                className="brief"
+                style={{ padding: "10px 0", borderBottom: "1px solid var(--border)" }}
+              >
+                <a href={p.workUrl} target="_blank" rel="noreferrer">
+                  <b>{p.title}</b>
+                </a>
+                {p.category && <> · {p.category}</>}
+                {p.platform && <> · {p.platform}</>}
+                {p.description && <div style={{ marginTop: 4 }}>{p.description}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Approved campaign clips */}
       <div className="panel">
         <div className="panel-head">
           <h3>Approved clips</h3>
