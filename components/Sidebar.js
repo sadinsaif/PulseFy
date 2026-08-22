@@ -19,6 +19,7 @@ const NAV = [
   { href: "/dashboard/payouts", icon: "💸", label: "Payouts", brandLabel: "Payments" },
   { href: "/dashboard/referrals", icon: "🔗", label: "Referrals", creatorOnly: true },
   { href: "/dashboard/analytics", icon: "📈", label: "Analytics" },
+  { href: "/dashboard/token", icon: "🪙", label: "$PULSE" },
 ];
 
 // Admin gets a platform-management control center — a distinct nav (not the
@@ -35,6 +36,7 @@ const ADMIN_NAV = [
   { href: "/dashboard/payouts", icon: "💸", label: "Payments" },
   { href: "/dashboard/reports", icon: "🛡️", label: "Reports & Disputes" },
   { href: "/dashboard/analytics", icon: "📈", label: "Analytics" },
+  { href: "/dashboard/token-claims", icon: "🪙", label: "$PULSE Claims" },
   { href: "/dashboard/settings", icon: "⚙️", label: "Settings" },
 ];
 

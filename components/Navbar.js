@@ -42,6 +42,7 @@ export default function Navbar({ session }) {
           <a href="/#how">How it works</a>
           <a href="/#features">Features</a>
           <a href="/#pricing">Pricing</a>
+          <Link href="/token">$PULSE</Link>
           <Link
             href="/ambassador"
             className="btn btn-ambassador"

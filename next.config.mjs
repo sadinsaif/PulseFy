@@ -13,7 +13,9 @@ const csp = [
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https://*.privy.io https://*.walletconnect.com https://explorer-api.walletconnect.com",
   // Privy auth API + RPC, and WalletConnect relays for external wallets.
-  "connect-src 'self' https://auth.privy.io https://*.privy.io https://*.rpc.privy.systems https://explorer-api.walletconnect.com https://*.walletconnect.com https://*.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org wss://www.walletlink.org",
+  // Solana: public devnet/mainnet RPC + common providers (Helius/QuickNode/Alchemy)
+  // over https and wss (RPC subscriptions), plus Jupiter for price/swap (Phase 3).
+  "connect-src 'self' https://auth.privy.io https://*.privy.io https://*.rpc.privy.systems https://explorer-api.walletconnect.com https://*.walletconnect.com https://*.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org wss://www.walletlink.org https://api.devnet.solana.com https://api.mainnet-beta.solana.com https://api.testnet.solana.com https://*.solana.com wss://api.devnet.solana.com wss://api.mainnet-beta.solana.com wss://*.solana.com https://*.helius-rpc.com wss://*.helius-rpc.com https://*.quiknode.pro wss://*.quiknode.pro https://*.g.alchemy.com wss://*.g.alchemy.com https://*.jup.ag https://price.jup.ag https://quote-api.jup.ag",
   // The Privy login modal + Turnstile + WalletConnect verify render in iframes.
   "frame-src 'self' https://auth.privy.io https://challenges.cloudflare.com https://verify.walletconnect.com https://verify.walletconnect.org",
   "child-src 'self' https://auth.privy.io https://challenges.cloudflare.com https://verify.walletconnect.com https://verify.walletconnect.org",

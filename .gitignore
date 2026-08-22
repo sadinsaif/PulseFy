@@ -26,3 +26,13 @@ Thumbs.db
 
 # drizzle
 /drizzle
+
+# Solana keypairs / private keys — NEVER commit these.
+# Token-mint authority + treasury keys live here; leaking them = losing the funds.
+/.keys/
+*.keypair.json
+id.json
+
+# local tooling — Claude session/plan data and an unrelated desktop app's SQLite DB
+/.claude/
+/.freebuff/

@@ -558,3 +558,96 @@ export const savedCampaigns = pgTable("saved_campaigns", {
   pk: primaryKey({ columns: [table.userId, table.campaignId] }),
   userSavedIdx: index("saved_campaigns_user_idx").on(table.userId, table.createdAt),
 }));
+
+// ===========================================================================
+// $PULSE token — Solana dApp (migration 026). Hold-to-earn rewards accrue in
+// Postgres off periodic on-chain balance snapshots and are settled by treasury
+// payout via the admin/manual-payout discipline. Reuses the proven money layer:
+// the reward ledger mirrors brand_wallet_ledger (append-only + immutable trigger),
+// balances are DERIVED (never stored), and claims mirror withdrawals.
+//
+// UNITS: token amounts are BASE UNITS (9 decimals) as `bigint(mode:"bigint")`.
+// A 1e9-supply token is 1e18 base units — that fits Postgres BIGINT but exceeds
+// JS Number's 2^53 safe range, so we use JS BigInt (a deliberate deviation from
+// the codebase's bigint(mode:"number"), which is only safe for small view counts).
+// ===========================================================================
+
+/**
+ * A signed-in user's VERIFIED Solana wallet. Written only after a signature proves
+ * the user controls the key (see app/api/token/wallet). One wallet per user (MVP)
+ * and one account per wallet — the two unique indexes stop reward-farming by
+ * linking the same wallet to many accounts or claiming on a balance you don't own.
+ */
+export const tokenWallets = pgTable("token_wallets", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  wallet: text("wallet").notNull(), // base58 Solana address
+  verifiedAt: timestamp("verified_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  walletIdx: uniqueIndex("token_wallets_wallet_idx").on(table.wallet),
+  userIdx: uniqueIndex("token_wallets_user_idx").on(table.userId),
+}));
+
+/**
+ * Point-in-time on-chain balance snapshots, one per accrual run per user. balance
+ * is BASE UNITS (bigint, exact). Rewards accrue off the MIN of consecutive
+ * snapshots (see lib/staking.js), so these are the audit trail behind accruals.
+ */
+export const tokenHoldingSnapshots = pgTable("token_holding_snapshots", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  wallet: text("wallet").notNull(),
+  balance: bigint("balance", { mode: "bigint" }).notNull(), // base units
+  takenAt: timestamp("taken_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  userTakenIdx: index("token_holding_snapshots_user_taken_idx").on(table.userId, table.takenAt),
+}));
+
+/**
+ * $PULSE reward ledger — append-only, immutable (a DB trigger blocks UPDATE/DELETE),
+ * mirroring brand_wallet_ledger. System-written only. amount is BASE UNITS (bigint),
+ * ALWAYS POSITIVE; direction comes from `action`:
+ *   accrue   — hold-to-earn reward for a snapshot period (idempotent per period).
+ *   reversal — claw back a prior accrual (fraud / correction).
+ *   adjust   — manual admin grant / correction.
+ * Available balance is DERIVED (Σaccrue − Σreversal − Σnon-failed-claims), never
+ * stored. `reference` is the snapshot-period key that makes accrual idempotent.
+ */
+export const tokenRewardLedger = pgTable("token_reward_ledger", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  action: text("action").notNull(), // accrue | reversal | adjust
+  amount: bigint("amount", { mode: "bigint" }).notNull(), // base units; always > 0
+  reference: text("reference"), // period key — accrual idempotency
+  note: text("note"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  userCreatedIdx: index("token_reward_ledger_user_created_idx").on(table.userId, table.createdAt),
+  // One accrual per (user, period), DB-enforced against double-runs of the cron.
+  uniqueAccrual: uniqueIndex("token_reward_ledger_unique_accrual_idx")
+    .on(table.userId, table.reference)
+    .where(sql`${table.action} = 'accrue'`),
+}));
+
+/**
+ * $PULSE claims — a holder requesting an on-chain payout of accrued rewards.
+ * Mutable lifecycle mirroring withdrawals: created 'pending', settled by an admin
+ * to 'paid' (with the treasury tx signature) or 'failed'. amount is BASE UNITS
+ * (bigint). destination is the user's verified wallet. Only non-failed claims
+ * reduce the available balance — a failed claim returns the rewards.
+ */
+export const tokenClaims = pgTable("token_claims", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount: bigint("amount", { mode: "bigint" }).notNull(), // base units; always > 0
+  destination: text("destination").notNull(), // base58 Solana address
+  status: text("status").notNull().default("pending"), // pending | paid | failed
+  txSignature: text("tx_signature"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  userCreatedIdx: index("token_claims_user_created_idx").on(table.userId, table.createdAt),
+  statusIdx: index("token_claims_status_idx").on(table.status, table.createdAt),
+}));
