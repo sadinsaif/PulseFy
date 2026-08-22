@@ -55,6 +55,7 @@ export default async function MyApplicationsPage() {
         postUrl: submissions.postUrl,
         reward: submissions.reward,
         status: submissions.status,
+        rejectionReason: submissions.rejectionReason,
         createdAt: submissions.createdAt,
       })
       .from(submissions)

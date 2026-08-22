@@ -252,8 +252,9 @@ export default function CampaignDetail({ id, user, isAdmin = false }) {
         )}
         {mine && mine.status === "rejected" && (
           <p className="brief" style={{ marginTop: 8 }}>
-            This submission was <b>rejected</b>. You can revise your post and submit
-            again below.
+            This submission was <b>rejected</b>
+            {mine.rejectionReason ? <> — {mine.rejectionReason}</> : ""}. You can
+            revise your post and submit again below.
           </p>
         )}
 

@@ -1460,6 +1460,20 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .camp-card:hover .camp-join { gap: 9px; color: var(--accent-3); }
 
+/* Save/bookmark toggle shown in the card foot on the Browse + Saved lists.
+   Opt-in: only rendered when the card is given an onToggleSave handler, so the
+   Overview feed markup is unchanged. The action group keeps the toggle beside
+   the Join CTA on the right of the foot. */
+.camp-foot-actions { display: inline-flex; align-items: center; gap: 10px; }
+.camp-save {
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  border-radius: 999px; padding: 3px 11px; font-size: 12px; font-weight: 700;
+  line-height: 1.7; cursor: pointer;
+  transition: color var(--t-med) var(--ease), border-color var(--t-med) var(--ease);
+}
+.camp-save:hover { color: var(--text); border-color: var(--text-dim); }
+.camp-save.is-saved { color: var(--accent); border-color: var(--accent); }
+
 /* ---- Campaign economics: Budget, reward pills, Live/End badge, countdown ---- */
 
 /* Budget shown in the card BODY (legacy / detail meta). Cards now surface the
@@ -1570,6 +1584,13 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--text); font-size: 15px;
 }
 .search-bar input::placeholder { color: var(--text-dim); }
+/* Optional right-aligned control inside a search bar (e.g. a sort dropdown).
+   No existing search bar contains a <select>, so this only affects new ones. */
+.search-bar select {
+  background: transparent; border: none; outline: none;
+  color: var(--text-dim); font-size: 14px; cursor: pointer; flex-shrink: 0;
+}
+.search-bar select option { color: var(--text); background: var(--bg-elev); }
 
 .creator-grid {
   display: grid; gap: 16px;

@@ -17,7 +17,7 @@ import TrustBadge from "@/components/TrustBadge";
  * `now` is passed in from a parent clock so every card counts down in sync
  * without each mounting its own interval.
  */
-export default function CampaignCard({ c, now }) {
+export default function CampaignCard({ c, now, saved = false, onToggleSave }) {
   const live = isLive(c, now);
   const left = countdown(c.endsAt, now);
   // Budget shown on the card is what's LEFT in the pool — it ticks down as the
@@ -32,6 +32,15 @@ export default function CampaignCard({ c, now }) {
   const contentTypeLabels = labelsFor(c.contentType, CONTENT_TYPE_LABEL);
   const summarize = (labels) =>
     labels.length > 1 ? `${labels[0]} +${labels.length - 1}` : labels[0] || "";
+
+  // Save/bookmark toggle. The whole card is a <Link>, so we stop the click from
+  // navigating when the button is pressed. Only wired when a parent passes
+  // onToggleSave (Browse / Saved list); the Overview feed omits it entirely.
+  function handleSave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onToggleSave) onToggleSave(c.id);
+  }
 
   return (
     <Link
@@ -103,9 +112,25 @@ export default function CampaignCard({ c, now }) {
         {c.brief && <p className="camp-brief">{c.brief}</p>}
         <div className="camp-foot">
           <span>{c.submissionCount ?? 0} submissions</span>
-          <span className="camp-join">
-            {live ? "Join & submit →" : "View campaign →"}
-          </span>
+          {onToggleSave ? (
+            <span className="camp-foot-actions">
+              <button
+                type="button"
+                className={`camp-save${saved ? " is-saved" : ""}`}
+                aria-pressed={saved}
+                onClick={handleSave}
+              >
+                {saved ? "Saved ✓" : "＋ Save"}
+              </button>
+              <span className="camp-join">
+                {live ? "Join & submit →" : "View campaign →"}
+              </span>
+            </span>
+          ) : (
+            <span className="camp-join">
+              {live ? "Join & submit →" : "View campaign →"}
+            </span>
+          )}
         </div>
       </div>
     </Link>

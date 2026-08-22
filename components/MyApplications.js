@@ -121,6 +121,14 @@ export default function MyApplications({ rows = [] }) {
                       <span className={`status ${STATUS_CLASS[r.status] || "review"}`}>
                         {STATUS_LABEL[r.status] || r.status}
                       </span>
+                      {r.status === "rejected" && r.rejectionReason ? (
+                        <div
+                          className="brief"
+                          style={{ fontSize: 12, marginTop: 4, maxWidth: 260 }}
+                        >
+                          {r.rejectionReason}
+                        </div>
+                      ) : null}
                     </td>
                     <td>
                       {r.campaignId ? (

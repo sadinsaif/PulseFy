@@ -29,6 +29,7 @@ export default function ReviewBoard() {
   const [rewards, setRewards] = useState({}); // per-submission $ input
   const [metrics, setMetrics] = useState({}); // per-submission { views, engagement }
   const [spotBonus, setSpotBonus] = useState({}); // per-submission spotlight $ input
+  const [reasons, setReasons] = useState({}); // per-submission reject reason (optional)
 
   async function load() {
     try {
@@ -65,6 +66,8 @@ export default function ReviewBoard() {
       const e = Number(eRaw);
       if (vRaw !== "" && Number.isFinite(v) && v >= 0) payload.views = Math.floor(v);
       if (eRaw !== "" && Number.isFinite(e) && e >= 0) payload.engagement = Math.floor(e);
+      // Optional free-text note the creator sees on reject. Only sent on reject.
+      if (status === "rejected") payload.reason = (reasons[id] || "").trim();
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,6 +85,8 @@ export default function ReviewBoard() {
                   views: payload.views != null ? payload.views : r.views,
                   engagement:
                     payload.engagement != null ? payload.engagement : r.engagement,
+                  rejectionReason:
+                    status === "rejected" ? payload.reason || null : null,
                 }
               : r
           )
@@ -278,36 +283,50 @@ export default function ReviewBoard() {
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                      <div className="reward-input">
-                        <span>$</span>
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          value={rewards[r.id] ?? (r.reward || "")}
-                          onChange={(e) =>
-                            setRewards((p) => ({ ...p, [r.id]: e.target.value }))
-                          }
-                          title="Reward for this post (USD)"
-                        />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <div className="reward-input">
+                          <span>$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={rewards[r.id] ?? (r.reward || "")}
+                            onChange={(e) =>
+                              setRewards((p) => ({ ...p, [r.id]: e.target.value }))
+                            }
+                            title="Reward for this post (USD)"
+                          />
+                        </div>
+                        <button
+                          className="btn btn-primary"
+                          style={{ padding: "6px 12px", fontSize: 13 }}
+                          disabled={busy === r.id + "approved"}
+                          onClick={() => setStatus(r.id, "approved")}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="btn btn-ghost"
+                          style={{ padding: "6px 12px", fontSize: 13 }}
+                          disabled={r.status === "rejected" || busy === r.id + "rejected"}
+                          onClick={() => setStatus(r.id, "rejected")}
+                        >
+                          Reject
+                        </button>
                       </div>
-                      <button
-                        className="btn btn-primary"
-                        style={{ padding: "6px 12px", fontSize: 13 }}
-                        disabled={busy === r.id + "approved"}
-                        onClick={() => setStatus(r.id, "approved")}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        className="btn btn-ghost"
-                        style={{ padding: "6px 12px", fontSize: 13 }}
-                        disabled={r.status === "rejected" || busy === r.id + "rejected"}
-                        onClick={() => setStatus(r.id, "rejected")}
-                      >
-                        Reject
-                      </button>
+                      <input
+                        type="text"
+                        maxLength={300}
+                        placeholder="Reason (optional, shown to creator on reject)"
+                        className="metric-input"
+                        style={{ width: "100%", minWidth: 180 }}
+                        value={reasons[r.id] ?? (r.rejectionReason || "")}
+                        onChange={(e) =>
+                          setReasons((p) => ({ ...p, [r.id]: e.target.value }))
+                        }
+                        title="Optional note the creator sees when you reject this post"
+                      />
                     </div>
                   </td>
                 </tr>

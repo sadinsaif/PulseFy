@@ -24,7 +24,7 @@ export async function GET() {
   const [viewer] = await db.select({ role: users.role }).from(users).where(eq(users.id, session.user.id));
   const admin = isAdminEmail(session.user.email);
   if (!admin && viewer?.role !== "brand") return NextResponse.json({ error: "Not allowed" }, { status: 403 });
-  const cols = { id: submissions.id, challengeId: submissions.challengeId, campaignId: submissions.campaignId, platform: submissions.platform, postUrl: submissions.postUrl, caption: submissions.caption, status: submissions.status, reward: submissions.reward, views: submissions.views, engagement: submissions.engagement, spotlighted: submissions.spotlighted, spotlightBonus: submissions.spotlightBonus, createdAt: submissions.createdAt, creatorId: submissions.userId, creatorName: users.name, creatorEmail: users.email, campaignReward: sql`(select reward from campaigns where campaigns.id = ${submissions.campaignId})` };
+  const cols = { id: submissions.id, challengeId: submissions.challengeId, campaignId: submissions.campaignId, platform: submissions.platform, postUrl: submissions.postUrl, caption: submissions.caption, status: submissions.status, reward: submissions.reward, views: submissions.views, engagement: submissions.engagement, spotlighted: submissions.spotlighted, spotlightBonus: submissions.spotlightBonus, rejectionReason: submissions.rejectionReason, createdAt: submissions.createdAt, creatorId: submissions.userId, creatorName: users.name, creatorEmail: users.email, campaignReward: sql`(select reward from campaigns where campaigns.id = ${submissions.campaignId})` };
   const base = db.select(cols).from(submissions).leftJoin(users, eq(submissions.userId, users.id));
   const rows = admin ? await base.orderBy(desc(submissions.createdAt)) : await base.innerJoin(campaigns, eq(submissions.campaignId, campaigns.id)).where(eq(campaigns.brandId, session.user.id)).orderBy(desc(submissions.createdAt));
   return NextResponse.json({ submissions: rows });
@@ -39,7 +39,7 @@ export async function POST(req) {
   let body; try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
   const parsed = reviewSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid input" }, { status: 400 });
-  const { submissionId, status, views, engagement, spotlighted } = parsed.data;
+  const { submissionId, status, views, engagement, spotlighted, reason } = parsed.data;
   let result;
   try {
     result = await db.transaction(async (tx) => {
@@ -66,6 +66,10 @@ export async function POST(req) {
         patch.spotlighted = false;
         patch.spotlightBonus = 0;
       }
+      // Non-financial: store the optional brand note only on reject, clear it on
+      // approve/pending. Not read by committed(), so it never changes `delta` or
+      // any ledger write — it just rides the existing tx.update below.
+      patch.rejectionReason = status === "rejected" ? (reason || "").trim() || null : null;
 
       const next = { ...submission, ...patch };
       const delta = committed(next) - committed(submission);
@@ -105,7 +109,7 @@ export async function POST(req) {
       return { submission, next, delta, funding: { ...funding, available: funding.available - delta } };
     });
   } catch (error) { if (error.status) return NextResponse.json({ error: error.message }, { status: error.status }); throw error; }
-  if ((status === "approved" || status === "rejected") && status !== result.submission.status) await notifyUser(result.submission.userId, { type: "review", message: `Your submission to ${result.submission.challengeId} was ${status === "approved" ? `approved ✅ — you earned $${result.next.reward}` : "rejected"}.`, link: "/dashboard/profile" });
+  if ((status === "approved" || status === "rejected") && status !== result.submission.status) await notifyUser(result.submission.userId, { type: "review", message: `Your submission to ${result.submission.challengeId} was ${status === "approved" ? `approved ✅ — you earned $${result.next.reward}` : `rejected${reason && reason.trim() ? ` — ${reason.trim()}` : ""}`}.`, link: "/dashboard/profile" });
   if (result.next.spotlighted && result.next.spotlightBonus > 0 && (!result.submission.spotlighted || result.next.spotlightBonus !== result.submission.spotlightBonus)) await notifyUser(result.submission.userId, { type: "review", message: `✦ Your post to ${result.submission.challengeId} was Spotlighted! You earned a $${result.next.spotlightBonus} bonus.`, link: "/dashboard/profile" });
   // Best-effort approval email to the creator. Never blocks or fails the review —
   // the reward is already committed above, so a mail hiccup must not 500 the request.

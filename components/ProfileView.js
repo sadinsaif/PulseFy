@@ -447,6 +447,14 @@ export default function ProfileView() {
                       <span className={`status ${STATUS_CLASS[s.status] || "review"}`}>
                         {s.status}
                       </span>
+                      {s.status === "rejected" && s.rejectionReason ? (
+                        <div
+                          className="brief"
+                          style={{ fontSize: 12, marginTop: 4, maxWidth: 240 }}
+                        >
+                          {s.rejectionReason}
+                        </div>
+                      ) : null}
                     </td>
                     <td style={{ fontWeight: 700 }} title={`${(Number(s.views) || 0).toLocaleString()} views`}>
                       {s.views > 0 ? fmtCompact(s.views) : <span style={{ color: "var(--text-dim)" }}>—</span>}

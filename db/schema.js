@@ -178,6 +178,10 @@ export const submissions = pgTable("submissions", {
   // "Spotlighted" showcase. Bonus counts toward earnings + withdrawable balance.
   spotlighted: boolean("spotlighted").notNull().default(false),
   spotlightBonus: integer("spotlight_bonus").notNull().default(0), // dollars
+  // Optional free-text note a brand/admin leaves when rejecting a post, shown
+  // back to the creator. Non-financial: never read by the payout math in
+  // /api/review, so it can't affect any reward, ledger, or balance.
+  rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 }, (table) => ({
   uniqueCreatorCampaign: uniqueIndex("submissions_unique_creator_campaign_idx")
@@ -532,4 +536,25 @@ export const ambassadorApplications = pgTable("ambassador_applications", {
     .where(sql`${table.userId} is not null and ${table.status} in ('submitted','under_review','approved')`),
   userRecentIdx: index("ambassador_applications_user_idx").on(table.userId, table.submittedAt),
   statusIdx: index("ambassador_applications_status_idx").on(table.status, table.submittedAt),
+}));
+
+/**
+ * Saved campaigns — a creator's private campaign bookmarks. The composite
+ * (user_id, campaign_id) primary key means a campaign can be saved at most once
+ * per creator, so a repeated save is a no-op. Both foreign keys cascade: a saved
+ * row disappears when either the creator or the campaign is deleted.
+ * Non-financial: read only to render the Saved list and mark cards; never
+ * touched by any payout, ledger, or balance math.
+ */
+export const savedCampaigns = pgTable("saved_campaigns", {
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  campaignId: text("campaign_id")
+    .notNull()
+    .references(() => campaigns.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.campaignId] }),
+  userSavedIdx: index("saved_campaigns_user_idx").on(table.userId, table.createdAt),
 }));
