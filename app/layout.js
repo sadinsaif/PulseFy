@@ -1,6 +1,7 @@
 import "./globals.css";
 import Providers from "@/components/Providers";
 import WaveBackground from "@/components/WaveBackground";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: "PulseFy — Infrastructure for the Creator Economy",
@@ -23,6 +24,7 @@ export default function RootLayout({ children }) {
             behind every UI layer (see components/WaveBackground.js). */}
         <WaveBackground />
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
